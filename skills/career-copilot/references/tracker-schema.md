@@ -1,0 +1,34 @@
+# Local tracker schema
+
+Version 0.1 uses `tracker.csv` in the private workspace.
+
+## Columns
+
+- `id`: stable local identity; never use a physical row number as identity.
+- `company`, `role`, `location`
+- `source`, `canonical_url`, `external_job_id`
+- `date_posted`, `date_discovered`, `last_verified`
+- `status`, `priority`
+- `next_action`, `next_action_date`
+- `contact`, `notes`
+
+## Statuses
+
+`identified`, `evaluating`, `application_prepared`, `applied`, `contact`, `recruiter_screen`, `interview`, `offer`, `withdrawn`, `rejected`, `discarded`.
+
+## Dedupe
+
+1. Exact external job ID.
+2. Canonical URL after removing tracking parameters.
+3. Normalized company plus near-identical role, followed by human review.
+
+A repost is not automatically a new opportunity. Compare source ID, scope, location and current status before reopening or creating a record.
+
+## Writes
+
+- Snapshot the file before bulk repair.
+- Locate records by stable ID and corroborating company/role.
+- Update the smallest affected set.
+- Write atomically where possible.
+- Read back and verify identity, status and next action.
+- Never report a write as successful solely because a command exited without error.

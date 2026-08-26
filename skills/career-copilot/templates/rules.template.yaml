@@ -1,0 +1,23 @@
+schema_version: 1
+search:
+  source_priority:
+    - official_company_sites
+    - official_ats
+    - recruiters_and_headhunters
+    - professional_networks
+    - aggregators
+  freshness_days: 14
+  require_current_source: true
+evaluation:
+  hard_exclusions: []
+  preferred_signals: []
+  unknown_is_not_match: true
+tracker:
+  backend: local_csv
+  file: tracker.csv
+  update_policy: ask
+  stable_identity: true
+communications:
+  first_contact_style: concise
+  send_policy: explicit_confirmation
+  application_policy: explicit_confirmation

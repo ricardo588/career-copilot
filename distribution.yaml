@@ -1,0 +1,11 @@
+name: career-copilot
+version: 0.1.0
+description: "Privacy-first, profile-driven job-search copilot for Hermes Agent"
+hermes_requires: ">=0.20.0"
+author: "Career Copilot contributors"
+distribution_owned:
+  - distribution.yaml
+  - SOUL.md
+  - config.yaml
+  - skills/career-copilot/
+  - cron/

@@ -1,0 +1,46 @@
+# Credentials and secrets
+.env
+.env.*
+!.env.EXAMPLE
+auth.json
+*.pem
+*.key
+*token*.json
+*credentials*.json
+
+# Hermes runtime and user-owned data
+memories/
+sessions/
+logs/
+plans/
+workspace/
+home/
+local/
+state.db*
+hermes_state.db*
+response_store.db*
+gateway.pid
+gateway_state.json
+processes.json
+auth.lock
+active_profile
+.update_check
+*_cache/
+checkpoints/
+sandboxes/
+backups/
+
+# Generated candidate workspaces and artifacts
+candidate-data/
+private/
+output/
+*.pdf
+*.docx
+
+# Development
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coverage

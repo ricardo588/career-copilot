@@ -1,0 +1,6 @@
+skills:
+  config:
+    career_copilot:
+      workspace: "~/Documents/CareerCopilot"
+      storage_backend: "local"
+      default_language: "auto"

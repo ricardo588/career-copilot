@@ -1,0 +1,30 @@
+schema_version: 1
+profile:
+  display_name: ""
+  language: auto
+  target_roles: []
+  target_seniority: []
+  target_industries: []
+  strengths: []
+  verified_evidence: []
+  gaps: []
+constraints:
+  countries: []
+  locations: []
+  work_modes: []
+  employment_types: []
+  excluded_roles: []
+  excluded_industries: []
+compensation:
+  enabled: false
+  currency: ""
+  target: null
+  floor: null
+permissions:
+  tracker_updates: ask
+  draft_messages: allow
+  external_actions: explicit_confirmation
+  public_profile_changes: explicit_confirmation
+documents:
+  primary_cv: ""
+  alternate_cvs: []
