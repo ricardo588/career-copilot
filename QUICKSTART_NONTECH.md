@@ -1,48 +1,48 @@
-# Quickstart — para tu hermana (y cualquiera no técnico)
+# Quickstart — for non-technical users
 
-## 🖱️ Opción A: Doble-click (macOS, más fácil)
+## 🖱️ Option A: Double-click (macOS, easiest)
 
-1. Descarga este archivo: **[Install_Career_Copilot.command](Install_Career_Copilot.command)** (botón derecho → "Guardar enlace como…")
-2. Abre **Terminal** y dale permisos (solo la primera vez):
+1. Download this file: **[Install_Career_Copilot.command](Install_Career_Copilot.command)** (right-click → "Save link as…")
+2. Open **Terminal** and grant execute permission (first time only):
    ```bash
    chmod +x ~/Downloads/Install_Career_Copilot.command
    ```
-3. **Haz doble-click** en el archivo descargado.
-4. Verás una ventana con pasos automáticos. Al final te dirá el comando para empezar.
-5. Copia ese comando, pégalo en Terminal, pulsa Enter.
-6. Escribe: `"Hola, ayúdame con mi onboarding. Una pregunta a la vez, por favor."`
+3. **Double-click** the downloaded file.
+4. A window runs the installer automatically. At the end it shows the command to start.
+5. Copy that command, paste into Terminal, press Enter.
+6. Type: `"Hello, help me with my onboarding. One question at a time, please."`
 
 ---
 
-## 🌐 Opción B: Una línea en Terminal (Linux/macOS/WSL)
+## 🌐 Option B: One line in Terminal (Linux/macOS/WSL)
 
-Copia y pega esto **entero** en Terminal y pulsa Enter:
+Copy and paste this **entire line** into Terminal and press Enter:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/ricardo588/career-copilot/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/<OWNER>/career-copilot/main/install.sh)
 ```
 
-Hace todo solo: clona, instala profile, configura, crea tu carpeta privada.
+It clones, installs the profile, configures everything, and creates your private workspace.
 
 ---
 
-## ✅ Qué pasa después
+## ✅ What happens next
 
-- Se abre el chat de Career Copilot.
-- Te hace **una pregunta corta a la vez** (roles, senioridad, fortalezas, etc.).
-- Tus respuestas se guardan **solo en tu Mac** (`~/Documents/CareerCopilot/`).
-- **Nada se envía a GitHub** ni a nadie sin tu "sí, envíalo" explícito.
-- Puedes cerrar y volver otro día: retoma donde lo dejaste.
-
----
-
-## 🆘 Si algo falla
-
-1. Asegúrate de tener **Hermes instalado** y funcionando (`hermes --version`).
-2. Si el doble-click no abre Terminal: clic derecho → "Abrir con" → Terminal.
-3. Si dice "permission denied": ejecuta `chmod +x` otra vez.
-4. Escríbeme (Ricardo) y lo arreglo yo.
+- The Career Copilot chat opens.
+- It asks **one short question at a time** (target roles, seniority, strengths, etc.).
+- Your answers are saved **only on your machine** (`~/Documents/CareerCopilot/`).
+- **Nothing is sent to GitHub** or shared without your explicit "yes, send it."
+- You can close and come back later: it resumes where you left off.
 
 ---
 
-**Tus datos, tu control. Siempre.**
+## 🆘 If something goes wrong
+
+1. Make sure **Hermes is installed** and working (`hermes --version`).
+2. If double-click doesn't open Terminal: right-click → "Open With" → Terminal.
+3. If it says "permission denied": run `chmod +x` again.
+4. Contact the maintainer and we'll fix it.
+
+---
+
+**Your data, your control. Always.**
