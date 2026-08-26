@@ -20,12 +20,23 @@ Do not export a personal Hermes profile to distribute this project. Install the 
 
 ## Documentation
 
-- [Installation](docs/INSTALL.md)
-- [Quickstart](docs/QUICKSTART.md)
+- [Installation](docs/INSTALL.md) — full CLI reference
+- [Non-technical quickstart](QUICKSTART_NONTECH.md) — one-liner, macOS .command, step-by-step guide
+- [Quickstart](docs/QUICKSTART.md) — developer quickstart
 - [Synthetic demo](docs/DEMO.md)
 - [Optional adapters](docs/ADAPTERS.md)
 - [Privacy and threat model](docs/PRIVACY.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+
+## Installers (for end users)
+
+| Method | File | Best for |
+|--------|------|----------|
+| **One-liner (Linux/macOS/WSL)** | [`install.sh`](install.sh) | Users comfortable with Terminal |
+| **Double-click (macOS)** | [`Install_Career_Copilot.command`](Install_Career_Copilot.command) | Zero-terminal experience |
+| **Step-by-step guide** | [`QUICKSTART_NONTECH.md`](QUICKSTART_NONTECH.md) | Anyone who wants to read first |
+
+All installers create an isolated Hermes profile, a private workspace (`~/Documents/CareerCopilot/` with `0700/0600` permissions), and start guided onboarding — no candidate data leaves the machine without explicit confirmation.
 
 ## Local development
 

@@ -2,6 +2,14 @@
 
 Career Copilot installs as an isolated Hermes profile. Each person gets a separate private workspace; the repository contains no candidate data.
 
+## Quick links for end users
+
+| Method | File | Best for |
+|--------|------|----------|
+| **One-liner (Linux/macOS/WSL)** | [`install.sh`](../install.sh) | Users comfortable with Terminal |
+| **Double-click (macOS)** | [`Install_Career_Copilot.command`](../Install_Career_Copilot.command) | Zero-terminal experience |
+| **Step-by-step guide** | [`QUICKSTART_NONTECH.md`](../QUICKSTART_NONTECH.md) | Anyone who wants to read first |
+
 ## Prerequisites
 
 - Hermes Agent 0.20.0 or newer
