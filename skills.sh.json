@@ -1,0 +1,29 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "skills": [
+    {
+      "author": "Career Copilot contributors",
+      "description": "Privacy-first, profile-driven job-search copilot for Hermes Agent. Resumable onboarding, local evaluation, optional dry-run adapters, synthetic end-to-end demo.",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/ricardo588/career-copilot",
+      "homepage": "https://github.com/ricardo588/career-copilot",
+      "tags": [
+        "career",
+        "jobs",
+        "hermes",
+        "skill",
+        "privacy"
+      ],
+      "name": "career-copilot",
+      "id": "ricardo588/career-copilot"
+    }
+  ],
+  "groupings": [
+    {
+      "title": "Career & Productivity",
+      "skills": [
+        "ricardo588/career-copilot"
+      ]
+    }
+  ]
+}
