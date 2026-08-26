@@ -5,9 +5,10 @@
 1. Read the minimum profile and rules.
 2. Fetch or inspect the current canonical posting.
 3. Apply eligibility and hard exclusions first.
-4. Assess fit using verified candidate evidence.
-5. Deduplicate against the tracker.
+4. Assess fit using verified candidate evidence; require meaningful multi-term overlap for multi-term requirements.
+5. Deduplicate against the tracker using canonical URL or external job ID.
 6. Recommend a next action; update the tracker only under local permissions.
+7. Optionally use `scripts/pipeline.py` for deterministic evaluation, CSV update and brief generation, but never treat it as live-source verification.
 
 ## Search
 

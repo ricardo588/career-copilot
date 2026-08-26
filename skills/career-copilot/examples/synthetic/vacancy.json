@@ -1,0 +1,22 @@
+{
+  "external_job_id": "DEMO-TPD-001",
+  "company": "Acme Cloud Services",
+  "title": "Technical Program Director",
+  "location": "Mexico (Remote)",
+  "seniority": "Director",
+  "employment_type": "Full-time",
+  "source": "synthetic_official_site",
+  "canonical_url": "https://jobs.example.test/acme/TPD-001?utm_source=demo",
+  "date_posted": "2026-08-20",
+  "status": "open",
+  "requirements": [
+    "Program governance",
+    "Cloud transformation",
+    "Executive stakeholder management",
+    "Vendor commercial management"
+  ],
+  "responsibilities": [
+    "Lead a multi-country transformation portfolio",
+    "Report delivery risks and outcomes to executives"
+  ]
+}

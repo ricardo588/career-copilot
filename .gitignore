@@ -34,6 +34,11 @@ backups/
 candidate-data/
 private/
 output/
+.career_copilot_onboarding.json
+*.pre-onboarding.bak
+tracker.csv
+interview-brief.md
+demo-result.json
 *.pdf
 *.docx
 

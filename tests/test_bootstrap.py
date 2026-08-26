@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -24,12 +25,21 @@ class BootstrapTests(unittest.TestCase):
             self.assertTrue((workspace / "profile.yaml").is_file())
             self.assertTrue((workspace / "rules.yaml").is_file())
             self.assertTrue((workspace / "tracker.csv").is_file())
+            self.assertEqual(stat.S_IMODE(workspace.stat().st_mode), 0o700)
+            for private_file in ("profile.yaml", "rules.yaml", "tracker.csv", "README_PRIVATE.md"):
+                self.assertEqual(stat.S_IMODE((workspace / private_file).stat().st_mode), 0o600)
             original = (workspace / "profile.yaml").read_text(encoding="utf-8")
 
             created_again, skipped_again = bootstrap_module.bootstrap(workspace, SKILL_DIR)
             self.assertEqual([], created_again)
             self.assertEqual(4, len(skipped_again))
             self.assertEqual(original, (workspace / "profile.yaml").read_text(encoding="utf-8"))
+
+    def test_rejects_workspace_inside_distribution(self):
+        forbidden = SKILL_DIR.parents[1] / "private-bootstrap-test"
+        with self.assertRaises(ValueError):
+            bootstrap_module.bootstrap(forbidden, SKILL_DIR)
+        self.assertFalse(forbidden.exists())
 
 
 if __name__ == "__main__":

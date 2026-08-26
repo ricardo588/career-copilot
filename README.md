@@ -1,22 +1,31 @@
 # Career Copilot for Hermes
 
-Private alpha of a reusable, privacy-first job-search operating system for [Hermes Agent](https://hermes-agent.nousresearch.com/docs).
+Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-agent.nousresearch.com/docs).
 
-## What it provides
+## Capabilities
 
-- Candidate-specific opportunity evaluation
-- Search and source prioritization
-- Deduplicated application tracking
-- Recruiter and ATS email triage
-- Networking and application drafts
-- Interview preparation and follow-up
-- Explicit guardrails for external actions
+- Resumable conversational onboarding with private checkpoints
+- Candidate-specific vacancy evaluation using verified evidence
+- Canonical deduplication and local CSV tracking
+- Synthetic profile → vacancy → tracker → interview demo
+- Optional dry-run-first Google Sheets, Gmail and Obsidian adapters
+- Explicit guardrails for messages, applications and public actions
+- Automated privacy, installation and functional tests
 
 ## Privacy model
 
-The repository contains methodology, templates and validators only. Candidate CVs, contacts, compensation, emails, memories, sessions, credentials and live trackers belong in the installer's private workspace and are never committed.
+The repository contains methodology, empty templates, deterministic scripts and synthetic fixtures only. Candidate CVs, contacts, compensation, emails, memories, sessions, credentials, IDs and live trackers belong in each installer's private workspace and are never committed.
 
-Do not export a personal Hermes profile to distribute this project. Use the profile distribution contained in this repository.
+Do not export a personal Hermes profile to distribute this project. Install the profile distribution contained here.
+
+## Documentation
+
+- [Installation](docs/INSTALL.md)
+- [Quickstart](docs/QUICKSTART.md)
+- [Synthetic demo](docs/DEMO.md)
+- [Optional adapters](docs/ADAPTERS.md)
+- [Privacy and threat model](docs/PRIVACY.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
 
 ## Local development
 
@@ -25,15 +34,18 @@ Requirements: Hermes Agent 0.20.0+, Git and Python 3.11+.
 ```bash
 python3 scripts/validate_bundle.py
 python3 -m unittest discover -s tests -v
-hermes profile install . --name career-copilot-test --alias
+hermes profile install . --name career-copilot-test
 ```
 
-## Candidate onboarding
+Run the no-account end-to-end demo:
 
-After installing the distribution, load `/career-copilot` and ask to initialize the private workspace. The skill uses the configured `skills.config.career_copilot.workspace` path and creates local profile, rules and tracker files without overwriting existing data.
+```bash
+OUTPUT_DIR="$(mktemp -d)/career-copilot-demo"
+python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPUT_DIR"
+```
 
-## Status
+## Current status
 
-Version 0.1.0 is a private alpha. It intentionally uses a local YAML/CSV workspace first. Google Workspace, Obsidian and other integrations will be optional adapters.
+Version 0.2.0 is a private pilot release. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages.
 
 No redistribution license has been selected yet.

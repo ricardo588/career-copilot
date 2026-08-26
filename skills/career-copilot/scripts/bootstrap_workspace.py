@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
+import sys
 from pathlib import Path
 
 
@@ -27,8 +29,14 @@ This directory belongs to the candidate. It may contain personal data.
 
 def bootstrap(workspace: Path, skill_dir: Path) -> tuple[list[Path], list[Path]]:
     workspace = workspace.expanduser().resolve()
+    profile_root = skill_dir.resolve().parents[1]
+    if workspace == profile_root or profile_root in workspace.parents:
+        raise ValueError("private workspace must be outside the Career Copilot profile/distribution directory")
     templates = skill_dir / "templates"
+    workspace_was_new = not workspace.exists()
     workspace.mkdir(parents=True, exist_ok=True)
+    if workspace_was_new:
+        os.chmod(workspace, 0o700)
     (workspace / "notes").mkdir(exist_ok=True)
     (workspace / "applications").mkdir(exist_ok=True)
 
@@ -41,6 +49,7 @@ def bootstrap(workspace: Path, skill_dir: Path) -> tuple[list[Path], list[Path]]
             skipped.append(target)
             continue
         shutil.copyfile(source, target)
+        os.chmod(target, 0o600)
         created.append(target)
 
     readme = workspace / "README_PRIVATE.md"
@@ -48,6 +57,7 @@ def bootstrap(workspace: Path, skill_dir: Path) -> tuple[list[Path], list[Path]]
         skipped.append(readme)
     else:
         readme.write_text(PRIVATE_README, encoding="utf-8")
+        os.chmod(readme, 0o600)
         created.append(readme)
 
     return created, skipped
@@ -59,7 +69,11 @@ def main() -> int:
     args = parser.parse_args()
 
     skill_dir = Path(__file__).resolve().parents[1]
-    created, skipped = bootstrap(Path(args.workspace), skill_dir)
+    try:
+        created, skipped = bootstrap(Path(args.workspace), skill_dir)
+    except (ValueError, OSError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     for path in created:
         print(f"created: {path}")
     for path in skipped:
