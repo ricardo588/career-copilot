@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.4.1
+version: 0.4.2
 author: Career Copilot contributors
 metadata:
   hermes:

@@ -3,7 +3,7 @@
 ## Install
 
 ```bash
-hermes profile install <OWNER>/career-copilot --name my-career-copilot --alias
+hermes profile install ricardo588/career-copilot --name my-career-copilot --alias
 hermes -p my-career-copilot setup
 ```
 

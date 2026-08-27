@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Career Copilot — simple installer for non-technical users
-# Run: bash <(curl -fsSL https://raw.githubusercontent.com/<OWNER>/career-copilot/main/install.sh)
+# Run: bash <(curl -fsSL https://raw.githubusercontent.com/ricardo588/career-copilot/main/install.sh)
 
 set -euo pipefail
 
@@ -44,13 +44,14 @@ fi
 PROFILE_NAME="career-copilot"
 
 say "Installing profile into Hermes..."
-if hermes profile list 2>/dev/null | grep -q "^$PROFILE_NAME\b"; then
-    warn "Profile '$PROFILE_NAME' already exists. Updating..."
-    hermes profile delete "$PROFILE_NAME" -y >/dev/null 2>&1
+if hermes profile info "$PROFILE_NAME" >/dev/null 2>&1; then
+    warn "Profile '$PROFILE_NAME' already exists. Updating it without deleting user data..."
+    hermes profile update "$PROFILE_NAME" -y >/dev/null
+    ok "Profile '$PROFILE_NAME' updated"
+else
+    hermes profile install "$REPO_DIR" --name "$PROFILE_NAME" --alias >/dev/null
+    ok "Profile '$PROFILE_NAME' installed"
 fi
-
-hermes profile install "$REPO_DIR" --name "$PROFILE_NAME" --alias >/dev/null
-ok "Profile '$PROFILE_NAME' installed"
 
 # ---------- Configure Hermes ----------
 say "Configuring Hermes..."

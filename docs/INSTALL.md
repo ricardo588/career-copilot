@@ -45,7 +45,7 @@ hermes profile install /path/to/career-copilot --name my-career-copilot --alias
 Or from a GitHub repository the installer can access:
 
 ```bash
-hermes profile install <OWNER>/career-copilot --name my-career-copilot --alias
+hermes profile install ricardo588/career-copilot --name my-career-copilot --alias
 ```
 
 The installer validates `distribution.yaml` and copies only distribution-owned files.

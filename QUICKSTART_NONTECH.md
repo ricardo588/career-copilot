@@ -19,7 +19,7 @@
 Copy and paste this **entire line** into Terminal and press Enter:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/<OWNER>/career-copilot/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/ricardo588/career-copilot/main/install.sh)
 ```
 
 It clones, installs the profile, configures everything, and creates your private workspace.
