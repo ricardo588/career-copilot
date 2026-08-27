@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 profile:
   display_name: ""
   language: auto
@@ -23,8 +23,8 @@ compensation:
 permissions:
   tracker_updates: ask
   draft_messages: allow
-  external_actions: explicit_confirmation
-  public_profile_changes: explicit_confirmation
+  external_action_mode: draft_only
+  external_action_mode_locked: false
 documents:
   primary_cv: ""
   alternate_cvs: []
@@ -32,7 +32,7 @@ integrations:
   google_sheets:
     enabled: false
     spreadsheet_id_env: CAREER_COPILOT_SHEET_ID
-    range: "Applications!A:P"
+    range: "Applications!A:T"
   gmail:
     enabled: false
     user_id: me

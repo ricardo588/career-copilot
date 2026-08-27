@@ -6,9 +6,12 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 
 - Resumable conversational onboarding with private checkpoints
 - Candidate-specific vacancy evaluation using verified evidence
+- Human Path research for current contacts, recruiter/poster and hiring manager
+- Interviewer intelligence from sourced facts with hypotheses kept separate
 - Canonical deduplication and local CSV tracking
 - Synthetic profile → vacancy → tracker → interview demo
 - Optional dry-run-first Google Sheets, Gmail and Obsidian adapters
+- `draft_only` by default, explicit `confirm_each_external` opt-in, and lockable profiles
 - Explicit guardrails for messages, applications and public actions
 - Automated privacy, installation and functional tests
 
@@ -36,7 +39,7 @@ Do not export a personal Hermes profile to distribute this project. Install the 
 | **Double-click (macOS)** | [`Install_Career_Copilot.command`](Install_Career_Copilot.command) | Zero-terminal experience |
 | **Step-by-step guide** | [`QUICKSTART_NONTECH.md`](QUICKSTART_NONTECH.md) | Anyone who wants to read first |
 
-All installers create an isolated Hermes profile, a private workspace (`~/Documents/CareerCopilot/` with `0700/0600` permissions), and start guided onboarding — no candidate data leaves the machine without explicit confirmation.
+All installers create an isolated Hermes profile, a private workspace (`~/Documents/CareerCopilot/` with `0700/0600` permissions), and start guided onboarding. External actions are blocked by default in `draft_only`; other users may explicitly opt in to `confirm_each_external`.
 
 ## Local development
 
@@ -57,6 +60,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.2.0 is a private pilot release. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages.
+Version 0.3.0 is a pilot release. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
 
-No redistribution license has been selected yet.
+Licensed under Apache-2.0; see [LICENSE](LICENSE).

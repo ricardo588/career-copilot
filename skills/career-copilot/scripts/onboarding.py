@@ -26,7 +26,7 @@ QUESTIONS = [
     {"phase": "preferences", "field": "search.freshness_days", "prompt": "How many days should a vacancy remain fresh?", "required": False},
     {"phase": "documents", "field": "documents.primary_cv", "prompt": "Where is the private primary CV stored?", "required": False},
     {"phase": "permissions", "field": "permissions.tracker_updates", "prompt": "May the copilot update the private tracker?", "required": True},
-    {"phase": "permissions", "field": "permissions.external_actions", "prompt": "What approval is required for external actions?", "required": True},
+    {"phase": "permissions", "field": "permissions.external_action_mode", "prompt": "Keep draft-only mode, or explicitly opt in to confirmation for each external action?", "required": False},
 ]
 
 DEFAULT_ANSWERS: dict[str, Any] = {
@@ -52,8 +52,8 @@ DEFAULT_ANSWERS: dict[str, Any] = {
     "permissions": {
         "tracker_updates": "ask",
         "draft_messages": "allow",
-        "external_actions": "explicit_confirmation",
-        "public_profile_changes": "explicit_confirmation",
+        "external_action_mode": "draft_only",
+        "external_action_mode_locked": False,
     },
     "documents": {"primary_cv": "", "alternate_cvs": []},
     "search": {
@@ -80,7 +80,6 @@ REQUIRED_FIELDS = [
     "profile.strengths",
     "profile.verified_evidence",
     "permissions.tracker_updates",
-    "permissions.external_actions",
 ]
 
 LIST_FIELDS = {
@@ -92,13 +91,13 @@ LIST_FIELDS = {
 }
 BOOLEAN_FIELDS = {
     "compensation.enabled", "search.require_current_source",
+    "permissions.external_action_mode_locked",
     "integrations.google_sheets.enabled", "integrations.gmail.enabled", "integrations.obsidian.enabled",
 }
 CHOICE_FIELDS = {
     "permissions.tracker_updates": {"ask", "allow", "deny"},
     "permissions.draft_messages": {"ask", "allow", "deny"},
-    "permissions.external_actions": {"explicit_confirmation", "deny"},
-    "permissions.public_profile_changes": {"explicit_confirmation", "deny"},
+    "permissions.external_action_mode": {"draft_only", "confirm_each_external"},
 }
 NUMBER_OR_NULL_FIELDS = {"compensation.target", "compensation.floor"}
 
@@ -120,6 +119,8 @@ ALLOWED_FIELDS = leaf_paths(DEFAULT_ANSWERS)
 def validate_answer(field: str, value: Any) -> None:
     if field not in ALLOWED_FIELDS:
         raise ValueError(f"unknown onboarding field: {field}")
+    if field == "permissions.external_action_mode_locked":
+        raise ValueError("permissions.external_action_mode_locked is managed by profile policy, not onboarding answers")
     if field in LIST_FIELDS:
         if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
             raise ValueError(f"{field} must be a JSON array of non-empty strings")
@@ -169,15 +170,19 @@ def ensure_private_workspace(workspace: Path) -> Path:
     return resolved
 
 
-def new_state() -> dict[str, Any]:
+def new_state(lock_draft_only: bool = False) -> dict[str, Any]:
     now = utc_now()
+    answers = copy.deepcopy(DEFAULT_ANSWERS)
+    if lock_draft_only:
+        answers["permissions"]["external_action_mode"] = "draft_only"
+        answers["permissions"]["external_action_mode_locked"] = True
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "in_progress",
         "created_at": now,
         "updated_at": now,
         "answered_fields": [],
-        "answers": copy.deepcopy(DEFAULT_ANSWERS),
+        "answers": answers,
     }
 
 
@@ -185,7 +190,14 @@ def load_state(workspace: Path) -> dict[str, Any]:
     path = state_file(workspace)
     if not path.is_file():
         raise ValueError("onboarding has not started; run the start command first")
-    return json.loads(path.read_text(encoding="utf-8"))
+    state = json.loads(path.read_text(encoding="utf-8"))
+    permissions = state.setdefault("answers", {}).setdefault("permissions", {})
+    if "external_action_mode" not in permissions:
+        legacy = permissions.get("external_actions")
+        permissions["external_action_mode"] = "confirm_each_external" if legacy == "explicit_confirmation" else "draft_only"
+    permissions.setdefault("external_action_mode_locked", False)
+    state["schema_version"] = 2
+    return state
 
 
 def get_nested(data: dict[str, Any], dotted: str) -> Any:
@@ -241,12 +253,17 @@ def status_payload(state: dict[str, Any]) -> dict[str, Any]:
         (item for item in QUESTIONS if item["field"] in missing or item["field"].startswith("constraints.") and "constraints.countries_or_locations" in missing),
         None,
     )
+    permissions = state.get("answers", {}).get("permissions", {})
     return {
         "status": state.get("status", "in_progress"),
         "completed_required": completed,
         "required_total": required_total,
         "missing": missing,
         "next_question": next_question,
+        "external_action_policy": {
+            "mode": permissions.get("external_action_mode", "draft_only"),
+            "locked": bool(permissions.get("external_action_mode_locked", False)),
+        },
         "updated_at": state.get("updated_at"),
     }
 
@@ -267,7 +284,7 @@ def finalize(workspace: Path, state: dict[str, Any]) -> dict[str, Any]:
 
     answers = state["answers"]
     profile_document = {
-        "schema_version": 1,
+        "schema_version": 2,
         "profile": answers["profile"],
         "constraints": answers["constraints"],
         "compensation": answers["compensation"],
@@ -276,11 +293,22 @@ def finalize(workspace: Path, state: dict[str, Any]) -> dict[str, Any]:
         "integrations": answers["integrations"],
     }
     rules_document = {
-        "schema_version": 1,
+        "schema_version": 2,
         "search": answers["search"],
         "evaluation": {"hard_exclusions": [], "preferred_signals": [], "unknown_is_not_match": True},
         "tracker": {"backend": "local_csv", "file": "tracker.csv", "update_policy": answers["permissions"]["tracker_updates"], "stable_identity": True},
-        "communications": {"first_contact_style": "concise", "send_policy": answers["permissions"]["external_actions"], "application_policy": answers["permissions"]["external_actions"]},
+        "communications": {
+            "first_contact_style": "concise",
+            "external_action_mode": answers["permissions"]["external_action_mode"],
+            "external_action_mode_locked": answers["permissions"]["external_action_mode_locked"],
+        },
+        "human_path": {
+            "enabled": True,
+            "search_contacts": True,
+            "search_recruiter_or_poster": True,
+            "search_hiring_manager": True,
+            "require_current_source": True,
+        },
     }
 
     profile_path = workspace / "profile.yaml"
@@ -303,6 +331,7 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     start = commands.add_parser("start", help="Start or resume onboarding")
     start.add_argument("--reset", action="store_true", help="Reset only the onboarding checkpoint")
+    start.add_argument("--lock-draft-only", action="store_true", help="Permanently lock this checkpoint/workspace to draft-only mode")
     answer = commands.add_parser("answer", help="Store one answer and checkpoint")
     answer.add_argument("--field", required=True)
     value_group = answer.add_mutually_exclusive_group(required=True)
@@ -329,7 +358,14 @@ def main() -> int:
             if path.exists() and not args.reset:
                 state = load_state(workspace)
             else:
-                state = new_state()
+                preserve_lock = False
+                if path.exists():
+                    preserve_lock = bool(load_state(workspace)["answers"]["permissions"].get("external_action_mode_locked", False))
+                state = new_state(lock_draft_only=args.lock_draft_only or preserve_lock)
+                atomic_write_json(path, state)
+            if args.lock_draft_only:
+                state["answers"]["permissions"]["external_action_mode"] = "draft_only"
+                state["answers"]["permissions"]["external_action_mode_locked"] = True
                 atomic_write_json(path, state)
             print(json.dumps(status_payload(state), indent=2, ensure_ascii=False))
             return 0
@@ -345,6 +381,9 @@ def main() -> int:
         if args.command == "answer":
             value = json.loads(args.json_value) if args.json_value is not None else args.value
             validate_answer(args.field, value)
+            permissions = state["answers"]["permissions"]
+            if args.field == "permissions.external_action_mode" and permissions.get("external_action_mode_locked"):
+                raise ValueError("external action mode is locked to draft_only for this profile/workspace")
             set_nested(state["answers"], args.field, value)
             answered_fields = state.setdefault("answered_fields", [])
             if args.field not in answered_fields:

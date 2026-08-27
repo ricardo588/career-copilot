@@ -1,0 +1,30 @@
+{
+  "contacts": [
+    {
+      "name": "Synthetic Contact",
+      "path_type": "trusted_contact",
+      "current_company": "Acme Cloud Services",
+      "current_role": "Transformation Leader",
+      "relationship": "former synthetic colleague",
+      "source_url": "https://example.test/people/synthetic-contact",
+      "confidence": "confirmed"
+    }
+  ],
+  "recruiter": {
+    "name": "Synthetic Recruiter",
+    "path_type": "recruiter_or_poster",
+    "current_company": "Acme Cloud Services",
+    "current_role": "Talent Partner",
+    "source_url": "https://example.test/people/synthetic-recruiter",
+    "confidence": "confirmed"
+  },
+  "hiring_manager": {
+    "name": "Synthetic Hiring Manager",
+    "path_type": "hiring_manager",
+    "current_company": "Acme Cloud Services",
+    "current_role": "VP Transformation",
+    "source_url": "https://example.test/people/synthetic-manager",
+    "confidence": "confirmed"
+  },
+  "retrieved_at": "2026-08-26"
+}

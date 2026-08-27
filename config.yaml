@@ -4,3 +4,7 @@ skills:
       workspace: "~/Documents/CareerCopilot"
       storage_backend: "local"
       default_language: "auto"
+      external_action_mode: "draft_only"
+      external_action_mode_locked: false
+      human_path_enabled: true
+      interviewer_research_enabled: true

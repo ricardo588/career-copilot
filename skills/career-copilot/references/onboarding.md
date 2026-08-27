@@ -25,7 +25,7 @@ Ask one phase at a time and allow the user to skip optional fields.
 4. **Preferences** — industries, source priority and vacancy freshness.
 5. **Compensation** — optional and disabled unless the user wants it considered.
 6. **Documents** — optional local paths; never upload or copy documents without a separate request.
-7. **Permissions** — tracker update policy and exact external-action confirmation policy.
+7. **Permissions** — tracker update policy and external-action mode. `draft_only` is the default; `confirm_each_external` requires explicit opt-in.
 8. **Integrations** — optional and disabled by default.
 
 List the machine-readable catalog with:
@@ -63,9 +63,20 @@ Report progress and the next phase without echoing private answers unless reques
 - `profile.verified_evidence`
 - at least one of `constraints.countries` or `constraints.locations`
 - `permissions.tracker_updates`
-- `permissions.external_actions`
+
 
 Blank means unknown, never permission to infer.
+
+## Locked draft-only profiles
+
+Initialize a user/profile that must never perform external actions with:
+
+```bash
+python3 ${HERMES_SKILL_DIR}/scripts/onboarding.py \
+  --workspace <WORKSPACE> start --lock-draft-only
+```
+
+The lock persists through `start --reset`. The onboarding `answer` command cannot modify the lock or select `confirm_each_external` while locked. Removing the lock requires an intentional manual policy migration outside conversational onboarding.
 
 ## Finalize
 

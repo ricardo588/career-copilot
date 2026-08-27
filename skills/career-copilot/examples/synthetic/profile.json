@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "profile": {
     "display_name": "Demo Candidate",
     "language": "English",
@@ -35,8 +35,8 @@
   "permissions": {
     "tracker_updates": "allow",
     "draft_messages": "allow",
-    "external_actions": "explicit_confirmation",
-    "public_profile_changes": "explicit_confirmation"
+    "external_action_mode": "draft_only",
+    "external_action_mode_locked": true
   },
   "documents": {
     "primary_cv": "",

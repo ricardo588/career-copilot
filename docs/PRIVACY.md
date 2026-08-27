@@ -27,20 +27,24 @@ The repository `.gitignore` blocks common private artifacts, but ignore rules ar
 
 ## External-action boundary
 
-Without explicit action-specific confirmation, Career Copilot may:
+In the default `draft_only` mode, Career Copilot may:
 
 - analyze supplied information;
 - search/read when authorized;
 - update private local state according to local policy;
 - prepare drafts and previews.
 
-It may not:
+It may not, even if draft text was approved or `--apply` was supplied:
 
 - apply for a role;
 - send or reply to a message;
 - publish or modify a public profile;
 - contact a person;
 - change an external spreadsheet or message state.
+
+Other users may explicitly opt in to `confirm_each_external`. That mode still requires fresh confirmation for the exact destination, content and action. A profile with `external_action_mode_locked: true` remains `draft_only`; onboarding and reset cannot change it.
+
+Human Path and interviewer research are always read-only. Discovering a contact, recruiter, hiring manager or interviewer does not authorize any interaction.
 
 Adapter mutations additionally require `--apply` and readback verification.
 

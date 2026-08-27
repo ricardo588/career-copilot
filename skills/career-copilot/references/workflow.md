@@ -7,8 +7,9 @@
 3. Apply eligibility and hard exclusions first.
 4. Assess fit using verified candidate evidence; require meaningful multi-term overlap for multi-term requirements.
 5. Deduplicate against the tracker using canonical URL or external job ID.
-6. Recommend a next action; update the tracker only under local permissions.
-7. Optionally use `scripts/pipeline.py` for deterministic evaluation, CSV update and brief generation, but never treat it as live-source verification.
+6. Research the Human Path: current trusted contacts, exact recruiter/poster and confirmed or likely hiring manager. Separate sourced identities from hypotheses.
+7. Recommend a next action; update the tracker only under local permissions.
+8. Optionally use `scripts/pipeline.py` for deterministic evaluation, Human Path normalization, CSV update and brief generation, but never treat it as live-source verification.
 
 ## Search
 
@@ -17,7 +18,8 @@
 3. Treat search output as a shortlist, not approved tracker entries.
 4. Verify each promising role on a canonical source.
 5. Deduplicate before writing.
-6. Report reviewed sources, verified additions, discards and incomplete sources.
+6. Run a scoped Human Path search for every viable role before final prioritization.
+7. Report reviewed sources, verified additions, Human Paths, discards and incomplete sources.
 
 ## Reconcile evidence
 
@@ -37,10 +39,12 @@
 ## Interview preparation
 
 1. Verify the company, role and current stage.
-2. Research current company/role facts from credible sources.
-3. Select real candidate evidence from the private profile.
-4. Prepare pitch, stories, likely questions, risks and candidate questions.
-5. Separate confirmed company facts from positioning recommendations.
+2. Reconcile the invitation and confirm every visible interviewer, organizer, stage and duration.
+3. Research current company/role facts and each confirmed interviewer from credible direct sources.
+4. Separate interviewer facts from hypotheses; do not infer personality or preferences.
+5. Select real candidate evidence from the private profile and map it to the interviewer's confirmed mandate.
+6. Prepare pitch, stories, likely questions, one mini-case, risks and candidate questions.
+7. Separate confirmed company/interviewer facts from positioning recommendations.
 
 ## Status summary
 

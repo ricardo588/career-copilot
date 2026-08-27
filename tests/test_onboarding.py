@@ -24,7 +24,8 @@ class OnboardingTests(unittest.TestCase):
             initial = self.run_command("--workspace", str(workspace), "start")
             self.assertEqual(initial["status"], "in_progress")
             self.assertEqual(initial["completed_required"], 0)
-            self.assertIn("permissions.external_actions", initial["missing"])
+            self.assertEqual(initial["external_action_policy"]["mode"], "draft_only")
+            self.assertFalse(initial["external_action_policy"]["locked"])
 
             answers = {
                 "profile.target_roles": ["Program Director"],
@@ -33,7 +34,6 @@ class OnboardingTests(unittest.TestCase):
                 "profile.verified_evidence": ["Led a verified synthetic program"],
                 "constraints.countries": ["Exampleland"],
                 "permissions.tracker_updates": "allow",
-                "permissions.external_actions": "explicit_confirmation",
             }
             for field, value in answers.items():
                 self.run_command(
@@ -47,8 +47,40 @@ class OnboardingTests(unittest.TestCase):
             self.assertEqual(final["status"], "complete")
             profile = json.loads((workspace / "profile.yaml").read_text(encoding="utf-8"))
             self.assertEqual(profile["profile"]["target_roles"], ["Program Director"])
+            self.assertEqual(profile["permissions"]["external_action_mode"], "draft_only")
             self.assertTrue((workspace / "profile.yaml.pre-onboarding.bak").is_file())
             self.assertTrue((workspace / "rules.yaml.pre-onboarding.bak").is_file())
+
+    def test_confirm_each_external_requires_explicit_opt_in(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            result = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "permissions.external_action_mode",
+                "--value", "confirm_each_external",
+            )
+            self.assertEqual(result["external_action_policy"]["mode"], "confirm_each_external")
+
+    def test_locked_draft_only_cannot_be_changed_or_reset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            locked = self.run_command("--workspace", str(workspace), "start", "--lock-draft-only")
+            self.assertEqual(locked["external_action_policy"], {"mode": "draft_only", "locked": True})
+
+            change = subprocess.run(
+                [
+                    sys.executable, str(ONBOARDING), "--workspace", str(workspace),
+                    "answer", "--field", "permissions.external_action_mode",
+                    "--value", "confirm_each_external",
+                ],
+                check=False, capture_output=True, text=True,
+            )
+            self.assertEqual(change.returncode, 2)
+            self.assertIn("locked", change.stderr)
+
+            reset = self.run_command("--workspace", str(workspace), "start", "--reset")
+            self.assertEqual(reset["external_action_policy"], {"mode": "draft_only", "locked": True})
 
     def test_finalize_rejects_incomplete_state(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -67,7 +99,8 @@ class OnboardingTests(unittest.TestCase):
             self.run_command("--workspace", str(workspace), "start")
             invalid_commands = [
                 ["answer", "--field", "profile.target_roles", "--json-value", '"not-a-list"'],
-                ["answer", "--field", "permissions.external_actions", "--value", "always_send"],
+                ["answer", "--field", "permissions.external_action_mode", "--value", "always_send"],
+                ["answer", "--field", "permissions.external_action_mode_locked", "--json-value", "false"],
                 ["answer", "--field", "unknown.private_field", "--value", "blocked"],
                 ["answer", "--field", "search.freshness_days", "--json-value", "0"],
             ]

@@ -9,10 +9,45 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 
 Runner = Callable[[list[str]], dict[str, Any]]
+
+
+def load_profile(path: Optional[str]) -> Optional[dict[str, Any]]:
+    if not path:
+        return None
+    text = Path(path).read_text(encoding="utf-8")
+    try:
+        loaded = json.loads(text)
+    except json.JSONDecodeError:
+        try:
+            import yaml  # type: ignore
+        except ImportError as exc:
+            raise ValueError("profile is not JSON-compatible YAML; install PyYAML or finalize onboarding") from exc
+        loaded = yaml.safe_load(text)
+    if not isinstance(loaded, dict):
+        raise ValueError("profile must contain a mapping")
+    return loaded
+
+
+def require_external_permission(profile: Optional[dict[str, Any]]) -> str:
+    if profile is None:
+        raise ValueError("external mutations require --profile so Career Copilot can enforce its action policy")
+    permissions = profile.get("permissions", {})
+    mode = permissions.get("external_action_mode")
+    if mode is None:
+        legacy = permissions.get("external_actions")
+        mode = "confirm_each_external" if legacy == "explicit_confirmation" else "draft_only"
+    locked = bool(permissions.get("external_action_mode_locked", False))
+    if locked and mode != "draft_only":
+        raise ValueError("invalid policy: a locked profile must use draft_only")
+    if mode == "draft_only":
+        raise ValueError("external mutation blocked: profile is draft_only")
+    if mode != "confirm_each_external":
+        raise ValueError(f"unsupported external action mode: {mode}")
+    return mode
 
 
 def run_json_command(command: list[str]) -> dict[str, Any]:
@@ -37,10 +72,18 @@ def sheets_read(runner: Runner, sheet_id: str, range_name: str) -> dict[str, Any
     return runner(["gws", "sheets", "spreadsheets", "values", "get", "--params", params])
 
 
-def sheets_update(runner: Runner, sheet_id: str, range_name: str, values: list[list[Any]], apply: bool = False) -> dict[str, Any]:
+def sheets_update(
+    runner: Runner,
+    sheet_id: str,
+    range_name: str,
+    values: list[list[Any]],
+    apply: bool = False,
+    profile: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     plan = {"adapter": "google_sheets", "operation": "update", "sheet": sheet_hint(sheet_id), "range": range_name, "rows": len(values), "apply": apply}
     if not apply:
         return {"status": "dry_run", "plan": plan}
+    require_external_permission(profile)
     params = json.dumps({"spreadsheetId": sheet_id, "range": range_name, "valueInputOption": "RAW"}, separators=(",", ":"))
     body = json.dumps({"values": values}, separators=(",", ":"))
     runner(["gws", "sheets", "spreadsheets", "values", "update", "--params", params, "--json", body])
@@ -61,10 +104,17 @@ def gmail_get(runner: Runner, message_id: str, user_id: str = "me") -> dict[str,
     return runner(["gws", "gmail", "users", "messages", "get", "--params", params])
 
 
-def gmail_mark_read(runner: Runner, message_id: str, user_id: str = "me", apply: bool = False) -> dict[str, Any]:
+def gmail_mark_read(
+    runner: Runner,
+    message_id: str,
+    user_id: str = "me",
+    apply: bool = False,
+    profile: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     plan = {"adapter": "gmail", "operation": "mark_read", "message_id": message_id, "apply": apply}
     if not apply:
         return {"status": "dry_run", "plan": plan}
+    require_external_permission(profile)
     params = json.dumps({"userId": user_id, "id": message_id}, separators=(",", ":"))
     runner(["gws", "gmail", "users", "messages", "modify", "--params", params, "--json", '{"removeLabelIds":["UNREAD"]}'])
     readback = gmail_get(runner, message_id, user_id)
@@ -110,6 +160,7 @@ def parser() -> argparse.ArgumentParser:
     sheets_set.add_argument("--sheet-id", required=True)
     sheets_set.add_argument("--range", required=True)
     sheets_set.add_argument("--values-json", required=True)
+    sheets_set.add_argument("--profile", help="Private profile.yaml; required with --apply")
     sheets_set.add_argument("--apply", action="store_true")
 
     gmail_find = commands.add_parser("gmail-search")
@@ -124,6 +175,7 @@ def parser() -> argparse.ArgumentParser:
     gmail_modify = commands.add_parser("gmail-mark-read")
     gmail_modify.add_argument("--message-id", required=True)
     gmail_modify.add_argument("--user-id", default="me")
+    gmail_modify.add_argument("--profile", help="Private profile.yaml; required with --apply")
     gmail_modify.add_argument("--apply", action="store_true")
 
     obsidian = commands.add_parser("obsidian-write")
@@ -143,13 +195,19 @@ def main() -> int:
             values = json.loads(args.values_json)
             if not isinstance(values, list) or any(not isinstance(row, list) for row in values):
                 raise ValueError("values-json must be a JSON array of row arrays")
-            result = sheets_update(run_json_command, args.sheet_id, args.range, values, args.apply)
+            result = sheets_update(
+                run_json_command, args.sheet_id, args.range, values, args.apply,
+                load_profile(args.profile),
+            )
         elif args.command == "gmail-search":
             result = gmail_search(run_json_command, args.query, args.user_id, args.max_results)
         elif args.command == "gmail-get":
             result = gmail_get(run_json_command, args.message_id, args.user_id)
         elif args.command == "gmail-mark-read":
-            result = gmail_mark_read(run_json_command, args.message_id, args.user_id, args.apply)
+            result = gmail_mark_read(
+                run_json_command, args.message_id, args.user_id, args.apply,
+                load_profile(args.profile),
+            )
         elif args.command == "obsidian-write":
             content = Path(args.content_file).read_text(encoding="utf-8")
             result = obsidian_write(Path(args.vault), args.relative_path, content, args.apply)

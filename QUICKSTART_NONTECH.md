@@ -31,7 +31,8 @@ It clones, installs the profile, configures everything, and creates your private
 - The Career Copilot chat opens.
 - It asks **one short question at a time** (target roles, seniority, strengths, etc.).
 - Your answers are saved **only on your machine** (`~/Documents/CareerCopilot/`).
-- **Nothing is sent to GitHub** or shared without your explicit "yes, send it."
+- **External actions are blocked by default** (`draft_only`): it can research and prepare drafts, but it cannot apply, send, publish or contact people.
+- Advanced users may explicitly opt in to `confirm_each_external`; every exact action still needs a fresh confirmation.
 - You can close and come back later: it resumes where you left off.
 
 ---

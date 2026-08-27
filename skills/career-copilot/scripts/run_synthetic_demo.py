@@ -9,7 +9,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from pipeline import evaluate, interview_brief, load_document, read_tracker, track
+from pipeline import evaluate, interview_brief, load_document, read_tracker, summarize_human_path, track
 
 
 def main() -> int:
@@ -25,18 +25,25 @@ def main() -> int:
     profile = load_document(fixtures / "profile.json")
     rules = load_document(fixtures / "rules.json")
     vacancy = load_document(fixtures / "vacancy.json")
+    human_path = load_document(fixtures / "human-path.json")
+    interviewer_research = load_document(fixtures / "interviewer-research.json")
     as_of = date.fromisoformat(args.as_of)
 
     evaluation = evaluate(profile, rules, vacancy, as_of)
     tracker_path = output / "tracker.csv"
-    tracker_result = track(tracker_path, vacancy, evaluation, as_of)
+    human_summary = summarize_human_path(vacancy, human_path)
+    tracker_result = track(tracker_path, vacancy, evaluation, as_of, human_path, interviewer_research)
     brief_path = output / "interview-brief.md"
-    brief_path.write_text(interview_brief(profile, vacancy, evaluation), encoding="utf-8")
+    brief_path.write_text(
+        interview_brief(profile, vacancy, evaluation, human_path, interviewer_research),
+        encoding="utf-8",
+    )
 
     result = {
         "scenario": "synthetic_profile_to_interview",
         "external_actions": 0,
         "evaluation": evaluation,
+        "human_path": human_summary,
         "tracker": tracker_result,
         "tracker_rows": len(read_tracker(tracker_path)),
         "interview_brief": str(brief_path),

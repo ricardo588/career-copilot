@@ -15,7 +15,7 @@ Career Copilot installs as an isolated Hermes profile. Each person gets a separa
 - Hermes Agent 0.20.0 or newer
 - Python 3.11 or newer
 - Git
-- Access to the distribution repository during the private pilot
+- Access to the public distribution repository
 - A configured model provider in Hermes
 
 Verify:
@@ -26,15 +26,13 @@ python3 --version
 git --version
 ```
 
-## 1. Obtain repository access
+## 1. Obtain the repository
 
-During the private pilot, the repository owner must invite the installer as a collaborator. Authenticate Git without copying tokens into the repository.
+The repository is public. Clone it directly or install from GitHub without credentials:
 
 ```bash
-gh auth login
+git clone https://github.com/ricardo588/career-copilot.git
 ```
-
-If `gh` is unavailable, use another Git credential flow supported by the installer’s operating system.
 
 ## 2. Install an isolated profile
 
@@ -83,7 +81,9 @@ hermes -p my-career-copilot chat -s career-copilot
 
 Suggested first message:
 
-> Continue my Career Copilot onboarding. Ask one short section at a time, checkpoint every answer, and never perform an external action without my explicit confirmation.
+> Continue my Career Copilot onboarding. Ask one short section at a time, checkpoint every answer, and keep the default draft-only mode.
+
+`draft_only` blocks external actions. Other users may explicitly opt in to `confirm_each_external`; each exact action and destination still needs fresh confirmation. For a profile that must never change modes, initialize onboarding with `start --lock-draft-only`.
 
 ## 6. Verify isolation
 

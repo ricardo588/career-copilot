@@ -12,14 +12,15 @@ import re
 import sys
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 TRACKER_FIELDS = [
     "id", "company", "role", "location", "source", "canonical_url", "external_job_id",
     "date_posted", "date_discovered", "status", "priority", "next_action",
-    "next_action_date", "contact", "notes", "last_verified",
+    "next_action_date", "contact", "human_path_status", "recruiter", "hiring_manager",
+    "interviewer", "notes", "last_verified",
 ]
 STOPWORDS = {"and", "or", "the", "a", "an", "of", "for", "to", "in", "with", "de", "la", "el", "y", "para", "con"}
 
@@ -147,6 +148,65 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
     }
 
 
+def summarize_human_path(vacancy: dict[str, Any], research: dict[str, Any]) -> dict[str, Any]:
+    """Separate sourced human paths from possible or unsupported identities."""
+    company = str(vacancy.get("company", "")).strip().casefold()
+    candidates: list[dict[str, Any]] = []
+    for item in research.get("contacts", []) or []:
+        if isinstance(item, dict):
+            candidates.append(dict(item))
+    for key, path_type in (("recruiter", "recruiter_or_poster"), ("hiring_manager", "hiring_manager")):
+        item = research.get(key)
+        if isinstance(item, dict):
+            normalized = dict(item)
+            normalized.setdefault("path_type", path_type)
+            candidates.append(normalized)
+
+    confirmed: list[dict[str, Any]] = []
+    unverified: list[dict[str, Any]] = []
+    for item in candidates:
+        name = str(item.get("name", "")).strip()
+        source_url = str(item.get("source_url", "")).strip()
+        confidence = str(item.get("confidence", "")).casefold()
+        path_type = str(item.get("path_type", "possible_contact"))
+        current_company = str(item.get("current_company", "")).strip().casefold()
+        company_required = path_type in {"trusted_contact", "possible_contact", "hiring_manager"}
+        company_matches = not company_required or bool(company and current_company == company)
+        normalized = {
+            "name": name or "unknown",
+            "path_type": path_type,
+            "current_role": str(item.get("current_role", "")).strip(),
+            "current_company": str(item.get("current_company", "")).strip(),
+            "relationship": str(item.get("relationship", "")).strip(),
+            "source_url": source_url,
+        }
+        if name and source_url.startswith(("https://", "http://")) and confidence == "confirmed" and company_matches:
+            confirmed.append(normalized)
+        else:
+            unverified.append(normalized)
+
+    confirmed_types = {item["path_type"] for item in confirmed}
+    unknowns = []
+    if "trusted_contact" not in confirmed_types:
+        unknowns.append("trusted company contact")
+    if "recruiter_or_poster" not in confirmed_types:
+        unknowns.append("recruiter/poster")
+    if "hiring_manager" not in confirmed_types:
+        unknowns.append("hiring manager")
+
+    order = {"trusted_contact": 0, "recruiter_or_poster": 1, "hiring_manager": 2}
+    confirmed.sort(key=lambda item: order.get(item["path_type"], 9))
+    status = "confirmed" if confirmed else "unverified" if unverified else "none_found"
+    return {
+        "status": status,
+        "confirmed_paths": confirmed,
+        "unverified_paths": unverified,
+        "unknowns": unknowns,
+        "recommended_path": confirmed[0] if confirmed else None,
+        "guardrail": "Research is read-only; a path is not permission to contact anyone.",
+    }
+
+
 def stable_id(vacancy: dict[str, Any]) -> str:
     external = str(vacancy.get("external_job_id", "")).strip()
     if external:
@@ -173,15 +233,40 @@ def atomic_write_tracker(path: Path, rows: list[dict[str, str]]) -> None:
     os.replace(temporary, path)
 
 
-def track(path: Path, vacancy: dict[str, Any], evaluation: dict[str, Any], as_of: date) -> dict[str, Any]:
+def track(
+    path: Path,
+    vacancy: dict[str, Any],
+    evaluation: dict[str, Any],
+    as_of: date,
+    human_path: Optional[dict[str, Any]] = None,
+    interviewer_research: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     rows = read_tracker(path)
     identity = stable_id(vacancy)
     canonical = canonicalize_url(str(vacancy.get("canonical_url", "")))
+    human_summary = summarize_human_path(vacancy, human_path or {})
+    confirmed_paths = human_summary["confirmed_paths"]
+    contacts = [item["name"] for item in confirmed_paths if item["path_type"] == "trusted_contact"]
+    recruiters = [item["name"] for item in confirmed_paths if item["path_type"] == "recruiter_or_poster"]
+    hiring_managers = [item["name"] for item in confirmed_paths if item["path_type"] == "hiring_manager"]
+    interviewers = [
+        str(item.get("name", "")).strip()
+        for item in (interviewer_research or {}).get("interviewers", [])
+        if isinstance(item, dict) and str(item.get("name", "")).strip()
+    ]
+    human_fields = {
+        "contact": "; ".join(contacts),
+        "human_path_status": human_summary["status"],
+        "recruiter": "; ".join(recruiters),
+        "hiring_manager": "; ".join(hiring_managers),
+        "interviewer": "; ".join(interviewers),
+    }
     duplicate = next((row for row in rows if row.get("id") == identity or canonical and row.get("canonical_url") == canonical), None)
     if duplicate:
         duplicate["last_verified"] = as_of.isoformat()
+        duplicate.update(human_fields)
         atomic_write_tracker(path, rows)
-        return {"action": "updated_existing", "id": duplicate["id"], "row_count": len(rows)}
+        return {"action": "updated_existing", "id": duplicate["id"], "row_count": len(rows), "human_path": human_summary}
 
     recommendation = evaluation.get("recommendation", "Low")
     priority = {"High": "high", "Medium": "medium", "Low": "low", "Discard": "discard"}.get(str(recommendation), "low")
@@ -200,7 +285,7 @@ def track(path: Path, vacancy: dict[str, Any], evaluation: dict[str, Any], as_of
         "priority": priority,
         "next_action": str(evaluation.get("next_action", "")),
         "next_action_date": "",
-        "contact": "",
+        **human_fields,
         "notes": "; ".join(evaluation.get("risks", [])),
         "last_verified": as_of.isoformat(),
     }
@@ -210,11 +295,18 @@ def track(path: Path, vacancy: dict[str, Any], evaluation: dict[str, Any], as_of
     verified = any(item.get("id") == identity and item.get("company") == row["company"] for item in readback)
     if not verified:
         raise RuntimeError("tracker readback verification failed")
-    return {"action": "added", "id": identity, "row_count": len(readback)}
+    return {"action": "added", "id": identity, "row_count": len(readback), "human_path": human_summary}
 
 
-def interview_brief(profile: dict[str, Any], vacancy: dict[str, Any], evaluation: dict[str, Any]) -> str:
+def interview_brief(
+    profile: dict[str, Any],
+    vacancy: dict[str, Any],
+    evaluation: dict[str, Any],
+    human_path: Optional[dict[str, Any]] = None,
+    interviewer_research: Optional[dict[str, Any]] = None,
+) -> str:
     evidence = profile.get("profile", {}).get("verified_evidence", [])
+    human_summary = summarize_human_path(vacancy, human_path or {})
     lines = [
         f"# Interview brief — {vacancy.get('company', '')} / {vacancy.get('title', '')}",
         "",
@@ -223,8 +315,44 @@ def interview_brief(profile: dict[str, Any], vacancy: dict[str, Any], evaluation
         f"- Seniority: {vacancy.get('seniority', 'unknown')}",
         f"- Fit recommendation: {evaluation.get('recommendation', 'unknown')}",
         "",
-        "## Candidate evidence to use",
+        "## Human Path",
+        f"- Status: {human_summary['status']}",
     ]
+    if human_summary["confirmed_paths"]:
+        for item in human_summary["confirmed_paths"]:
+            lines.append(
+                f"- Confirmed {item['path_type']}: {item['name']} — {item['current_role']} "
+                f"({item['source_url']})"
+            )
+    else:
+        lines.append("- No sourced contact, recruiter/poster or hiring manager was confirmed.")
+    lines.extend([
+        "- Read-only research is not permission to contact anyone.",
+        "",
+        "## Interviewer intelligence",
+    ])
+    interviewers = (interviewer_research or {}).get("interviewers", [])
+    if not interviewers:
+        lines.append("- Interviewer identity has not been confirmed.")
+    for interviewer in interviewers:
+        if not isinstance(interviewer, dict):
+            continue
+        name = str(interviewer.get("name", "unknown")).strip() or "unknown"
+        role = str(interviewer.get("current_role", "unknown")).strip() or "unknown"
+        source_url = str(interviewer.get("source_url", "")).strip()
+        if not source_url.startswith(("https://", "http://")):
+            lines.append(f"- Unverified interviewer: {name} — {role}; no direct source supplied.")
+            continue
+        lines.append(f"- {name} — {role} ({source_url})")
+        for fact in interviewer.get("confirmed_facts", []) or []:
+            lines.append(f"  - Confirmed fact: {fact}")
+        for hypothesis in interviewer.get("hypotheses", []) or []:
+            lines.append(f"  - Interview hypothesis: {hypothesis}")
+    lines.extend([
+        "- Do not infer personality, preferences or decision power from a title or credential.",
+        "",
+        "## Candidate evidence to use",
+    ])
     lines.extend(f"- {item}" for item in evidence)
     lines.extend([
         "",
@@ -250,20 +378,30 @@ def main() -> int:
     parser.add_argument("--as-of", required=True, help="YYYY-MM-DD")
     parser.add_argument("--tracker")
     parser.add_argument("--brief")
+    parser.add_argument("--human-path", help="JSON/YAML file with sourced contacts, recruiter/poster and hiring-manager evidence")
+    parser.add_argument("--interviewer-research", help="JSON/YAML file with sourced interviewer facts and labeled hypotheses")
     args = parser.parse_args()
     try:
         profile = load_document(Path(args.profile))
         rules = load_document(Path(args.rules))
         vacancy = load_document(Path(args.vacancy))
+        human_path = load_document(Path(args.human_path)) if args.human_path else {}
+        interviewer_research = load_document(Path(args.interviewer_research)) if args.interviewer_research else {}
         as_of = parse_iso_day(args.as_of)
         result = evaluate(profile, rules, vacancy, as_of)
-        payload: dict[str, Any] = {"evaluation": result}
+        human_summary = summarize_human_path(vacancy, human_path)
+        payload: dict[str, Any] = {"evaluation": result, "human_path": human_summary}
         if args.tracker:
-            payload["tracker"] = track(Path(args.tracker), vacancy, result, as_of)
+            payload["tracker"] = track(
+                Path(args.tracker), vacancy, result, as_of, human_path, interviewer_research,
+            )
         if args.brief:
             brief_path = Path(args.brief)
             brief_path.parent.mkdir(parents=True, exist_ok=True)
-            brief_path.write_text(interview_brief(profile, vacancy, result), encoding="utf-8")
+            brief_path.write_text(
+                interview_brief(profile, vacancy, result, human_path, interviewer_research),
+                encoding="utf-8",
+            )
             os.chmod(brief_path, 0o600)
             payload["brief"] = str(brief_path)
         print(json.dumps(payload, indent=2, ensure_ascii=False))

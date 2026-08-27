@@ -7,10 +7,12 @@ The bundled scenario proves the local workflow without using a real candidate, e
 1. Load a synthetic candidate profile and rules.
 2. Load a synthetic open vacancy from a reserved `.test` URL.
 3. Evaluate title, seniority, eligibility, freshness and evidence overlap.
-4. Create one canonical tracker row.
-5. Re-run safely without creating a duplicate.
-6. Generate an interview brief using only declared evidence.
-7. Record that zero external actions occurred.
+4. Load a sourced synthetic Human Path with contact, recruiter and hiring manager.
+5. Create one canonical tracker row with Human Path fields.
+6. Re-run safely without creating a duplicate.
+7. Load sourced interviewer facts plus explicitly labeled hypotheses.
+8. Generate an interview brief using only declared evidence.
+9. Record that zero external actions occurred.
 
 ## Run
 
@@ -41,7 +43,8 @@ Generated artifacts:
 - Exactly three requirements are supported by meaningful evidence overlap.
 - The unrelated commercial-management requirement is not marked as supported.
 - `tracker_rows` is `1`.
+- `human_path.status` is `confirmed`.
 - `external_actions` is `0`.
-- The interview brief contains the evidence guardrail.
+- The interview brief contains Human Path, interviewer intelligence and the evidence guardrail.
 
 The fixed default evaluation date is `2026-08-26`, making the test reproducible.

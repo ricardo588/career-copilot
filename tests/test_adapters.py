@@ -23,6 +23,9 @@ class FakeRunner:
 
 
 class AdapterTests(unittest.TestCase):
+    draft_only = {"permissions": {"external_action_mode": "draft_only", "external_action_mode_locked": True}}
+    confirm_each = {"permissions": {"external_action_mode": "confirm_each_external", "external_action_mode_locked": False}}
+
     def test_sheets_update_is_dry_run_by_default(self):
         fake = FakeRunner([])
         result = ADAPTERS.sheets_update(fake, "sheet-example-1234", "Applications!A2:B2", [["Acme", "Role"]])
@@ -32,7 +35,10 @@ class AdapterTests(unittest.TestCase):
 
     def test_sheets_apply_requires_matching_readback(self):
         fake = FakeRunner([{"updatedRows": 1}, {"values": [["Acme", "Role"]]}])
-        result = ADAPTERS.sheets_update(fake, "sheet-example-1234", "Applications!A2:B2", [["Acme", "Role"]], apply=True)
+        result = ADAPTERS.sheets_update(
+            fake, "sheet-example-1234", "Applications!A2:B2", [["Acme", "Role"]],
+            apply=True, profile=self.confirm_each,
+        )
         self.assertTrue(result["verified"])
         self.assertEqual(len(fake.calls), 2)
         self.assertIn("update", fake.calls[0])
@@ -45,9 +51,24 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(dry_fake.calls, [])
 
         apply_fake = FakeRunner([{"id": "synthetic-message"}, {"id": "synthetic-message", "labelIds": ["INBOX"]}])
-        applied = ADAPTERS.gmail_mark_read(apply_fake, "synthetic-message", apply=True)
+        applied = ADAPTERS.gmail_mark_read(
+            apply_fake, "synthetic-message", apply=True, profile=self.confirm_each,
+        )
         self.assertTrue(applied["verified"])
         self.assertEqual(len(apply_fake.calls), 2)
+
+    def test_draft_only_blocks_external_mutations_even_with_apply(self):
+        fake = FakeRunner([])
+        with self.assertRaises(ValueError):
+            ADAPTERS.sheets_update(
+                fake, "sheet-example-1234", "Applications!A2:B2", [["Acme", "Role"]],
+                apply=True, profile=self.draft_only,
+            )
+        with self.assertRaises(ValueError):
+            ADAPTERS.gmail_mark_read(
+                fake, "synthetic-message", apply=True, profile=self.draft_only,
+            )
+        self.assertEqual(fake.calls, [])
 
     def test_obsidian_write_is_scoped_dry_run_first_and_read_back(self):
         with tempfile.TemporaryDirectory() as tmp:

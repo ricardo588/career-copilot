@@ -1,0 +1,21 @@
+{
+  "interviewers": [
+    {
+      "name": "Synthetic Hiring Manager",
+      "current_role": "VP Transformation",
+      "source_url": "https://example.test/people/synthetic-manager",
+      "confirmed_facts": [
+        "Leads the synthetic enterprise transformation portfolio"
+      ],
+      "hypotheses": [
+        "May focus on governance, value realization and executive alignment"
+      ]
+    }
+  ],
+  "invitation": {
+    "stage": "hiring-manager interview",
+    "duration_minutes": 60,
+    "organizer": "Synthetic Recruiter"
+  },
+  "retrieved_at": "2026-08-26"
+}

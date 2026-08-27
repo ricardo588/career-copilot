@@ -1,1 +1,1 @@
-id,company,role,location,source,canonical_url,external_job_id,date_posted,date_discovered,status,priority,next_action,next_action_date,contact,notes,last_verified
+id,company,role,location,source,canonical_url,external_job_id,date_posted,date_discovered,status,priority,next_action,next_action_date,contact,human_path_status,recruiter,hiring_manager,interviewer,notes,last_verified

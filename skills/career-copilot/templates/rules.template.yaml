@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 search:
   source_priority:
     - official_company_sites
@@ -19,5 +19,15 @@ tracker:
   stable_identity: true
 communications:
   first_contact_style: concise
-  send_policy: explicit_confirmation
-  application_policy: explicit_confirmation
+  external_action_mode: draft_only
+  external_action_mode_locked: false
+human_path:
+  enabled: true
+  search_contacts: true
+  search_recruiter_or_poster: true
+  search_hiring_manager: true
+  require_current_source: true
+interviewer_research:
+  enabled_when_interview_confirmed: true
+  require_direct_source: true
+  separate_facts_from_hypotheses: true

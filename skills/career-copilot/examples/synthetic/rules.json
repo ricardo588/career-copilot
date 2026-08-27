@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "search": {
     "source_priority": ["official_company_sites", "official_ats"],
     "freshness_days": 14,
@@ -18,7 +18,14 @@
   },
   "communications": {
     "first_contact_style": "concise",
-    "send_policy": "explicit_confirmation",
-    "application_policy": "explicit_confirmation"
+    "external_action_mode": "draft_only",
+    "external_action_mode_locked": true
+  },
+  "human_path": {
+    "enabled": true,
+    "search_contacts": true,
+    "search_recruiter_or_poster": true,
+    "search_hiring_manager": true,
+    "require_current_source": true
   }
 }

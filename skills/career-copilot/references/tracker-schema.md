@@ -10,7 +10,9 @@ Version 0.1 uses `tracker.csv` in the private workspace.
 - `date_posted`, `date_discovered`, `last_verified`
 - `status`, `priority`
 - `next_action`, `next_action_date`
-- `contact`, `notes`
+- `contact`, `human_path_status`, `recruiter`, `hiring_manager`, `interviewer`, `notes`
+
+`human_path_status` is `confirmed`, `unverified` or `none_found`. Store a person as confirmed only when exact identity, current relevance and a direct source were verified in the private Human Path artifact.
 
 ## Statuses
 
