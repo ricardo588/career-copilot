@@ -18,7 +18,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 TRACKER_FIELDS = [
     "id", "company", "role", "location", "source", "canonical_url", "external_job_id",
-    "date_posted", "date_discovered", "status", "priority", "next_action",
+    "date_posted", "date_discovered", "status", "fit_recommendation", "priority", "next_action",
     "next_action_date", "contact", "human_path_status", "recruiter", "hiring_manager",
     "interviewer", "notes", "last_verified",
 ]
@@ -252,7 +252,11 @@ def track(
     interviewers = [
         str(item.get("name", "")).strip()
         for item in (interviewer_research or {}).get("interviewers", [])
-        if isinstance(item, dict) and str(item.get("name", "")).strip()
+        if (
+            isinstance(item, dict)
+            and str(item.get("name", "")).strip()
+            and str(item.get("source_url", "")).strip().startswith(("https://", "http://"))
+        )
     ]
     human_fields = {
         "contact": "; ".join(contacts),
@@ -261,15 +265,39 @@ def track(
         "hiring_manager": "; ".join(hiring_managers),
         "interviewer": "; ".join(interviewers),
     }
+    recommendation = str(evaluation.get("recommendation", "Low"))
+    priority = {"High": "high", "Medium": "medium", "Low": "low", "Discard": "discard"}.get(recommendation, "low")
+    evaluation_fields = {
+        "company": str(vacancy.get("company", "")),
+        "role": str(vacancy.get("title", "")),
+        "location": str(vacancy.get("location", "")),
+        "source": str(vacancy.get("source", "")),
+        "canonical_url": canonical,
+        "external_job_id": str(vacancy.get("external_job_id", "")),
+        "date_posted": str(vacancy.get("date_posted", "")),
+        "fit_recommendation": recommendation,
+        "priority": priority,
+        "next_action": str(evaluation.get("next_action", "")),
+        "notes": "; ".join(evaluation.get("risks", [])),
+        "last_verified": as_of.isoformat(),
+    }
     duplicate = next((row for row in rows if row.get("id") == identity or canonical and row.get("canonical_url") == canonical), None)
     if duplicate:
-        duplicate["last_verified"] = as_of.isoformat()
+        previous_status = duplicate.get("status", "identified")
+        if previous_status in {"identified", "evaluating", "discarded"}:
+            if recommendation == "Discard":
+                duplicate["status"] = "discarded"
+            elif previous_status == "discarded":
+                duplicate["status"] = "identified"
+        duplicate.update(evaluation_fields)
         duplicate.update(human_fields)
         atomic_write_tracker(path, rows)
-        return {"action": "updated_existing", "id": duplicate["id"], "row_count": len(rows), "human_path": human_summary}
+        readback = read_tracker(path)
+        verified = next((item for item in readback if item.get("id") == duplicate["id"]), None)
+        if not verified or any(verified.get(field, "") != value for field, value in evaluation_fields.items()):
+            raise RuntimeError("tracker update readback verification failed")
+        return {"action": "updated_existing", "id": duplicate["id"], "row_count": len(readback), "human_path": human_summary}
 
-    recommendation = evaluation.get("recommendation", "Low")
-    priority = {"High": "high", "Medium": "medium", "Low": "low", "Discard": "discard"}.get(str(recommendation), "low")
     status = "discarded" if recommendation == "Discard" else "identified"
     row = {
         "id": identity,
@@ -282,12 +310,9 @@ def track(
         "date_posted": str(vacancy.get("date_posted", "")),
         "date_discovered": as_of.isoformat(),
         "status": status,
-        "priority": priority,
-        "next_action": str(evaluation.get("next_action", "")),
+        **evaluation_fields,
         "next_action_date": "",
         **human_fields,
-        "notes": "; ".join(evaluation.get("risks", [])),
-        "last_verified": as_of.isoformat(),
     }
     rows.append(row)
     atomic_write_tracker(path, rows)

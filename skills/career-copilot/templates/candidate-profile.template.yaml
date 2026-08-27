@@ -32,7 +32,7 @@ integrations:
   google_sheets:
     enabled: false
     spreadsheet_id_env: CAREER_COPILOT_SHEET_ID
-    range: "Applications!A:T"
+    range: "Applications!A:U"
   gmail:
     enabled: false
     user_id: me

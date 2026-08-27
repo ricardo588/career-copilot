@@ -68,7 +68,7 @@ DEFAULT_ANSWERS: dict[str, Any] = {
         "require_current_source": True,
     },
     "integrations": {
-        "google_sheets": {"enabled": False, "spreadsheet_id_env": "CAREER_COPILOT_SHEET_ID", "range": "Applications!A:P"},
+        "google_sheets": {"enabled": False, "spreadsheet_id_env": "CAREER_COPILOT_SHEET_ID", "range": "Applications!A:U"},
         "gmail": {"enabled": False, "user_id": "me"},
         "obsidian": {"enabled": False, "vault_env": "OBSIDIAN_VAULT_PATH", "folder": "CareerCopilot"},
     },

@@ -49,8 +49,18 @@ class PipelineTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as tmp:
             tracker = Path(tmp) / "tracker.csv"
-            first = PIPELINE.track(tracker, self.vacancy, result, self.as_of, human_path)
-            second = PIPELINE.track(tracker, self.vacancy, result, self.as_of, human_path)
+            interviewer_research = {
+                "interviewers": [
+                    {"name": "Verified Interviewer", "source_url": "https://example.test/interviewer"},
+                    {"name": "Unsourced Interviewer"},
+                ]
+            }
+            first = PIPELINE.track(
+                tracker, self.vacancy, result, self.as_of, human_path, interviewer_research,
+            )
+            second = PIPELINE.track(
+                tracker, self.vacancy, result, self.as_of, human_path, interviewer_research,
+            )
             self.assertEqual(first["action"], "added")
             self.assertEqual(second["action"], "updated_existing")
             with tracker.open(newline="", encoding="utf-8") as handle:
@@ -59,6 +69,31 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(rows[0]["canonical_url"], "https://jobs.example.test/acme/TPD-001")
             self.assertEqual(rows[0]["human_path_status"], "confirmed")
             self.assertEqual(rows[0]["contact"], "Synthetic Contact")
+            self.assertEqual(rows[0]["interviewer"], "Verified Interviewer")
+            self.assertEqual(rows[0]["fit_recommendation"], "High")
+
+    def test_duplicate_refreshes_fit_fields_without_regressing_process_status(self):
+        initial = PIPELINE.evaluate(self.profile, self.rules, self.vacancy, self.as_of)
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = Path(tmp) / "tracker.csv"
+            PIPELINE.track(tracker, self.vacancy, initial, self.as_of)
+            rows = PIPELINE.read_tracker(tracker)
+            rows[0]["status"] = "interview"
+            rows[0]["next_action"] = "obsolete action"
+            PIPELINE.atomic_write_tracker(tracker, rows)
+
+            stale = dict(self.vacancy)
+            stale["date_posted"] = "2026-07-01"
+            reevaluation = PIPELINE.evaluate(self.profile, self.rules, stale, self.as_of)
+            update = PIPELINE.track(tracker, stale, reevaluation, self.as_of)
+            refreshed = PIPELINE.read_tracker(tracker)[0]
+
+            self.assertEqual(update["action"], "updated_existing")
+            self.assertEqual(refreshed["fit_recommendation"], "Discard")
+            self.assertEqual(refreshed["priority"], "discard")
+            self.assertEqual(refreshed["next_action"], reevaluation["next_action"])
+            self.assertEqual(refreshed["date_posted"], "2026-07-01")
+            self.assertEqual(refreshed["status"], "interview")
 
     def test_human_path_requires_sources_and_separates_unknowns(self):
         research = {
