@@ -25,6 +25,8 @@ Generated private state belongs in `career_copilot.workspace`, outside both the 
 
 Hermes extracts CV text from the local file. The extracted content is then processed by the model provider configured for that Hermes profile unless the user selected a local model. Onboarding must disclose that boundary before asking for the file. The checkpoint stores only proposed values, direct/inferred labels and source-section names required for confirmation—not the full extracted CV text. No additional document parser or OCR service is used by default.
 
+Every bootstrap run normalizes the private workspace and nested directories to `0700`, and regular files to `0600`; symlinks are rejected. CV proposals are bound to the staged file contents with SHA-256 and cannot be confirmed if the source changes at the same path.
+
 The repository `.gitignore` blocks common private artifacts, but ignore rules are defense-in-depth—not permission to store private files in the clone.
 
 ## External-action boundary

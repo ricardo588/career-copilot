@@ -81,6 +81,10 @@ python3 ${HERMES_SKILL_DIR}/scripts/onboarding.py \
 
 An override corrects one proposed value. A rejected field remains unanswered and may be collected manually. The checkpoint records which proposed fields were applied or rejected.
 
+`cv-propose` records the CV's SHA-256 fingerprint. `cv-confirm` recalculates it and refuses to apply proposals if the file changed at the same path. Re-read and restage the CV instead of confirming stale proposals.
+
+Pending proposals created before version 0.4.1 do not have a fingerprint and must also be restaged before confirmation.
+
 Changing `documents.primary_cv` clears fields still attributed to the previous CV and requires a new proposal/confirmation. A field manually edited after confirmation is detached from CV provenance and is preserved.
 
 If local extraction cannot be completed:

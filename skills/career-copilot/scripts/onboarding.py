@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import json
 import os
 import shutil
@@ -357,6 +358,14 @@ def validate_local_cv_file(raw_path: str) -> Path:
     return path
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def local_cv_path(state: dict[str, Any]) -> Path:
     if get_nested(state["answers"], "documents.has_cv") is not True:
         raise ValueError("CV import requires documents.has_cv to be true")
@@ -414,6 +423,7 @@ def stage_cv_proposals(state: dict[str, Any], payload: Any) -> None:
     state["cv_import"] = {
         "status": "pending_confirmation",
         "source_file": str(cv_path),
+        "source_sha256": sha256_file(cv_path),
         "proposals": validated,
         "proposed_at": utc_now(),
     }
@@ -424,6 +434,10 @@ def confirm_cv_proposals(state: dict[str, Any], overrides: Any, rejected_fields:
     cv_import = state.get("cv_import", {})
     if cv_import.get("status") != "pending_confirmation":
         raise ValueError("there are no pending CV proposals to confirm")
+    cv_path = local_cv_path(state)
+    expected_sha256 = cv_import.get("source_sha256")
+    if not isinstance(expected_sha256, str) or sha256_file(cv_path) != expected_sha256:
+        raise ValueError("CV file changed since proposals were staged; run cv-propose again")
     proposals = cv_import.get("proposals", {})
     if not isinstance(overrides, dict):
         raise ValueError("CV overrides must be a JSON object")

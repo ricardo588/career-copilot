@@ -198,6 +198,49 @@ class OnboardingTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 2)
             self.assertIn("outside the Career Copilot", completed.stderr)
 
+    def test_cv_change_after_staging_requires_new_proposal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            workspace = root / "candidate"
+            cv = root / "candidate-cv.txt"
+            cv.write_text("Original CV", encoding="utf-8")
+            self.run_command("--workspace", str(workspace), "start")
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.has_cv", "--json-value", "true",
+            )
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.primary_cv", "--value", str(cv),
+            )
+            proposal = {
+                "source_file": str(cv),
+                "proposals": {
+                    "profile.target_roles": {
+                        "value": ["Program Director"],
+                        "basis": "inferred",
+                        "source": "Headline",
+                    }
+                },
+            }
+            self.run_command(
+                "--workspace", str(workspace), "cv-propose",
+                "--json-value", json.dumps(proposal),
+            )
+            cv.write_text("Changed CV", encoding="utf-8")
+            completed = subprocess.run(
+                [
+                    sys.executable, str(ONBOARDING), "--workspace", str(workspace),
+                    "cv-confirm",
+                ],
+                check=False, capture_output=True, text=True,
+            )
+            self.assertEqual(completed.returncode, 2)
+            self.assertIn("changed since proposals were staged", completed.stderr)
+            state = json.loads((workspace / ".career_copilot_onboarding.json").read_text(encoding="utf-8"))
+            self.assertEqual(state["cv_import"]["status"], "pending_confirmation")
+            self.assertEqual(state["answers"]["profile"]["target_roles"], [])
+
     def test_existing_cv_can_fall_back_to_manual_questions(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "candidate"

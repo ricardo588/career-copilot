@@ -30,10 +30,27 @@ class BootstrapTests(unittest.TestCase):
                 self.assertEqual(stat.S_IMODE((workspace / private_file).stat().st_mode), 0o600)
             original = (workspace / "profile.yaml").read_text(encoding="utf-8")
 
+            workspace.chmod(0o755)
+            (workspace / "notes").chmod(0o755)
+            (workspace / "applications").chmod(0o755)
+            (workspace / "profile.yaml").chmod(0o644)
+            nested_dir = workspace / "notes" / "private-draft"
+            nested_dir.mkdir()
+            nested_file = nested_dir / "draft.txt"
+            nested_file.write_text("private", encoding="utf-8")
+            nested_dir.chmod(0o755)
+            nested_file.chmod(0o644)
+
             created_again, skipped_again = bootstrap_module.bootstrap(workspace, SKILL_DIR)
             self.assertEqual([], created_again)
             self.assertEqual(4, len(skipped_again))
             self.assertEqual(original, (workspace / "profile.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(stat.S_IMODE(workspace.stat().st_mode), 0o700)
+            self.assertEqual(stat.S_IMODE((workspace / "notes").stat().st_mode), 0o700)
+            self.assertEqual(stat.S_IMODE((workspace / "applications").stat().st_mode), 0o700)
+            self.assertEqual(stat.S_IMODE((workspace / "profile.yaml").stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(nested_dir.stat().st_mode), 0o700)
+            self.assertEqual(stat.S_IMODE(nested_file.stat().st_mode), 0o600)
 
     def test_rejects_workspace_inside_distribution(self):
         forbidden = SKILL_DIR.parents[1] / "private-bootstrap-test"

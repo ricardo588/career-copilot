@@ -27,6 +27,17 @@ This directory belongs to the candidate. It may contain personal data.
 """
 
 
+def normalize_private_tree(workspace: Path) -> None:
+    os.chmod(workspace, 0o700)
+    for path in workspace.rglob("*"):
+        if path.is_symlink():
+            raise ValueError(f"private workspace cannot contain symlinks: {path}")
+        if path.is_dir():
+            os.chmod(path, 0o700)
+        elif path.is_file():
+            os.chmod(path, 0o600)
+
+
 def containing_git_root(path: Path) -> Path | None:
     start = path if path.is_dir() else path.parent
     for candidate in (start, *start.parents):
@@ -44,32 +55,39 @@ def bootstrap(workspace: Path, skill_dir: Path) -> tuple[list[Path], list[Path]]
     if git_root is not None:
         raise ValueError(f"private workspace must be outside a Git repository: {git_root}")
     templates = skill_dir / "templates"
-    workspace_was_new = not workspace.exists()
     workspace.mkdir(parents=True, exist_ok=True)
-    if workspace_was_new:
-        os.chmod(workspace, 0o700)
-    (workspace / "notes").mkdir(exist_ok=True)
-    (workspace / "applications").mkdir(exist_ok=True)
+    os.chmod(workspace, 0o700)
+    for private_dir_name in ("notes", "applications"):
+        private_dir = workspace / private_dir_name
+        if private_dir.is_symlink():
+            raise ValueError(f"private workspace directory cannot be a symlink: {private_dir}")
+        private_dir.mkdir(exist_ok=True)
+        os.chmod(private_dir, 0o700)
 
     created: list[Path] = []
     skipped: list[Path] = []
     for source_name, target_name in TEMPLATE_MAP.items():
         source = templates / source_name
         target = workspace / target_name
+        if target.is_symlink():
+            raise ValueError(f"private workspace file cannot be a symlink: {target}")
         if target.exists():
             skipped.append(target)
-            continue
-        shutil.copyfile(source, target)
+        else:
+            shutil.copyfile(source, target)
+            created.append(target)
         os.chmod(target, 0o600)
-        created.append(target)
 
     readme = workspace / "README_PRIVATE.md"
+    if readme.is_symlink():
+        raise ValueError(f"private workspace file cannot be a symlink: {readme}")
     if readme.exists():
         skipped.append(readme)
     else:
         readme.write_text(PRIVATE_README, encoding="utf-8")
-        os.chmod(readme, 0o600)
         created.append(readme)
+    os.chmod(readme, 0o600)
+    normalize_private_tree(workspace)
 
     return created, skipped
 
