@@ -1,4 +1,4 @@
-schema_version: 2
+schema_version: 3
 profile:
   display_name: ""
   language: auto
@@ -26,8 +26,10 @@ permissions:
   external_action_mode: draft_only
   external_action_mode_locked: false
 documents:
+  has_cv: null
   primary_cv: ""
   alternate_cvs: []
+  cv_import_status: not_started
 integrations:
   google_sheets:
     enabled: false

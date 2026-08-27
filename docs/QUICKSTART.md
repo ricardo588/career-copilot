@@ -25,10 +25,12 @@ hermes -p my-career-copilot chat -s career-copilot
 Ask Career Copilot to continue onboarding. It should:
 
 1. Read onboarding status.
-2. Ask one phase at a time.
-3. Store each answer in the private checkpoint.
-4. Report missing required fields without repeating sensitive values.
-5. Finalize only when required fields are complete.
+2. Ask whether the user already has a CV.
+3. If so, read it locally and ask the user to confirm or correct the extracted proposal.
+4. Ask one phase at a time only for missing information and permissions.
+5. Store each confirmed answer in the private checkpoint.
+6. Report missing required fields without repeating sensitive values.
+7. Finalize only when required fields are complete.
 
 ## Run the safe synthetic demo
 

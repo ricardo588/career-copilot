@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.3.1
+version: 0.4.0
 author: Career Copilot contributors
 metadata:
   hermes:
@@ -62,14 +62,15 @@ Use this skill to run a structured job search from each user's private candidate
 
    `python3 ${HERMES_SKILL_DIR}/scripts/onboarding.py --workspace <configured-path> start`
 
-2. Ask one short phase at a time. Do not ask for passwords, tokens, government IDs or payment data. The default mode is `draft_only`; `confirm_each_external` requires explicit user opt-in.
-3. Store each approved answer with `answer --field <field> --json-value '<valid-json>'`.
-4. Re-run `status` after each phase. Do not repeat sensitive values unnecessarily.
-5. Finalize only when `missing` is empty:
+2. Ask `documents.has_cv` first. If the user has a CV, read `references/cv-first-onboarding.md`, extract supported fields locally, show direct facts and inferences separately, and apply them only after explicit confirmation. Ask manually only for missing preferences and permissions.
+3. Ask one short phase at a time. Do not ask for passwords, tokens, government IDs or payment data. The default mode is `draft_only`; `confirm_each_external` requires explicit user opt-in.
+4. Store each approved manual answer with `answer --field <field> --json-value '<valid-json>'`.
+5. Re-run `status` after each phase. Do not repeat sensitive values unnecessarily.
+6. Finalize only when `missing` is empty:
 
    `python3 ${HERMES_SKILL_DIR}/scripts/onboarding.py --workspace <configured-path> finalize`
 
-6. Read back only completion status and paths unless the user asks to inspect values.
+7. Read back only completion status and paths unless the user asks to inspect values.
 
 Full field order, resume behavior and edge cases are in `references/onboarding.md`.
 
@@ -135,6 +136,7 @@ See `references/demo.md` for pass criteria.
 ## References
 
 - `references/onboarding.md` — checkpointed private onboarding.
+- `references/cv-first-onboarding.md` — local CV extraction, proposal and confirmation workflow.
 - `references/workflow.md` — end-to-end operating flows.
 - `references/evaluation.md` — qualitative fit decision.
 - `references/tracker-schema.md` — local tracker and state rules.

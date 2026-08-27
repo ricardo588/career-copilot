@@ -41,6 +41,15 @@ class BootstrapTests(unittest.TestCase):
             bootstrap_module.bootstrap(forbidden, SKILL_DIR)
         self.assertFalse(forbidden.exists())
 
+    def test_rejects_workspace_inside_any_git_repository(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            git_root = Path(tmp) / "project"
+            (git_root / ".git").mkdir(parents=True)
+            forbidden = git_root / "private-candidate"
+            with self.assertRaisesRegex(ValueError, "Git repository"):
+                bootstrap_module.bootstrap(forbidden, SKILL_DIR)
+            self.assertFalse(forbidden.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

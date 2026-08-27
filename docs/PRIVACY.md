@@ -21,7 +21,9 @@
 
 ## Storage boundary
 
-Private files belong in `career_copilot.workspace`, outside both the source repository and installed Hermes profile. The onboarding script rejects workspaces inside the distribution/profile root.
+Generated private state belongs in `career_copilot.workspace`, outside both the source repository and installed Hermes profile. A CV may remain at its candidate-chosen local path outside Git repositories; onboarding stores the path and confirmed proposal state without copying the CV. The onboarding script rejects workspaces inside the distribution/profile root or a Git tree.
+
+Hermes extracts CV text from the local file. The extracted content is then processed by the model provider configured for that Hermes profile unless the user selected a local model. Onboarding must disclose that boundary before asking for the file. The checkpoint stores only proposed values, direct/inferred labels and source-section names required for confirmation—not the full extracted CV text. No additional document parser or OCR service is used by default.
 
 The repository `.gitignore` blocks common private artifacts, but ignore rules are defense-in-depth—not permission to store private files in the clone.
 

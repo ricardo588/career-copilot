@@ -5,6 +5,7 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 ## Capabilities
 
 - Resumable conversational onboarding with private checkpoints
+- CV-first onboarding that locally extracts supported facts and asks the user to confirm or correct them
 - Candidate-specific vacancy evaluation using verified evidence
 - Human Path research for current contacts, recruiter/poster and hiring manager
 - Interviewer intelligence from sourced facts with hypotheses kept separate
@@ -60,6 +61,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.3.1 is a pilot release. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
+Version 0.4.0 is a pilot release. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
 
 Licensed under Apache-2.0; see [LICENSE](LICENSE).

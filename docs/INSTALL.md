@@ -81,13 +81,13 @@ hermes -p my-career-copilot chat -s career-copilot
 
 Suggested first message:
 
-> Continue my Career Copilot onboarding. Ask one short section at a time, checkpoint every answer, and keep the default draft-only mode.
+> Continue my Career Copilot onboarding. First ask whether I already have a CV; if I do, extract supported information locally and ask me to confirm or correct it. Then ask one short section at a time for anything missing, checkpoint every confirmed answer, and keep the default draft-only mode.
 
 `draft_only` blocks external actions. Other users may explicitly opt in to `confirm_each_external`; each exact action and destination still needs fresh confirmation. For a profile that must never change modes, initialize onboarding with `start --lock-draft-only`.
 
 ## 6. Verify isolation
 
-- Candidate files exist only under the chosen workspace.
+- Generated candidate state exists only under the chosen workspace. A source CV may remain at its user-chosen local path and must never be copied into the clone or installed profile.
 - No CV, contact, compensation data or credentials appear in the clone.
 - `git status --short` remains clean after using the assistant.
 - External integrations remain disabled until configured locally.

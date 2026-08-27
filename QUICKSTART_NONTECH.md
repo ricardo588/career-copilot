@@ -29,7 +29,8 @@ It clones, installs the profile, configures everything, and creates your private
 ## ✅ What happens next
 
 - The Career Copilot chat opens.
-- It asks **one short question at a time** (target roles, seniority, strengths, etc.).
+- It first asks whether you already have a CV. If so, it reads the local file, proposes the information it can extract, and asks you to confirm or correct it instead of repeating those questions.
+- It then asks **one short question at a time** only for missing preferences, constraints and permissions.
 - Your answers are saved **only on your machine** (`~/Documents/CareerCopilot/`).
 - **External actions are blocked by default** (`draft_only`): it can research and prepare drafts, but it cannot apply, send, publish or contact people.
 - Advanced users may explicitly opt in to `confirm_each_external`; every exact action still needs a fresh confirmation.

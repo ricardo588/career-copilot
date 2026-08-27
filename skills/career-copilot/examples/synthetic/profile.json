@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "profile": {
     "display_name": "Demo Candidate",
     "language": "English",
@@ -39,8 +39,10 @@
     "external_action_mode_locked": true
   },
   "documents": {
+    "has_cv": false,
     "primary_cv": "",
-    "alternate_cvs": []
+    "alternate_cvs": [],
+    "cv_import_status": "not_applicable"
   },
   "integrations": {
     "google_sheets": {"enabled": false},

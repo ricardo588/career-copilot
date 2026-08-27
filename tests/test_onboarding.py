@@ -24,10 +24,12 @@ class OnboardingTests(unittest.TestCase):
             initial = self.run_command("--workspace", str(workspace), "start")
             self.assertEqual(initial["status"], "in_progress")
             self.assertEqual(initial["completed_required"], 0)
+            self.assertEqual(initial["next_question"]["field"], "documents.has_cv")
             self.assertEqual(initial["external_action_policy"]["mode"], "draft_only")
             self.assertFalse(initial["external_action_policy"]["locked"])
 
             answers = {
+                "documents.has_cv": False,
                 "profile.target_roles": ["Program Director"],
                 "profile.target_seniority": ["Director"],
                 "profile.strengths": ["program governance"],
@@ -46,10 +48,194 @@ class OnboardingTests(unittest.TestCase):
             final = self.run_command("--workspace", str(workspace), "finalize")
             self.assertEqual(final["status"], "complete")
             profile = json.loads((workspace / "profile.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(profile["schema_version"], 3)
             self.assertEqual(profile["profile"]["target_roles"], ["Program Director"])
             self.assertEqual(profile["permissions"]["external_action_mode"], "draft_only")
+            self.assertEqual(profile["documents"]["cv_import_status"], "not_applicable")
             self.assertTrue((workspace / "profile.yaml.pre-onboarding.bak").is_file())
             self.assertTrue((workspace / "rules.yaml.pre-onboarding.bak").is_file())
+
+    def test_cv_first_proposes_supported_fields_and_requires_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            cv = workspace / "synthetic-cv.txt"
+            workspace.mkdir(parents=True)
+            cv.write_text("Synthetic Candidate — Program Director", encoding="utf-8")
+
+            initial = self.run_command("--workspace", str(workspace), "start")
+            self.assertEqual(initial["next_question"]["field"], "documents.has_cv")
+            has_cv = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.has_cv", "--json-value", "true",
+            )
+            self.assertEqual(has_cv["next_question"]["field"], "documents.primary_cv")
+            self.assertEqual(has_cv["completed_required"], 1)
+            cv_path = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.primary_cv", "--value", str(cv),
+            )
+            self.assertEqual(cv_path["next_question"]["field"], "documents.cv_import")
+
+            proposal = {
+                "source_file": str(cv),
+                "proposals": {
+                    "profile.display_name": {"value": "Synthetic Candidate", "basis": "direct", "source": "header"},
+                    "profile.target_roles": {"value": ["Program Director"], "basis": "inferred", "source": "headline"},
+                    "profile.target_seniority": {"value": ["Director"], "basis": "inferred", "source": "headline"},
+                    "profile.strengths": {"value": ["program governance"], "basis": "direct", "source": "experience"},
+                    "profile.verified_evidence": {"value": ["Led a synthetic transformation"], "basis": "direct", "source": "experience"},
+                    "constraints.locations": {"value": ["Example City"], "basis": "inferred", "source": "current location in header"},
+                },
+            }
+            proposed = self.run_command(
+                "--workspace", str(workspace), "cv-propose",
+                "--json-value", json.dumps(proposal),
+            )
+            self.assertEqual(proposed["cv_import"]["status"], "pending_confirmation")
+            self.assertEqual(proposed["next_question"]["field"], "documents.cv_confirmation")
+            self.assertIn("profile.target_roles", proposed["cv_import"]["proposals"])
+            staged_state = json.loads((workspace / ".career_copilot_onboarding.json").read_text(encoding="utf-8"))
+            self.assertEqual(staged_state["answers"]["profile"]["target_roles"], [])
+            self.assertNotIn("profile.target_roles", staged_state["answered_fields"])
+
+            confirmed = self.run_command(
+                "--workspace", str(workspace), "cv-confirm",
+                "--overrides-json", json.dumps({"profile.target_roles": ["Transformation Director"]}),
+            )
+            self.assertEqual(confirmed["cv_import"]["status"], "confirmed")
+            state = json.loads((workspace / ".career_copilot_onboarding.json").read_text(encoding="utf-8"))
+            self.assertEqual(state["answers"]["profile"]["target_roles"], ["Transformation Director"])
+            self.assertEqual(state["answers"]["profile"]["display_name"], "Synthetic Candidate")
+            self.assertNotIn("documents.cv_confirmation", confirmed["missing"])
+            self.assertNotIn("profile.target_roles", confirmed["missing"])
+
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "profile.display_name", "--value", "Manually Confirmed Name",
+            )
+
+            replacement_cv = workspace / "replacement-cv.txt"
+            replacement_cv.write_text("Replacement CV", encoding="utf-8")
+            changed = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.primary_cv", "--value", str(replacement_cv),
+            )
+            changed_state = json.loads((workspace / ".career_copilot_onboarding.json").read_text(encoding="utf-8"))
+            self.assertEqual(changed["next_question"]["field"], "documents.cv_import")
+            self.assertEqual(changed_state["answers"]["profile"]["target_roles"], [])
+            self.assertEqual(changed_state["answers"]["profile"]["display_name"], "Manually Confirmed Name")
+            self.assertIn("profile.target_roles", changed["missing"])
+
+    def test_cv_proposals_reject_unknown_fields_and_do_not_copy_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            workspace = root / "candidate"
+            cv = root / "outside-private-cv.txt"
+            cv.write_text("Synthetic", encoding="utf-8")
+            self.run_command("--workspace", str(workspace), "start")
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.has_cv", "--json-value", "true",
+            )
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.primary_cv", "--value", str(cv),
+            )
+            invalid = {
+                "source_file": str(cv),
+                "proposals": {
+                    "permissions.external_action_mode": {
+                        "value": "confirm_each_external", "basis": "inferred", "source": "none",
+                    }
+                },
+            }
+            completed = subprocess.run(
+                [
+                    sys.executable, str(ONBOARDING), "--workspace", str(workspace),
+                    "cv-propose", "--json-value", json.dumps(invalid),
+                ],
+                check=False, capture_output=True, text=True,
+            )
+            self.assertEqual(completed.returncode, 2)
+            self.assertIn("cannot be proposed from a CV", completed.stderr)
+            self.assertEqual(sorted(path.name for path in workspace.iterdir()), [".career_copilot_onboarding.json"])
+
+            inferred_evidence = {
+                "source_file": str(cv),
+                "proposals": {
+                    "profile.verified_evidence": {
+                        "value": ["Unsupported inference"],
+                        "basis": "inferred",
+                        "source": "Experience",
+                    }
+                },
+            }
+            inferred = subprocess.run(
+                [
+                    sys.executable, str(ONBOARDING), "--workspace", str(workspace), "cv-propose",
+                    "--json-value", json.dumps(inferred_evidence),
+                ],
+                check=False, capture_output=True, text=True,
+            )
+            self.assertEqual(inferred.returncode, 2)
+            self.assertIn("must be direct evidence", inferred.stderr)
+
+    def test_cv_path_inside_distribution_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.has_cv", "--json-value", "true",
+            )
+            completed = subprocess.run(
+                [
+                    sys.executable, str(ONBOARDING), "--workspace", str(workspace),
+                    "answer", "--field", "documents.primary_cv", "--value", str(ROOT / "README.md"),
+                ],
+                check=False, capture_output=True, text=True,
+            )
+            self.assertEqual(completed.returncode, 2)
+            self.assertIn("outside the Career Copilot", completed.stderr)
+
+    def test_existing_cv_can_fall_back_to_manual_questions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            cv = Path(tmp) / "unreadable.pdf"
+            cv.write_bytes(b"not a real pdf")
+            self.run_command("--workspace", str(workspace), "start")
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.has_cv", "--json-value", "true",
+            )
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "documents.primary_cv", "--value", str(cv),
+            )
+            skipped = self.run_command(
+                "--workspace", str(workspace), "cv-skip",
+                "--reason", "local text extraction unavailable",
+            )
+            self.assertEqual(skipped["cv_import"]["status"], "manual")
+            self.assertEqual(skipped["next_question"]["field"], "profile.target_roles")
+
+    def test_schema_two_checkpoint_migrates_to_cv_first_without_losing_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start", "--lock-draft-only")
+            checkpoint = workspace / ".career_copilot_onboarding.json"
+            state = json.loads(checkpoint.read_text(encoding="utf-8"))
+            state["schema_version"] = 2
+            state.pop("cv_import")
+            state["answers"]["documents"].pop("has_cv")
+            state["answers"]["documents"].pop("cv_import_status")
+            checkpoint.write_text(json.dumps(state), encoding="utf-8")
+
+            migrated = self.run_command("--workspace", str(workspace), "status")
+            self.assertEqual(migrated["next_question"]["field"], "documents.has_cv")
+            self.assertEqual(migrated["external_action_policy"], {"mode": "draft_only", "locked": True})
+            resumed = json.loads(checkpoint.read_text(encoding="utf-8"))
+            self.assertEqual(resumed["schema_version"], 3)
 
     def test_confirm_each_external_requires_explicit_opt_in(self):
         with tempfile.TemporaryDirectory() as tmp:

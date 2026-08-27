@@ -20,11 +20,19 @@ PRIVATE_README = """# Private Career Copilot workspace
 
 This directory belongs to the candidate. It may contain personal data.
 
-- Do not commit it to the Career Copilot distribution repository.
+- Do not place or commit this workspace inside any Git repository.
 - Keep credentials outside these files.
 - Back it up only to a destination you trust.
 - External actions still require the permissions recorded in profile.yaml.
 """
+
+
+def containing_git_root(path: Path) -> Path | None:
+    start = path if path.is_dir() else path.parent
+    for candidate in (start, *start.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return None
 
 
 def bootstrap(workspace: Path, skill_dir: Path) -> tuple[list[Path], list[Path]]:
@@ -32,6 +40,9 @@ def bootstrap(workspace: Path, skill_dir: Path) -> tuple[list[Path], list[Path]]
     profile_root = skill_dir.resolve().parents[1]
     if workspace == profile_root or profile_root in workspace.parents:
         raise ValueError("private workspace must be outside the Career Copilot profile/distribution directory")
+    git_root = containing_git_root(workspace)
+    if git_root is not None:
+        raise ValueError(f"private workspace must be outside a Git repository: {git_root}")
     templates = skill_dir / "templates"
     workspace_was_new = not workspace.exists()
     workspace.mkdir(parents=True, exist_ok=True)
