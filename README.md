@@ -10,6 +10,7 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 - Human Path research for current contacts, recruiter/poster and hiring manager
 - Interviewer intelligence from sourced facts with hypotheses kept separate
 - Canonical deduplication and local CSV tracking
+- Independent vacancy and Human Path verification clocks with conservative legacy migration
 - Synthetic profile → vacancy → tracker → interview demo
 - Optional dry-run-first Google Sheets, Gmail and Obsidian adapters
 - `draft_only` by default, explicit `confirm_each_external` opt-in, and lockable profiles
@@ -61,6 +62,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.4.2 is a pilot release. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
+Version 0.4.3 is a pilot release. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
 
 Licensed under Apache-2.0; see [LICENSE](LICENSE).

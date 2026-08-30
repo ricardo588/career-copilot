@@ -25,6 +25,10 @@ class BootstrapTests(unittest.TestCase):
             self.assertTrue((workspace / "profile.yaml").is_file())
             self.assertTrue((workspace / "rules.yaml").is_file())
             self.assertTrue((workspace / "tracker.csv").is_file())
+            tracker_header = (workspace / "tracker.csv").read_text(encoding="utf-8").splitlines()[0].split(",")
+            self.assertIn("vacancy_last_verified", tracker_header)
+            self.assertIn("human_path_last_verified", tracker_header)
+            self.assertNotIn("last_verified", tracker_header)
             self.assertEqual(stat.S_IMODE(workspace.stat().st_mode), 0o700)
             for private_file in ("profile.yaml", "rules.yaml", "tracker.csv", "README_PRIVATE.md"):
                 self.assertEqual(stat.S_IMODE((workspace / private_file).stat().st_mode), 0o600)

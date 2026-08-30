@@ -35,6 +35,10 @@ Run this after canonical vacancy verification and before final prioritization.
 5. **Persist and verify**
    - Store only the minimum necessary fields in the private tracker.
    - Keep source URL and retrieval date in the private research artifact.
+   - Require `retrieved_at` in `YYYY-MM-DD` format before changing Human Path fields.
+   - Copy that validated date to `human_path_last_verified`; never use the vacancy evaluation date as a substitute.
+   - A vacancy-only refresh preserves existing Human Path and interviewer evidence.
+   - Interviewer-only research does not advance `human_path_last_verified`; its provenance remains separate from Human Path.
    - Read the tracker back after any update.
 
 ## Human Path evidence shape
@@ -58,7 +62,7 @@ Run this after canonical vacancy verification and before final prioritization.
 }
 ```
 
-Use `scripts/pipeline.py --human-path <private-json>` to validate and incorporate this evidence into the tracker and brief.
+Use `scripts/pipeline.py --human-path <private-json>` to validate and incorporate this evidence into the tracker and brief. Omitting `--human-path` means “not refreshed,” not `none_found`. An explicit artifact with no credible path may record `none_found` together with its validated retrieval date.
 
 ## Interviewer research trigger
 

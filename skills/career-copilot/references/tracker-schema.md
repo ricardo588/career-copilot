@@ -1,26 +1,50 @@
 # Local tracker schema
 
-Version 0.2 uses `tracker.csv` in the private workspace.
+Version 0.3 uses `tracker.csv` in the private workspace.
 
 ## Columns
 
 - `id`: stable local identity; never use a physical row number as identity.
 - `company`, `role`, `location`
 - `source`, `canonical_url`, `external_job_id`
-- `date_posted`, `date_discovered`, `last_verified`
+- `date_posted`, `date_discovered`
+- `vacancy_last_verified`: date of the explicit vacancy evaluation/refresh.
+- `human_path_last_verified`: validated `retrieved_at` from the most recently supplied Human Path artifact.
 - `status`, `fit_recommendation`, `priority`
 - `next_action`, `next_action_date`
 - `contact`, `human_path_status`, `recruiter`, `hiring_manager`, `interviewer`, `notes`
 
-`human_path_status` is `confirmed`, `unverified` or `none_found`. Store a person as confirmed only when exact identity, current relevance and a direct source were verified in the private Human Path artifact.
+## Independent freshness clocks
 
-`status` is process state. `fit_recommendation` is the latest `High`, `Medium`, `Low` or `Discard` evaluation. Reevaluation refreshes vacancy, fit, priority, next action and Human Path fields but does not regress an advanced process status such as `applied` or `interview`.
+Vacancy and Human Path freshness describe different evidence and must not share a timestamp.
+
+- Every explicit vacancy evaluation updates `vacancy_last_verified` from `--as-of`.
+- Human Path fields and `human_path_last_verified` change only when `--human-path` supplies a mapping with a valid, non-future `retrieved_at` date.
+- A vacancy-only refresh preserves `contact`, `human_path_status`, `recruiter`, `hiring_manager`, `interviewer` and `human_path_last_verified`.
+- Interviewer evidence changes only when an explicit interviewer-research artifact is supplied.
+- Interviewer research is a separate artifact: an interviewer-only update does not advance `human_path_last_verified`.
+- A new row without Human Path evidence leaves Human Path fields and freshness blank. Absence of an artifact is not `none_found`.
+- An explicit Human Path artifact containing no confirmed or plausible people may record `none_found` and its validated retrieval date.
+
+`human_path_status` is `confirmed`, `unverified` or `none_found`; blank means no Human Path artifact has been supplied for that row. Store a person as confirmed only when exact identity, current relevance and a direct source were verified in the private Human Path artifact.
 
 Store only directly sourced interviewer identities in `interviewer`. Keep unsourced names and hypotheses in the private research artifact, not as tracker facts.
+
+## Legacy migration
+
+Version 0.2 had one ambiguous `last_verified` column. On the first tracker write with the 0.3 pipeline:
+
+1. `last_verified` migrates to `vacancy_last_verified`.
+2. `human_path_last_verified` remains blank; migration must not fabricate a Human Path verification date.
+3. Stable IDs, rows, process status, next action and existing Human Path values are preserved.
+4. The file is rewritten atomically with the 0.3 header before the requested refresh is applied.
+5. A current-schema header with reordered columns is normalized safely; unsupported extra columns are rejected rather than discarded.
 
 ## Statuses
 
 `identified`, `evaluating`, `application_prepared`, `applied`, `contact`, `recruiter_screen`, `interview`, `offer`, `withdrawn`, `rejected`, `discarded`.
+
+`status` is process state. `fit_recommendation` is the latest `High`, `Medium`, `Low` or `Discard` evaluation. Reevaluation refreshes vacancy and fit fields but does not regress an advanced process status such as `applied` or `interview`.
 
 ## Dedupe
 
@@ -36,5 +60,5 @@ A repost is not automatically a new opportunity. Compare source ID, scope, locat
 - Locate records by stable ID and corroborating company/role.
 - Update the smallest affected set.
 - Write atomically where possible.
-- Read back and verify identity, status and next action.
+- Read back and verify identity, status, next action and every field intended to change.
 - Never report a write as successful solely because a command exited without error.

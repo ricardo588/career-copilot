@@ -20,8 +20,9 @@ TRACKER_FIELDS = [
     "id", "company", "role", "location", "source", "canonical_url", "external_job_id",
     "date_posted", "date_discovered", "status", "fit_recommendation", "priority", "next_action",
     "next_action_date", "contact", "human_path_status", "recruiter", "hiring_manager",
-    "interviewer", "notes", "last_verified",
+    "interviewer", "notes", "vacancy_last_verified", "human_path_last_verified",
 ]
+LEGACY_TRACKER_FIELDS = TRACKER_FIELDS[:-2] + ["last_verified"]
 STOPWORDS = {"and", "or", "the", "a", "an", "of", "for", "to", "in", "with", "de", "la", "el", "y", "para", "con"}
 
 
@@ -150,6 +151,7 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
 
 def summarize_human_path(vacancy: dict[str, Any], research: dict[str, Any]) -> dict[str, Any]:
     """Separate sourced human paths from possible or unsupported identities."""
+    _validate_human_path_shape(research)
     company = str(vacancy.get("company", "")).strip().casefold()
     candidates: list[dict[str, Any]] = []
     for item in research.get("contacts", []) or []:
@@ -207,6 +209,43 @@ def summarize_human_path(vacancy: dict[str, Any], research: dict[str, Any]) -> d
     }
 
 
+def _not_supplied_human_summary() -> dict[str, Any]:
+    return {
+        "status": "not_supplied",
+        "confirmed_paths": [],
+        "unverified_paths": [],
+        "unknowns": ["Human Path artifact"],
+        "recommended_path": None,
+        "guardrail": "No Human Path artifact was supplied; existing tracker evidence was not refreshed.",
+    }
+
+
+def _validate_human_path_shape(research: dict[str, Any]) -> None:
+    if not isinstance(research, dict):
+        raise ValueError("Human Path artifact must be a mapping")
+    contacts = research.get("contacts", [])
+    if not isinstance(contacts, list) or any(not isinstance(item, dict) for item in contacts):
+        raise ValueError("Human Path artifact contacts must be a list of mappings")
+    for field in ("recruiter", "hiring_manager"):
+        value = research.get(field)
+        if value is not None and not isinstance(value, dict):
+            raise ValueError(f"Human Path artifact {field} must be a mapping or null")
+
+
+def _validated_human_path_retrieved_at(research: dict[str, Any], as_of: date) -> str:
+    _validate_human_path_shape(research)
+    raw = str(research.get("retrieved_at", "")).strip()
+    if not raw:
+        raise ValueError("Human Path artifact requires retrieved_at in YYYY-MM-DD format")
+    try:
+        retrieved_at = parse_iso_day(raw)
+    except ValueError as exc:
+        raise ValueError("Human Path artifact retrieved_at must use YYYY-MM-DD format") from exc
+    if retrieved_at > as_of:
+        raise ValueError("Human Path artifact retrieved_at cannot be in the future")
+    return retrieved_at.isoformat()
+
+
 def stable_id(vacancy: dict[str, Any]) -> str:
     external = str(vacancy.get("external_job_id", "")).strip()
     if external:
@@ -219,7 +258,41 @@ def read_tracker(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []
     with path.open(newline="", encoding="utf-8") as handle:
-        return list(csv.DictReader(handle))
+        return [_normalize_tracker_row(row) for row in csv.DictReader(handle)]
+
+
+def _normalize_tracker_row(row: dict[str, Any]) -> dict[str, str]:
+    normalized = {field: str(row.get(field, "") or "") for field in TRACKER_FIELDS}
+    if not normalized["vacancy_last_verified"]:
+        normalized["vacancy_last_verified"] = str(row.get("last_verified", "") or "")
+    return normalized
+
+
+def migrate_tracker_schema(path: Path) -> bool:
+    """Persist the legacy single verification clock as vacancy freshness only."""
+    if not path.exists():
+        return False
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = reader.fieldnames or []
+        rows = list(reader)
+    if fieldnames == TRACKER_FIELDS:
+        return False
+    if len(fieldnames) == len(TRACKER_FIELDS) and set(fieldnames) == set(TRACKER_FIELDS):
+        atomic_write_tracker(path, rows)
+        return True
+    if len(fieldnames) == len(LEGACY_TRACKER_FIELDS) and set(fieldnames) == set(LEGACY_TRACKER_FIELDS):
+        atomic_write_tracker(path, rows)
+        return True
+    missing = [field for field in TRACKER_FIELDS if field not in fieldnames]
+    supported = set(TRACKER_FIELDS) | {"last_verified"}
+    extra = [field for field in fieldnames if field not in supported]
+    detail = []
+    if missing:
+        detail.append(f"missing fields: {', '.join(missing)}")
+    if extra:
+        detail.append(f"unsupported extra fields: {', '.join(extra)}")
+    raise ValueError(f"unsupported tracker schema; {'; '.join(detail) or 'unrecognized columns'}")
 
 
 def atomic_write_tracker(path: Path, rows: list[dict[str, str]]) -> None:
@@ -228,7 +301,7 @@ def atomic_write_tracker(path: Path, rows: list[dict[str, str]]) -> None:
     with temporary.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=TRACKER_FIELDS)
         writer.writeheader()
-        writer.writerows({field: row.get(field, "") for field in TRACKER_FIELDS} for row in rows)
+        writer.writerows(_normalize_tracker_row(row) for row in rows)
     os.chmod(temporary, 0o600)
     os.replace(temporary, path)
 
@@ -241,30 +314,40 @@ def track(
     human_path: Optional[dict[str, Any]] = None,
     interviewer_research: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
-    rows = read_tracker(path)
     identity = stable_id(vacancy)
     canonical = canonicalize_url(str(vacancy.get("canonical_url", "")))
-    human_summary = summarize_human_path(vacancy, human_path or {})
-    confirmed_paths = human_summary["confirmed_paths"]
-    contacts = [item["name"] for item in confirmed_paths if item["path_type"] == "trusted_contact"]
-    recruiters = [item["name"] for item in confirmed_paths if item["path_type"] == "recruiter_or_poster"]
-    hiring_managers = [item["name"] for item in confirmed_paths if item["path_type"] == "hiring_manager"]
-    interviewers = [
-        str(item.get("name", "")).strip()
-        for item in (interviewer_research or {}).get("interviewers", [])
-        if (
-            isinstance(item, dict)
-            and str(item.get("name", "")).strip()
-            and str(item.get("source_url", "")).strip().startswith(("https://", "http://"))
-        )
-    ]
-    human_fields = {
-        "contact": "; ".join(contacts),
-        "human_path_status": human_summary["status"],
-        "recruiter": "; ".join(recruiters),
-        "hiring_manager": "; ".join(hiring_managers),
-        "interviewer": "; ".join(interviewers),
-    }
+    human_summary = _not_supplied_human_summary()
+    human_fields: dict[str, str] = {}
+    if human_path is not None:
+        retrieved_at = _validated_human_path_retrieved_at(human_path, as_of)
+        human_summary = summarize_human_path(vacancy, human_path)
+        confirmed_paths = human_summary["confirmed_paths"]
+        contacts = [item["name"] for item in confirmed_paths if item["path_type"] == "trusted_contact"]
+        recruiters = [item["name"] for item in confirmed_paths if item["path_type"] == "recruiter_or_poster"]
+        hiring_managers = [item["name"] for item in confirmed_paths if item["path_type"] == "hiring_manager"]
+        human_fields = {
+            "contact": "; ".join(contacts),
+            "human_path_status": human_summary["status"],
+            "recruiter": "; ".join(recruiters),
+            "hiring_manager": "; ".join(hiring_managers),
+            "human_path_last_verified": retrieved_at,
+        }
+    interviewer_fields: dict[str, str] = {}
+    if interviewer_research is not None:
+        if not isinstance(interviewer_research, dict):
+            raise ValueError("interviewer research artifact must be a mapping")
+        interviewers = [
+            str(item.get("name", "")).strip()
+            for item in interviewer_research.get("interviewers", [])
+            if (
+                isinstance(item, dict)
+                and str(item.get("name", "")).strip()
+                and str(item.get("source_url", "")).strip().startswith(("https://", "http://"))
+            )
+        ]
+        interviewer_fields = {"interviewer": "; ".join(interviewers)}
+    migrate_tracker_schema(path)
+    rows = read_tracker(path)
     recommendation = str(evaluation.get("recommendation", "Low"))
     priority = {"High": "high", "Medium": "medium", "Low": "low", "Discard": "discard"}.get(recommendation, "low")
     evaluation_fields = {
@@ -279,7 +362,7 @@ def track(
         "priority": priority,
         "next_action": str(evaluation.get("next_action", "")),
         "notes": "; ".join(evaluation.get("risks", [])),
-        "last_verified": as_of.isoformat(),
+        "vacancy_last_verified": as_of.isoformat(),
     }
     duplicate = next((row for row in rows if row.get("id") == identity or canonical and row.get("canonical_url") == canonical), None)
     if duplicate:
@@ -290,16 +373,21 @@ def track(
             elif previous_status == "discarded":
                 duplicate["status"] = "identified"
         duplicate.update(evaluation_fields)
-        duplicate.update(human_fields)
+        if human_fields:
+            duplicate.update(human_fields)
+        if interviewer_fields:
+            duplicate.update(interviewer_fields)
         atomic_write_tracker(path, rows)
         readback = read_tracker(path)
         verified = next((item for item in readback if item.get("id") == duplicate["id"]), None)
-        if not verified or any(verified.get(field, "") != value for field, value in evaluation_fields.items()):
+        expected_fields = {**evaluation_fields, **human_fields, **interviewer_fields}
+        if not verified or any(verified.get(field, "") != value for field, value in expected_fields.items()):
             raise RuntimeError("tracker update readback verification failed")
         return {"action": "updated_existing", "id": duplicate["id"], "row_count": len(readback), "human_path": human_summary}
 
     status = "discarded" if recommendation == "Discard" else "identified"
-    row = {
+    row = {field: "" for field in TRACKER_FIELDS}
+    row.update({
         "id": identity,
         "company": str(vacancy.get("company", "")),
         "role": str(vacancy.get("title", "")),
@@ -313,12 +401,17 @@ def track(
         **evaluation_fields,
         "next_action_date": "",
         **human_fields,
-    }
+        **interviewer_fields,
+    })
     rows.append(row)
     atomic_write_tracker(path, rows)
     readback = read_tracker(path)
-    verified = any(item.get("id") == identity and item.get("company") == row["company"] for item in readback)
-    if not verified:
+    verified = next((item for item in readback if item.get("id") == identity), None)
+    if (
+        len(readback) != len(rows)
+        or not verified
+        or any(verified.get(field, "") != value for field, value in row.items())
+    ):
         raise RuntimeError("tracker readback verification failed")
     return {"action": "added", "id": identity, "row_count": len(readback), "human_path": human_summary}
 
@@ -331,7 +424,7 @@ def interview_brief(
     interviewer_research: Optional[dict[str, Any]] = None,
 ) -> str:
     evidence = profile.get("profile", {}).get("verified_evidence", [])
-    human_summary = summarize_human_path(vacancy, human_path or {})
+    human_summary = summarize_human_path(vacancy, human_path) if human_path is not None else _not_supplied_human_summary()
     lines = [
         f"# Interview brief — {vacancy.get('company', '')} / {vacancy.get('title', '')}",
         "",
@@ -349,6 +442,8 @@ def interview_brief(
                 f"- Confirmed {item['path_type']}: {item['name']} — {item['current_role']} "
                 f"({item['source_url']})"
             )
+    elif human_summary["status"] == "not_supplied":
+        lines.append("- No Human Path artifact was supplied; current human evidence is unknown.")
     else:
         lines.append("- No sourced contact, recruiter/poster or hiring manager was confirmed.")
     lines.extend([
@@ -410,11 +505,13 @@ def main() -> int:
         profile = load_document(Path(args.profile))
         rules = load_document(Path(args.rules))
         vacancy = load_document(Path(args.vacancy))
-        human_path = load_document(Path(args.human_path)) if args.human_path else {}
-        interviewer_research = load_document(Path(args.interviewer_research)) if args.interviewer_research else {}
+        human_path = load_document(Path(args.human_path)) if args.human_path else None
+        interviewer_research = load_document(Path(args.interviewer_research)) if args.interviewer_research else None
         as_of = parse_iso_day(args.as_of)
         result = evaluate(profile, rules, vacancy, as_of)
-        human_summary = summarize_human_path(vacancy, human_path)
+        if human_path is not None:
+            _validated_human_path_retrieved_at(human_path, as_of)
+        human_summary = summarize_human_path(vacancy, human_path) if human_path is not None else _not_supplied_human_summary()
         payload: dict[str, Any] = {"evaluation": result, "human_path": human_summary}
         if args.tracker:
             payload["tracker"] = track(
