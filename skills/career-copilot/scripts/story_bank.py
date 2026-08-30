@@ -416,12 +416,20 @@ def approved_departure_statement(profile: dict[str, Any]) -> str | None:
     return " ".join(facts) if facts else None
 
 
-def _load_json(path: Path | None) -> dict[str, Any]:
+def _load_document(path: Path | None) -> dict[str, Any]:
     if path is None:
         return {}
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    text = path.read_text(encoding="utf-8")
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        try:
+            import yaml  # type: ignore
+        except ImportError as exc:
+            raise ValueError(f"{path} is not JSON-compatible YAML; finalize onboarding or install PyYAML") from exc
+        payload = yaml.safe_load(text)
     if not isinstance(payload, dict):
-        raise ValueError(f"expected a JSON object: {path}")
+        raise ValueError(f"expected mapping in {path}")
     return payload
 
 
@@ -440,8 +448,8 @@ def main() -> int:
     args = parser.parse_args()
     try:
         profile_path = Path(args.profile).expanduser().resolve()
-        profile = _load_json(profile_path)
-        vacancy = _load_json(Path(args.vacancy).expanduser().resolve()) if args.vacancy else {}
+        profile = _load_document(profile_path)
+        vacancy = _load_document(Path(args.vacancy).expanduser().resolve()) if args.vacancy else {}
         bank_path = Path(args.stories).expanduser().resolve() if args.stories else story_bank_path(profile_path)
         legacy = profile.get("profile", {}).get("verified_evidence", [])
         bank_was_empty = not bank_path.exists() or bank_path.stat().st_size == 0

@@ -4,8 +4,10 @@ import stat
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -129,6 +131,52 @@ class StoryBankTests(unittest.TestCase):
                 expected = 0 if mode == "cv" else 1
                 self.assertEqual(payload["story_count"], expected)
             self.assertEqual(stat.S_IMODE(stories.stat().st_mode), 0o600)
+
+    def test_document_loader_falls_back_to_yaml_and_requires_a_mapping(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            profile_path = Path(tmp) / "profile.yaml"
+            profile_path.write_text("profile:\n  target_roles:\n    - Transformation Director\n", encoding="utf-8")
+            fake_yaml = types.SimpleNamespace(safe_load=lambda text: self.profile())
+            with patch.dict(sys.modules, {"yaml": fake_yaml}):
+                loaded = STORY_BANK._load_document(profile_path)
+            self.assertEqual(loaded["profile"]["target_roles"], ["Transformation Director"])
+
+            fake_non_mapping_yaml = types.SimpleNamespace(safe_load=lambda text: ["not", "a", "mapping"])
+            with patch.dict(sys.modules, {"yaml": fake_non_mapping_yaml}):
+                with self.assertRaisesRegex(ValueError, "expected mapping"):
+                    STORY_BANK._load_document(profile_path)
+
+    @unittest.skipUnless(importlib.util.find_spec("yaml"), "PyYAML is optional")
+    def test_cli_accepts_traditional_yaml_profile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            profile = tmp_path / "profile.yaml"
+            stories = tmp_path / "stories.jsonl"
+            profile.write_text(
+                "profile:\n"
+                "  target_roles:\n"
+                "    - Transformation Director\n"
+                "  verified_evidence:\n"
+                "    - Led a verified transformation\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--profile",
+                    str(profile),
+                    "--stories",
+                    str(stories),
+                    "--migrate-verified-evidence",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["story_count"], 1)
+            self.assertEqual(payload["stories"][0]["title"], "Legacy verified evidence 1")
 
 
 if __name__ == "__main__":
