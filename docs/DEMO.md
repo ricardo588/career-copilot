@@ -8,7 +8,7 @@ The bundled scenario proves the local workflow without using a real candidate, e
 2. Load a synthetic open vacancy from a reserved `.test` URL.
 3. Evaluate title, seniority, eligibility, freshness and evidence overlap.
 4. Load a sourced synthetic Human Path with contact, recruiter and hiring manager.
-5. Create one canonical tracker row with Human Path fields.
+5. Create one canonical tracker row with independent vacancy and Human Path verification clocks.
 6. Re-run safely without creating a duplicate.
 7. Load sourced interviewer facts plus explicitly labeled hypotheses.
 8. Generate an interview brief using only declared evidence.
@@ -44,6 +44,8 @@ Generated artifacts:
 - The unrelated commercial-management requirement is not marked as supported.
 - `tracker_rows` is `1`.
 - `human_path.status` is `confirmed`.
+- `vacancy_last_verified` equals the fixed evaluation date.
+- `human_path_last_verified` equals the Human Path artifact's validated `retrieved_at`.
 - `external_actions` is `0`.
 - The interview brief contains Human Path, interviewer intelligence and the evidence guardrail.
 
