@@ -318,6 +318,31 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(second["action"], "added")
             self.assertEqual(len(PIPELINE.read_tracker(tracker)), 2)
 
+    def test_fuzzy_dedupe_does_not_fill_missing_location_by_merging_another_opportunity(self):
+        first_vacancy = dict(self.vacancy)
+        first_vacancy["external_job_id"] = ""
+        first_vacancy["canonical_url"] = ""
+        first_vacancy["location"] = ""
+        first_evaluation = PIPELINE.evaluate(self.profile, self.rules, first_vacancy, self.as_of)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = Path(tmp) / "tracker.csv"
+            first = PIPELINE.track(tracker, first_vacancy, first_evaluation, self.as_of)
+
+            distinct = dict(self.vacancy)
+            distinct["external_job_id"] = "DEMO-TPD-TORONTO"
+            distinct["canonical_url"] = "https://jobs.example.test/acme/TPD-TORONTO"
+            distinct["location"] = "Toronto, Canada"
+            second_evaluation = PIPELINE.evaluate(self.profile, self.rules, distinct, self.as_of)
+            second = PIPELINE.track(tracker, distinct, second_evaluation, self.as_of)
+
+            rows = PIPELINE.read_tracker(tracker)
+            self.assertEqual(first["action"], "added")
+            self.assertEqual(second["action"], "added")
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[0]["location"], "")
+            self.assertEqual(rows[1]["location"], "Toronto, Canada")
+
     def test_track_automatically_migrates_legacy_tracker_without_erasing_human_evidence(self):
         legacy_fields = [
             "id", "company", "role", "location", "source", "canonical_url", "external_job_id",

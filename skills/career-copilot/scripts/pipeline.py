@@ -226,7 +226,9 @@ def same_company_near_role(row: dict[str, str], vacancy: dict[str, Any]) -> bool
         return False
     row_locations = normalized_location_parts(row.get("location", ""))
     new_locations = normalized_location_parts(vacancy.get("location", ""))
-    if row_locations and new_locations and row_locations != new_locations:
+    if bool(row_locations) != bool(new_locations):
+        return False
+    if row_locations != new_locations:
         return False
     row_posted = str(row.get("date_posted", "")).strip()
     new_posted = str(vacancy.get("date_posted", "")).strip()
