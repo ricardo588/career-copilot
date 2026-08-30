@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "profile": {
     "display_name": "Demo Candidate",
     "language": "English",
@@ -16,7 +16,36 @@
       "Led a synthetic multi-country cloud transformation program",
       "Established governance and executive reporting for a synthetic portfolio"
     ],
-    "gaps": ["No verified product-led growth experience"]
+    "gaps": ["No verified product-led growth experience"],
+    "career_direction": {
+      "success_criteria": {
+        "facts": [],
+        "interpretations": [],
+        "preferences": ["Visible executive sponsorship and measurable transformation outcomes"]
+      },
+      "values": {
+        "facts": [],
+        "interpretations": [],
+        "preferences": ["Evidence-based decisions"]
+      },
+      "non_negotiables": {"facts": [], "interpretations": [], "preferences": []},
+      "tolerable_tradeoffs": {
+        "facts": [],
+        "interpretations": [],
+        "preferences": ["Some travel is acceptable for a strategic regional remit"]
+      },
+      "development_gaps": {
+        "facts": ["No verified product-led growth experience"],
+        "interpretations": [],
+        "preferences": []
+      },
+      "departure_narrative": {
+        "candidate_approved": true,
+        "facts": ["The prior role ended after a synthetic organizational restructuring."],
+        "interpretations": [],
+        "preferences": []
+      }
+    }
   },
   "constraints": {
     "countries": ["Mexico"],

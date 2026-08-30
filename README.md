@@ -7,7 +7,11 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 - Resumable conversational onboarding with private checkpoints
 - CV-first onboarding that locally extracts supported facts and asks the user to confirm or correct them
 - Candidate-specific vacancy evaluation using verified evidence
+- Private structured story bank with provenance, explicit unknowns and reusable evaluation/interview/CV views
+- Optional career criteria and candidate-approved departure narrative with facts, interpretations and preferences kept separate
 - Human Path research for current contacts, recruiter/poster and hiring manager
+- Structured relationship intelligence with role, influence, strength, evidence freshness and independent authorization
+- Informational-meeting prep/outcome records and fact-separated post-interview debriefs with draft-only follow-up
 - Interviewer intelligence from sourced facts with hypotheses kept separate
 - Canonical deduplication and local CSV tracking
 - Independent vacancy and Human Path verification clocks with conservative legacy migration
@@ -19,7 +23,7 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 
 ## Privacy model
 
-The repository contains methodology, empty templates, deterministic scripts and synthetic fixtures only. Candidate CVs, contacts, compensation, emails, memories, sessions, credentials, IDs and live trackers belong in each installer's private workspace and are never committed.
+The repository contains methodology, empty templates, deterministic scripts and synthetic fixtures only. Candidate CVs, story banks, career preferences, contacts, compensation, emails, memories, sessions, credentials, IDs and live trackers belong in each installer's private workspace and are never committed.
 
 Do not export a personal Hermes profile to distribute this project. Install the profile distribution contained here.
 
@@ -62,6 +66,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.4.4 is a pilot release. It adds read-only overdue follow-up reporting and protected-attribute fit guardrails. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
+Version 0.5.0 is a pilot release. It adds private evidence stories, optional career-direction criteria, structured relationship intelligence and read-only interview debriefs while preserving draft-only external-action guardrails. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
 
 Licensed under Apache-2.0; see [LICENSE](LICENSE).

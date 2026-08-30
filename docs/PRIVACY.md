@@ -14,6 +14,8 @@
 - CVs and supporting documents
 - Compensation preferences
 - Contacts and networking history
+- Story-bank evidence, metrics, provenance and career-direction preferences
+- Relationship evidence/authorization, meeting outcomes and interview debrief reflections
 - Emails and message IDs
 - Live vacancy/application tracker
 - Account identifiers, tokens and credential files
@@ -48,7 +50,7 @@ It may not, even if draft text was approved or `--apply` was supplied:
 
 Other users may explicitly opt in to `confirm_each_external`. That mode still requires fresh confirmation for the exact destination, content and action. A profile with `external_action_mode_locked: true` remains `draft_only`; onboarding and reset cannot change it.
 
-Human Path and interviewer research are always read-only. Discovering a contact, recruiter, hiring manager or interviewer does not authorize any interaction.
+Human Path, relationship intelligence, meeting prep and interviewer research are always read-only. Discovering a contact, recruiter, hiring manager or interviewer does not authorize contact, reference use, referral language, introduction or follow-up. Interview debrief mode does not update the tracker; any follow-up remains a draft.
 
 Adapter mutations additionally require `--apply` and readback verification.
 

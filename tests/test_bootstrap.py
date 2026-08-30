@@ -20,7 +20,7 @@ class BootstrapTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "candidate"
             created, skipped = bootstrap_module.bootstrap(workspace, SKILL_DIR)
-            self.assertEqual(4, len(created))
+            self.assertEqual(5, len(created))
             self.assertEqual([], skipped)
             self.assertTrue((workspace / "profile.yaml").is_file())
             self.assertTrue((workspace / "rules.yaml").is_file())
@@ -30,7 +30,7 @@ class BootstrapTests(unittest.TestCase):
             self.assertIn("human_path_last_verified", tracker_header)
             self.assertNotIn("last_verified", tracker_header)
             self.assertEqual(stat.S_IMODE(workspace.stat().st_mode), 0o700)
-            for private_file in ("profile.yaml", "rules.yaml", "tracker.csv", "README_PRIVATE.md"):
+            for private_file in ("profile.yaml", "rules.yaml", "tracker.csv", "README_PRIVATE.md", "stories.jsonl"):
                 self.assertEqual(stat.S_IMODE((workspace / private_file).stat().st_mode), 0o600)
             original = (workspace / "profile.yaml").read_text(encoding="utf-8")
 
@@ -47,7 +47,7 @@ class BootstrapTests(unittest.TestCase):
 
             created_again, skipped_again = bootstrap_module.bootstrap(workspace, SKILL_DIR)
             self.assertEqual([], created_again)
-            self.assertEqual(4, len(skipped_again))
+            self.assertEqual(5, len(skipped_again))
             self.assertEqual(original, (workspace / "profile.yaml").read_text(encoding="utf-8"))
             self.assertEqual(stat.S_IMODE(workspace.stat().st_mode), 0o700)
             self.assertEqual(stat.S_IMODE((workspace / "notes").stat().st_mode), 0o700)

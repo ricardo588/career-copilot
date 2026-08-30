@@ -1,4 +1,53 @@
 {
+  "relationships": [
+    {
+      "name": "Synthetic Contact",
+      "relationship_role": "contact",
+      "influence": "advocate",
+      "strength": "strong",
+      "current_company": "Acme Cloud Services",
+      "current_role": "Transformation Leader",
+      "evidence": ["former synthetic colleague", "current public profile"],
+      "freshness": "2026-08-26",
+      "source_url": "https://example.test/people/synthetic-contact",
+      "confidence": "confirmed",
+      "authorization": {
+        "contact": true,
+        "reference": true
+      }
+    },
+    {
+      "name": "Synthetic Recruiter",
+      "relationship_role": "recruiter/poster",
+      "influence": "moderate",
+      "strength": "medium",
+      "current_company": "Acme Cloud Services",
+      "current_role": "Talent Partner",
+      "evidence": ["canonical posting", "recruiter email"],
+      "freshness": "2026-08-26",
+      "source_url": "https://example.test/people/synthetic-recruiter",
+      "confidence": "confirmed",
+      "authorization": {
+        "contact": false
+      }
+    },
+    {
+      "name": "Synthetic Hiring Manager",
+      "relationship_role": "confirmed decision maker",
+      "decision_maker_status": "confirmed",
+      "influence": "high",
+      "strength": "strong",
+      "current_company": "Acme Cloud Services",
+      "current_role": "VP Transformation",
+      "evidence": ["invitation", "public profile"],
+      "freshness": "2026-08-26",
+      "source_url": "https://example.test/people/synthetic-manager",
+      "confidence": "confirmed",
+      "authorization": {
+        "contact": false
+      }
+    }
+  ],
   "contacts": [
     {
       "name": "Synthetic Contact",

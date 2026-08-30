@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-
+from story_bank import load_story_bank, save_story_bank, story_bank_path
 QUESTIONS = [
     {"phase": "documents", "field": "documents.has_cv", "prompt": "Do you already have a CV?", "required": True},
     {"phase": "documents", "field": "documents.primary_cv", "prompt": "Share or select the local CV only if you accept that its extracted text is processed by your configured Hermes model provider (unless you use a local model). I will propose onboarding facts for your confirmation.", "required": False},
@@ -22,6 +22,12 @@ QUESTIONS = [
     {"phase": "goals", "field": "profile.target_seniority", "prompt": "Which seniority levels are appropriate?", "required": True},
     {"phase": "evidence", "field": "profile.strengths", "prompt": "Which verified strengths should drive matching?", "required": True},
     {"phase": "evidence", "field": "profile.verified_evidence", "prompt": "Which real achievements or examples support those strengths?", "required": True},
+    {"phase": "direction", "field": "profile.career_direction.success_criteria", "prompt": "What success criteria should be captured as factual, interpretive or preference-based?", "required": False},
+    {"phase": "direction", "field": "profile.career_direction.values", "prompt": "What values should be captured as factual, interpretive or preference-based?", "required": False},
+    {"phase": "direction", "field": "profile.career_direction.non_negotiables", "prompt": "What non-negotiables should be captured as factual, interpretive or preference-based?", "required": False},
+    {"phase": "direction", "field": "profile.career_direction.tolerable_tradeoffs", "prompt": "What tolerable tradeoffs should be captured as factual, interpretive or preference-based?", "required": False},
+    {"phase": "direction", "field": "profile.career_direction.development_gaps", "prompt": "What development gaps should be captured as factual, interpretive or preference-based?", "required": False},
+    {"phase": "direction", "field": "profile.career_direction.departure_narrative", "prompt": "Capture a concise candidate-approved factual departure narrative with separate facts, interpretations and preferences.", "required": False},
     {"phase": "constraints", "field": "constraints.countries", "prompt": "Which countries are eligible?", "required": False},
     {"phase": "constraints", "field": "constraints.locations", "prompt": "Which locations are eligible?", "required": False},
     {"phase": "constraints", "field": "constraints.work_modes", "prompt": "Which work modes are acceptable?", "required": False},
@@ -45,6 +51,19 @@ DEFAULT_ANSWERS: dict[str, Any] = {
         "strengths": [],
         "verified_evidence": [],
         "gaps": [],
+        "career_direction": {
+            "success_criteria": {"facts": [], "interpretations": [], "preferences": []},
+            "values": {"facts": [], "interpretations": [], "preferences": []},
+            "non_negotiables": {"facts": [], "interpretations": [], "preferences": []},
+            "tolerable_tradeoffs": {"facts": [], "interpretations": [], "preferences": []},
+            "development_gaps": {"facts": [], "interpretations": [], "preferences": []},
+            "departure_narrative": {
+                "candidate_approved": False,
+                "facts": [],
+                "interpretations": [],
+                "preferences": [],
+            },
+        },
     },
     "constraints": {
         "countries": [],
@@ -130,6 +149,29 @@ CV_CONFIRMATION_QUESTION = {
     "required": True,
 }
 
+CAREER_DIRECTION_FIELDS = {
+    "profile.career_direction.success_criteria",
+    "profile.career_direction.values",
+    "profile.career_direction.non_negotiables",
+    "profile.career_direction.tolerable_tradeoffs",
+    "profile.career_direction.development_gaps",
+    "profile.career_direction.departure_narrative",
+}
+
+
+def _validate_direction_map(field: str, value: Any, require_approval: bool = False) -> None:
+    if not isinstance(value, dict):
+        raise ValueError(f"{field} must be a JSON object")
+    for category in ("facts", "interpretations", "preferences"):
+        items = value.get(category, [])
+        if not isinstance(items, list) or any(not isinstance(item, str) or not item.strip() for item in items):
+            raise ValueError(f"{field}.{category} must be a JSON array of non-empty strings")
+    if require_approval:
+        approved = value.get("candidate_approved")
+        if not isinstance(approved, bool):
+            raise ValueError(f"{field}.candidate_approved must be a JSON boolean")
+
+
 
 def leaf_paths(data: dict[str, Any], prefix: str = "") -> set[str]:
     paths: set[str] = set()
@@ -142,7 +184,7 @@ def leaf_paths(data: dict[str, Any], prefix: str = "") -> set[str]:
     return paths
 
 
-ALLOWED_FIELDS = leaf_paths(DEFAULT_ANSWERS)
+ALLOWED_FIELDS = leaf_paths(DEFAULT_ANSWERS) | CAREER_DIRECTION_FIELDS
 
 
 def validate_answer(field: str, value: Any) -> None:
@@ -152,6 +194,9 @@ def validate_answer(field: str, value: Any) -> None:
         raise ValueError("permissions.external_action_mode_locked is managed by profile policy, not onboarding answers")
     if field == "documents.cv_import_status":
         raise ValueError("documents.cv_import_status is managed by the CV onboarding workflow")
+    if field in CAREER_DIRECTION_FIELDS:
+        _validate_direction_map(field, value, require_approval=field == "profile.career_direction.departure_narrative")
+        return
     if field in LIST_FIELDS:
         if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
             raise ValueError(f"{field} must be a JSON array of non-empty strings")
@@ -219,7 +264,7 @@ def new_state(lock_draft_only: bool = False) -> dict[str, Any]:
         answers["permissions"]["external_action_mode"] = "draft_only"
         answers["permissions"]["external_action_mode_locked"] = True
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "status": "in_progress",
         "created_at": now,
         "updated_at": now,
@@ -245,9 +290,18 @@ def load_state(workspace: Path) -> dict[str, Any]:
     documents.setdefault("primary_cv", "")
     documents.setdefault("alternate_cvs", [])
     documents.setdefault("cv_import_status", "not_started")
+    profile = state["answers"].setdefault("profile", {})
+    career_direction = profile.setdefault("career_direction", {})
+    direction_defaults = DEFAULT_ANSWERS["profile"]["career_direction"]
+    for field, default in direction_defaults.items():
+        if not isinstance(career_direction.get(field), dict):
+            career_direction[field] = copy.deepcopy(default)
+            continue
+        for category, category_default in default.items():
+            career_direction[field].setdefault(category, copy.deepcopy(category_default))
     if not isinstance(state.get("cv_import"), dict):
         state["cv_import"] = {"status": documents["cv_import_status"], "proposals": {}}
-    state["schema_version"] = 3
+    state["schema_version"] = 4
     if state != original_state:
         atomic_write_json(path, state)
     return state
@@ -313,14 +367,16 @@ def next_question_for(state: dict[str, Any], missing: list[str]) -> dict[str, An
         if state.get("cv_import", {}).get("status") == "pending_confirmation":
             return CV_CONFIRMATION_QUESTION
         return CV_IMPORT_QUESTION
-    return next(
-        (
-            item for item in QUESTIONS
-            if item["field"] in missing
-            or item["field"].startswith("constraints.") and "constraints.countries_or_locations" in missing
-        ),
-        None,
-    )
+    required_order = [item for item in QUESTIONS if item.get("required")]
+    optional_order = [item for item in QUESTIONS if not item.get("required")]
+    for item in required_order:
+        if item["field"] in missing:
+            return item
+    answers = state.get("answers", {})
+    for item in optional_order:
+        if not is_populated(get_nested(answers, item["field"])):
+            return item
+    return None
 
 
 def status_payload(state: dict[str, Any]) -> dict[str, Any]:
@@ -328,6 +384,7 @@ def status_payload(state: dict[str, Any]) -> dict[str, Any]:
     has_cv = get_nested(state["answers"], "documents.has_cv")
     required_total = len(REQUIRED_FIELDS) + 1 + (2 if has_cv is True else 0)
     completed = max(0, required_total - len(missing))
+    optional_missing = [item["field"] for item in QUESTIONS if not item.get("required") and not is_populated(get_nested(state["answers"], item["field"]))]
     permissions = state.get("answers", {}).get("permissions", {})
     cv_import = state.get("cv_import", {"status": "not_started", "proposals": {}})
     return {
@@ -335,6 +392,7 @@ def status_payload(state: dict[str, Any]) -> dict[str, Any]:
         "completed_required": completed,
         "required_total": required_total,
         "missing": missing,
+        "optional_missing": optional_missing,
         "next_question": next_question_for(state, missing),
         "cv_import": {
             "status": cv_import.get("status", "not_started"),
@@ -495,7 +553,7 @@ def finalize(workspace: Path, state: dict[str, Any]) -> dict[str, Any]:
 
     answers = state["answers"]
     profile_document = {
-        "schema_version": 3,
+        "schema_version": 4,
         "profile": answers["profile"],
         "constraints": answers["constraints"],
         "compensation": answers["compensation"],
@@ -529,11 +587,24 @@ def finalize(workspace: Path, state: dict[str, Any]) -> dict[str, Any]:
     atomic_write_json(profile_path, profile_document)
     atomic_write_json(rules_path, rules_document)
 
+    bank_path = story_bank_path(profile_path)
+    legacy_evidence = answers.get("profile", {}).get("verified_evidence", [])
+    bank_was_empty = not bank_path.exists() or bank_path.stat().st_size == 0
+    stories = load_story_bank(bank_path, legacy_evidence=legacy_evidence)
+    if stories and bank_was_empty:
+        save_story_bank(bank_path, stories)
+
     state["status"] = "complete"
     state["completed_at"] = utc_now()
     state["updated_at"] = state["completed_at"]
     atomic_write_json(state_file(workspace), state)
-    return {"status": "complete", "profile": str(profile_path), "rules": str(rules_path)}
+    return {
+        "status": "complete",
+        "profile": str(profile_path),
+        "rules": str(rules_path),
+        "story_bank": str(bank_path),
+        "story_count": len(stories),
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:
