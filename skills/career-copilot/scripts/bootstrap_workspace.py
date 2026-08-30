@@ -16,6 +16,8 @@ TEMPLATE_MAP = {
     "tracker.template.csv": "tracker.csv",
 }
 
+PRIVATE_FILES = ("stories.jsonl",)
+
 PRIVATE_README = """# Private Career Copilot workspace
 
 This directory belongs to the candidate. It may contain personal data.
@@ -77,6 +79,17 @@ def bootstrap(workspace: Path, skill_dir: Path) -> tuple[list[Path], list[Path]]
             shutil.copyfile(source, target)
             created.append(target)
         os.chmod(target, 0o600)
+
+    for filename in PRIVATE_FILES:
+        path = workspace / filename
+        if path.is_symlink():
+            raise ValueError(f"private workspace file cannot be a symlink: {path}")
+        if path.exists():
+            skipped.append(path)
+        else:
+            path.touch()
+            created.append(path)
+        os.chmod(path, 0o600)
 
     readme = workspace / "README_PRIVATE.md"
     if readme.is_symlink():

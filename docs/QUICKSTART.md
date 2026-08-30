@@ -16,6 +16,15 @@ python3 "$SKILL_DIR/scripts/bootstrap_workspace.py" --workspace "$WORKSPACE"
 python3 "$SKILL_DIR/scripts/onboarding.py" --workspace "$WORKSPACE" start
 ```
 
+Finalization also creates or preserves the private `stories.jsonl` bank. To inspect reusable, confirmed evidence without writing:
+
+```bash
+python3 "$SKILL_DIR/scripts/story_bank.py" \
+  --profile "$WORKSPACE/profile.yaml" \
+  --stories "$WORKSPACE/stories.jsonl" \
+  --mode interview
+```
+
 ## Run conversational onboarding
 
 ```bash

@@ -14,6 +14,7 @@
 - CVs and supporting documents
 - Compensation preferences
 - Contacts and networking history
+- Story-bank evidence, metrics, provenance and career-direction preferences
 - Emails and message IDs
 - Live vacancy/application tracker
 - Account identifiers, tokens and credential files

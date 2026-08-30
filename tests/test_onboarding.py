@@ -48,12 +48,37 @@ class OnboardingTests(unittest.TestCase):
             final = self.run_command("--workspace", str(workspace), "finalize")
             self.assertEqual(final["status"], "complete")
             profile = json.loads((workspace / "profile.yaml").read_text(encoding="utf-8"))
-            self.assertEqual(profile["schema_version"], 3)
+            self.assertEqual(profile["schema_version"], 4)
             self.assertEqual(profile["profile"]["target_roles"], ["Program Director"])
             self.assertEqual(profile["permissions"]["external_action_mode"], "draft_only")
             self.assertEqual(profile["documents"]["cv_import_status"], "not_applicable")
             self.assertTrue((workspace / "profile.yaml.pre-onboarding.bak").is_file())
             self.assertTrue((workspace / "rules.yaml.pre-onboarding.bak").is_file())
+            self.assertEqual(final["story_count"], 1)
+            story = json.loads((workspace / "stories.jsonl").read_text(encoding="utf-8").strip())
+            self.assertEqual(story["results"]["facts"], ["Led a verified synthetic program"])
+            self.assertEqual(profile["profile"]["verified_evidence"], ["Led a verified synthetic program"])
+
+    def test_optional_career_direction_is_resumable_and_preserves_fact_categories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            value = {
+                "facts": [],
+                "interpretations": ["A larger remit may accelerate development"],
+                "preferences": ["Visible executive sponsorship"],
+            }
+            result = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "profile.career_direction.success_criteria",
+                "--json-value", json.dumps(value),
+            )
+            checkpoint = json.loads((workspace / ".career_copilot_onboarding.json").read_text(encoding="utf-8"))
+            self.assertEqual(
+                checkpoint["answers"]["profile"]["career_direction"]["success_criteria"],
+                value,
+            )
+            self.assertNotIn("profile.career_direction.success_criteria", result["missing"])
 
     def test_cv_first_proposes_supported_fields_and_requires_confirmation(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -278,7 +303,7 @@ class OnboardingTests(unittest.TestCase):
             self.assertEqual(migrated["next_question"]["field"], "documents.has_cv")
             self.assertEqual(migrated["external_action_policy"], {"mode": "draft_only", "locked": True})
             resumed = json.loads(checkpoint.read_text(encoding="utf-8"))
-            self.assertEqual(resumed["schema_version"], 3)
+            self.assertEqual(resumed["schema_version"], 4)
 
     def test_confirm_each_external_requires_explicit_opt_in(self):
         with tempfile.TemporaryDirectory() as tmp:

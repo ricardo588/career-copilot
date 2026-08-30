@@ -24,9 +24,10 @@ Ask one phase at a time and allow the user to skip optional fields. The first qu
 3. **Goals and evidence** — ask only for required items the CV did not establish or the user rejected.
 4. **Constraints** — at least one user-confirmed eligible country or location; optional work modes, employment types, structured `job_eligibility`, accommodations and exclusions. These are candidate declarations, not demographic inferences or fit evidence.
 5. **Preferences** — industries, source priority and vacancy freshness.
-6. **Compensation** — optional and disabled unless the user wants it considered.
-7. **Permissions** — tracker update policy and external-action mode. `draft_only` is the default; `confirm_each_external` requires explicit opt-in.
-8. **Integrations** — optional and disabled by default.
+6. **Career direction** — optional success criteria, values, non-negotiables, tolerable tradeoffs, development gaps and a candidate-approved departure narrative. Keep facts, interpretations and preferences separate; blank stays unknown and does not filter roles.
+7. **Compensation** — optional and disabled unless the user wants it considered.
+8. **Permissions** — tracker update policy and external-action mode. `draft_only` is the default; `confirm_each_external` requires explicit opt-in.
+9. **Integrations** — optional and disabled by default.
 
 List the machine-readable catalog with:
 
@@ -106,6 +107,7 @@ Finalization:
 
 - validates required fields;
 - writes JSON-compatible YAML to `profile.yaml` and `rules.yaml`;
+- preserves existing `profile.verified_evidence` and, when the private bank is empty, migrates references into stable records in `stories.jsonl` without inventing metrics;
 - creates one-time `.pre-onboarding.bak` copies of existing files;
 - updates the private checkpoint to `complete`;
 - never modifies `tracker.csv`.

@@ -36,7 +36,7 @@ Use this skill to run a structured job search from each user's private candidate
 ## When to use
 
 - Initialize, resume or update the candidate profile and search rules.
-- Evaluate vacancies against verified evidence and constraints.
+- Evaluate vacancies against verified evidence, reusable story records and constraints.
 - Deduplicate and maintain a private application tracker.
 - Reconcile recruiter or ATS evidence with pipeline state.
 - Prepare networking, application, follow-up and interview drafts.
@@ -46,7 +46,7 @@ Use this skill to run a structured job search from each user's private candidate
 
 1. Resolve the injected `career_copilot.workspace` setting.
 2. Confirm the workspace is outside this skill/profile and any Git repository.
-3. Check for `profile.yaml`, `rules.yaml` and `tracker.csv`.
+3. Check for `profile.yaml`, `rules.yaml`, `tracker.csv` and the private `stories.jsonl` story bank.
 4. Read the injected external-action settings before onboarding. Default to `draft_only` if missing or invalid.
 5. If files are missing, read `references/onboarding.md` and bootstrap with:
 
@@ -71,6 +71,7 @@ Use this skill to run a structured job search from each user's private candidate
    `python3 ${HERMES_SKILL_DIR}/scripts/onboarding.py --workspace <configured-path> finalize`
 
 7. Read back only completion status and paths unless the user asks to inspect values.
+8. Career-direction questions are optional. Preserve facts, interpretations and preferences separately; an unknown preference is never a filter and departure wording is reusable only after candidate approval.
 
 Full field order, resume behavior and edge cases are in `references/onboarding.md`.
 
@@ -81,6 +82,7 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 3. Verify live vacancy/process evidence before changing state.
 4. Apply `references/evaluation.md` and local rules.
    Exclude protected or non-job-relevant attributes and proxies from fit scoring; missing demographic information is never a gap or research task. Keep candidate-declared eligibility/accommodation in the structured `candidate_declared_job_constraints` route, separate from evidence-based fit scoring.
+   Read `references/story-bank-and-career-direction.md` when selecting evidence: reuse stable story IDs, retain provenance/unknowns, and treat career values as candidate preferences rather than objective employer facts.
 5. Deduplicate and update using `references/tracker-schema.md`.
 6. For every viable vacancy, run the Human Path workflow in `references/human-path-and-interviewer-research.md`: check current trusted contacts, the exact recruiter/poster and the confirmed or likely hiring manager.
 7. Apply `references/privacy-and-actions.md` before any external action. Human Path research is never authorization to contact.
@@ -98,6 +100,12 @@ For a read-only overdue follow-up review, use:
 `follow_up_overdue` is a derived reminder only. It never changes process `status` or claims that another person failed to respond.
 
 The script supports the workflow; it does not replace current-source verification.
+
+For deterministic story selection and evaluation/interview/CV views, use:
+
+`python3 ${HERMES_SKILL_DIR}/scripts/story_bank.py --profile <profile> --stories <private-jsonl> [--vacancy <vacancy-json>] --mode <evaluation|interview|cv>`
+
+Never copy rendered STAR/CAR/DAR wording back as a new factual source. CV mode exposes only candidate-confirmed, shareable stories.
 
 ## Optional adapters
 
@@ -120,6 +128,8 @@ Read `references/adapters.md` before use.
 - A tracker write is not an application submission.
 - Passive waiting is context, not automatically a task.
 - Never fabricate missing candidate evidence to improve fit.
+- Never infer a metric or outcome in a story. Keep explicit unknowns and source every confirmed metric.
+- Unknown career preferences do not filter roles. Departure wording stays private and draft-only unless separately authorized for an exact use.
 - Never infer or score age, gender, sex, race, ethnicity, religion, disability, family status, pregnancy or other protected attributes.
 - Never use name, photo or date proxies. Candidate-declared job eligibility or accommodation constraints remain allowed only as structured explicit constraints, never as protected inference or positive/negative evidence points.
 - Do not send, apply, publish, modify public profiles or contact people without explicit approval for that exact action.
@@ -153,6 +163,7 @@ See `references/demo.md` for pass criteria.
 - `references/adapters.md` — optional integration safety contract.
 - `references/demo.md` — synthetic end-to-end verification.
 - `references/human-path-and-interviewer-research.md` — sourced Human Path and interviewer intelligence.
+- `references/story-bank-and-career-direction.md` — private evidence stories, view reuse and optional career criteria.
 
 ## Verification
 
@@ -164,3 +175,4 @@ See `references/demo.md` for pass criteria.
 - Any state write was read back.
 - External actions were not claimed without execution evidence.
 - No private data was written inside the skill or distribution repository.
+- Story views reused confirmed private records by stable ID without duplicating or inventing facts.

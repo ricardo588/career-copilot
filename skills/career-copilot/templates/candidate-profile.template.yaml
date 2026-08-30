@@ -1,4 +1,4 @@
-schema_version: 3
+schema_version: 4
 profile:
   display_name: ""
   language: auto
@@ -8,6 +8,17 @@ profile:
   strengths: []
   verified_evidence: []
   gaps: []
+  career_direction:
+    success_criteria: {facts: [], interpretations: [], preferences: []}
+    values: {facts: [], interpretations: [], preferences: []}
+    non_negotiables: {facts: [], interpretations: [], preferences: []}
+    tolerable_tradeoffs: {facts: [], interpretations: [], preferences: []}
+    development_gaps: {facts: [], interpretations: [], preferences: []}
+    departure_narrative:
+      candidate_approved: false
+      facts: []
+      interpretations: []
+      preferences: []
 constraints:
   countries: []
   locations: []
