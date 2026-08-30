@@ -25,6 +25,9 @@ QUESTIONS = [
     {"phase": "constraints", "field": "constraints.countries", "prompt": "Which countries are eligible?", "required": False},
     {"phase": "constraints", "field": "constraints.locations", "prompt": "Which locations are eligible?", "required": False},
     {"phase": "constraints", "field": "constraints.work_modes", "prompt": "Which work modes are acceptable?", "required": False},
+    {"phase": "constraints", "field": "constraints.job_eligibility.work_authorization", "prompt": "Which work authorizations or eligibility facts do you explicitly declare?", "required": False},
+    {"phase": "constraints", "field": "constraints.job_eligibility.travel", "prompt": "What travel availability do you explicitly declare?", "required": False},
+    {"phase": "constraints", "field": "constraints.accommodations", "prompt": "Which job-process accommodations do you explicitly request, if any?", "required": False},
     {"phase": "constraints", "field": "constraints.excluded_roles", "prompt": "Which roles must be excluded?", "required": False},
     {"phase": "preferences", "field": "search.freshness_days", "prompt": "How many days should a vacancy remain fresh?", "required": False},
 
@@ -48,6 +51,8 @@ DEFAULT_ANSWERS: dict[str, Any] = {
         "locations": [],
         "work_modes": [],
         "employment_types": [],
+        "job_eligibility": {"work_authorization": [], "travel": ""},
+        "accommodations": [],
         "excluded_roles": [],
         "excluded_industries": [],
     },
@@ -91,6 +96,7 @@ LIST_FIELDS = {
     "profile.strengths", "profile.verified_evidence", "profile.gaps",
     "constraints.countries", "constraints.locations", "constraints.work_modes",
     "constraints.employment_types", "constraints.excluded_roles", "constraints.excluded_industries",
+    "constraints.job_eligibility.work_authorization", "constraints.accommodations",
     "documents.alternate_cvs", "search.source_priority",
 }
 BOOLEAN_FIELDS = {

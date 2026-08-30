@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.4.3
+version: 0.4.4
 author: Career Copilot contributors
 metadata:
   hermes:
@@ -80,6 +80,7 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 2. Load candidate facts and constraints from the private workspace.
 3. Verify live vacancy/process evidence before changing state.
 4. Apply `references/evaluation.md` and local rules.
+   Exclude protected or non-job-relevant attributes and proxies from fit scoring; missing demographic information is never a gap or research task. Keep candidate-declared eligibility/accommodation in the structured `candidate_declared_job_constraints` route, separate from evidence-based fit scoring.
 5. Deduplicate and update using `references/tracker-schema.md`.
 6. For every viable vacancy, run the Human Path workflow in `references/human-path-and-interviewer-research.md`: check current trusted contacts, the exact recruiter/poster and the confirmed or likely hiring manager.
 7. Apply `references/privacy-and-actions.md` before any external action. Human Path research is never authorization to contact.
@@ -89,6 +90,12 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 For deterministic local evaluation/tracking/brief generation, use:
 
 `python3 ${HERMES_SKILL_DIR}/scripts/pipeline.py --profile <profile> --rules <rules> --vacancy <vacancy-json> --as-of <YYYY-MM-DD> [--human-path <private-json>] [--interviewer-research <private-json>] [--tracker <csv>] [--brief <md>]`
+
+For a read-only overdue follow-up review, use:
+
+`python3 ${HERMES_SKILL_DIR}/scripts/pipeline.py --review-tracker <csv> --as-of <YYYY-MM-DD>`
+
+`follow_up_overdue` is a derived reminder only. It never changes process `status` or claims that another person failed to respond.
 
 The script supports the workflow; it does not replace current-source verification.
 
@@ -113,6 +120,8 @@ Read `references/adapters.md` before use.
 - A tracker write is not an application submission.
 - Passive waiting is context, not automatically a task.
 - Never fabricate missing candidate evidence to improve fit.
+- Never infer or score age, gender, sex, race, ethnicity, religion, disability, family status, pregnancy or other protected attributes.
+- Never use name, photo or date proxies. Candidate-declared job eligibility or accommodation constraints remain allowed only as structured explicit constraints, never as protected inference or positive/negative evidence points.
 - Do not send, apply, publish, modify public profiles or contact people without explicit approval for that exact action.
 
 ## Human Path and interview-stage intelligence
@@ -150,6 +159,8 @@ See `references/demo.md` for pass criteria.
 - Candidate-specific conclusions came from local profile/rules, not author defaults.
 - Vacancy/process facts were verified from a current source when accessible.
 - No duplicate tracker record was created.
+- Protected/non-job-relevant attributes were not used as fit evidence, gaps or unknowns.
+- Tracker review signals were derived with an explicit `as_of` date and did not mutate rows or statuses.
 - Any state write was read back.
 - External actions were not claimed without execution evidence.
 - No private data was written inside the skill or distribution repository.

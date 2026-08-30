@@ -24,6 +24,96 @@ TRACKER_FIELDS = [
 ]
 LEGACY_TRACKER_FIELDS = TRACKER_FIELDS[:-2] + ["last_verified"]
 STOPWORDS = {"and", "or", "the", "a", "an", "of", "for", "to", "in", "with", "de", "la", "el", "y", "para", "con"}
+TERMINAL_TRACKER_STATUSES = {"withdrawn", "rejected", "discarded"}
+PROTECTED_REQUIREMENT_PATTERNS = [
+    re.compile(
+        r"\b(?:(?:candidate|applicant|candidato|candidata)(?:'s|\s+de)?\s+age|"
+        r"age\s+(?:requirement|must\s+be|between|under|over|\d{1,3})|aged\s+\d{1,3}|"
+        r"(?:under|over)\s+\d{1,3}\s+years?\s+old|years?\s+old|"
+        r"born\s+(?:after|before|on|in)|birth\s*date|"
+        r"graduat(?:ed|ion)\s+(?:after|before|since|in)\s+\d{4}|"
+        r"(?:class\s+of|graduation\s+year|year\s+of\s+graduation)\s+\d{4}|"
+        r"date\s+of\s+birth|edad\s+(?:requerida|mínima|máxima)|años?\s+de\s+edad|"
+        r"nacid[oa]\s+(?:después|antes|el|en)|fecha\s+de\s+nacimiento|"
+        r"graduad[oa]\s+(?:después|antes|desde|en)\s+(?:de\s+)?\d{4}|"
+        r"graduación\s+(?:después|antes|desde|en)\s+(?:de\s+)?\d{4}|"
+        r"(?:año\s+de\s+graduación|generación)\s+\d{4})\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:(?:male|female|man|woman|nonbinary|transgender|masculino|femenino|hombre|mujer)\s+"
+        r"(?:candidate|applicant|person|individual|employee|professional|candidato|candidata|persona)|"
+        r"(?:candidate|applicant|candidato|candidata)\s+(?:must\s+be\s+|debe\s+ser\s+)?"
+        r"(?:male|female|man|woman|nonbinary|transgender|masculino|femenino|hombre|mujer)|"
+        r"(?:candidate|applicant|candidato|candidata)(?:'s|\s+de)?\s+(?:gender|sex|género|sexo)|"
+        r"(?:women|men|mujeres|hombres)\s+only|only\s+(?:women|men)|solo\s+(?:mujeres|hombres))\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:candidate|applicant|candidato|candidata)(?:'s|\s+de)?\s+"
+        r"(?:race|racial|ethnicity|ethnic\s+origin|raza|origen\s+étnico)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:(?:black|white|asian|hispanic|latin[oa]s?|indigenous|african\s+american|native\s+american|"
+        r"negr[oa]s?|blanc[oa]s?|asiátic[oa]s?|afrodescendientes?|indígenas?)\s+"
+        r"(?:candidates?|applicants?|candidatos?|candidatas?|aspirantes)|"
+        r"(?:candidate|applicant|candidates?|applicants?|candidatos?|candidatas?|aspirantes)\s+"
+        r"(?:must\s+be\s+|debe(?:n)?\s+ser\s+)?"
+        r"(?:black|white|asian|hispanic|latin[oa]s?|indigenous|african\s+american|native\s+american|"
+        r"negr[oa]s?|blanc[oa]s?|asiátic[oa]s?|afrodescendientes?|indígenas?))\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:candidate|applicant|candidato|candidata)(?:'s|\s+de)?\s+"
+        r"(?:religion|religious\s+affiliation|religión|afiliación\s+religiosa)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:(?:candidate|applicant|candidato|candidata)\s+"
+        r"(?:must\s+be\s+|debe\s+ser\s+)?(?:catholic|christian|muslim|jewish|hind[uú]|"
+        r"católic[oa]|cristian[oa]|musulm[aá]n|judí[oa])|"
+        r"(?:catholic|christian|muslim|jewish|hind[uú]|católic[oa]|cristian[oa]|musulm[aá]n|judí[oa])\s+"
+        r"(?:candidate|applicant|candidato|candidata))\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:(?:disabled|discapacitado|discapacitada)\s+(?:candidate|applicant|candidato|candidata)|"
+        r"(?:candidate|applicant|candidato|candidata)(?:'s|\s+de)?\s+"
+        r"(?:disability|medical\s+condition|genetic\s+information|discapacidad|condición\s+médica))\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:marital\s+status|family\s+status|must\s+be\s+(?:married|unmarried|single)|"
+        r"(?:married|unmarried|single)\s+(?:applicants?|candidates?)\s+only|"
+        r"estado\s+civil|situación\s+familiar|debe\s+ser\s+(?:casad[oa]|solter[oa])|"
+        r"(?:casad[oa]s?|solter[oa]s?)\s+(?:aspirantes|candidatos|candidatas)\s+solamente|"
+        r"pregnan\w*|embarazad[oa])\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:submit|provide|include|attach|enviar|proporcionar|incluir|adjuntar)\b.{0,24}"
+        r"\b(?:photo|photograph|headshot|foto|fotografía)\b|"
+        r"\b(?:recent|current|reciente|actual)\s+(?:photo|photograph|headshot|foto|fotografía)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:(?:western|american|english|local|native|foreign)[ -]sounding\s+"
+        r"(?:name|surname|last\s+name)|"
+        r"(?:name|surname|last\s+name).{0,30}(?:must|should|needs?\s+to)\s+sound\s+"
+        r"(?:western|american|english|local|native|foreign)|"
+        r"(?:western|american|english|local|native|foreign)\s+"
+        r"(?:name|surname|last\s+name)\s+(?:required|only)|"
+        r"(?:nombre|apellido).{0,30}(?:debe|que)\s+sonar\s+"
+        r"(?:occidental|estadounidense|americano|local|nativo|extranjero)|"
+        r"(?:nombre|apellido)\s+(?:occidental|estadounidense|americano|local|nativo|extranjero)\s+"
+        r"(?:requerido|solamente))\b",
+        re.IGNORECASE,
+    ),
+]
+PROTECTED_REQUIREMENT_CATEGORIES = {
+    "protected_attribute", "protected_proxy", "non_job_relevant",
+}
 
 
 def load_document(path: Path) -> dict[str, Any]:
@@ -60,13 +150,112 @@ def parse_iso_day(value: str) -> date:
     return datetime.strptime(value, "%Y-%m-%d").date()
 
 
+def is_protected_or_non_job_relevant_requirement(value: Any) -> bool:
+    """Classify explicit protected criteria; never delete isolated words as a proxy for semantics."""
+    if isinstance(value, dict):
+        category = str(value.get("category", "job_requirement")).strip().casefold()
+        if category in PROTECTED_REQUIREMENT_CATEGORIES:
+            return True
+        text = str(value.get("text", value.get("requirement", "")))
+    else:
+        text = str(value)
+    return any(pattern.search(text) for pattern in PROTECTED_REQUIREMENT_PATTERNS)
+
+
+def requirement_text(value: Any) -> str:
+    if isinstance(value, dict):
+        return str(value.get("text", value.get("requirement", ""))).strip()
+    return str(value).strip()
+
+
+def candidate_declared_job_constraints(profile: dict[str, Any]) -> dict[str, Any]:
+    """Expose declared eligibility/accommodation separately from evidence-based fit scoring."""
+    constraints = profile.get("constraints", {})
+    if not isinstance(constraints, dict):
+        return {"eligibility": {}, "accommodations": [], "used_as_fit_score": False}
+    eligibility = constraints.get("job_eligibility")
+    if not isinstance(eligibility, dict):
+        eligibility = {
+            "countries": constraints.get("countries", []),
+            "locations": constraints.get("locations", []),
+            "work_modes": constraints.get("work_modes", []),
+            "employment_types": constraints.get("employment_types", []),
+        }
+    accommodations = constraints.get("accommodations", [])
+    if not isinstance(accommodations, list):
+        accommodations = [accommodations] if accommodations else []
+    return {
+        "eligibility": eligibility,
+        "accommodations": accommodations,
+        "used_as_fit_score": False,
+    }
+
+
+def normalized_location_parts(value: Any) -> set[str]:
+    """Return explicit location components without equating Mexico with New Mexico."""
+    parts = re.split(r"[,;/|()]|\s[-–—]\s", str(value).casefold())
+    normalized = {
+        " ".join(item for item in re.findall(r"[\w+#.-]+", part) if item not in STOPWORDS)
+        for part in parts
+    }
+    return {part for part in normalized if part}
+
+
+def location_is_eligible(vacancy_location: Any, eligible_values: list[Any]) -> bool:
+    vacancy_parts = normalized_location_parts(vacancy_location)
+    eligible_parts = {
+        part
+        for value in eligible_values
+        for part in normalized_location_parts(value)
+    }
+    return not eligible_parts or bool(vacancy_parts & eligible_parts)
+
+
+def same_company_near_role(row: dict[str, str], vacancy: dict[str, Any]) -> bool:
+    row_company = tokens(row.get("company", ""))
+    new_company = tokens(vacancy.get("company", ""))
+    row_role = tokens(row.get("role", ""))
+    new_role = tokens(vacancy.get("title", ""))
+    if not row_company or row_company != new_company or not row_role or not new_role:
+        return False
+    row_external = str(row.get("external_job_id", "")).strip()
+    new_external = str(vacancy.get("external_job_id", "")).strip()
+    row_canonical = canonicalize_url(str(row.get("canonical_url", "")))
+    new_canonical = canonicalize_url(str(vacancy.get("canonical_url", "")))
+    if (row_external or row_canonical) and (new_external or new_canonical):
+        return False
+    row_locations = normalized_location_parts(row.get("location", ""))
+    new_locations = normalized_location_parts(vacancy.get("location", ""))
+    if row_locations and new_locations and row_locations != new_locations:
+        return False
+    row_posted = str(row.get("date_posted", "")).strip()
+    new_posted = str(vacancy.get("date_posted", "")).strip()
+    if row_posted and new_posted and row_posted != new_posted:
+        return False
+    return len(row_role & new_role) / len(row_role | new_role) >= 0.8
+
+
 def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, Any], as_of: date) -> dict[str, Any]:
     reasons: list[str] = []
     risks: list[str] = []
     unknowns: list[str] = []
+    raw_requirements_value = vacancy.get("requirements", [])
+    raw_requirements = raw_requirements_value if isinstance(raw_requirements_value, list) else [raw_requirements_value]
+    nonempty_requirements = [item for item in raw_requirements if requirement_text(item)]
+    requirements = [
+        requirement_text(item) for item in nonempty_requirements
+        if not is_protected_or_non_job_relevant_requirement(item)
+    ]
+    ignored_requirements = len(nonempty_requirements) - len(requirements)
+    declared_job_constraints = candidate_declared_job_constraints(profile)
 
     if str(vacancy.get("status", "")).casefold() != "open":
-        return {"recommendation": "Discard", "reasons": [], "risks": ["vacancy is not confirmed open"], "unknowns": [], "next_action": "none"}
+        return {
+            "recommendation": "Discard", "reasons": [], "risks": ["vacancy is not confirmed open"],
+            "unknowns": [], "next_action": "none",
+            "ignored_non_job_relevant_requirements": ignored_requirements,
+            "candidate_declared_job_constraints": declared_job_constraints,
+        }
 
     posted = vacancy.get("date_posted")
     freshness_days = int(rules.get("search", {}).get("freshness_days", 14))
@@ -75,13 +264,20 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
         if age < 0:
             risks.append("posting date is in the future relative to evaluation date")
         elif age > freshness_days:
-            return {"recommendation": "Discard", "reasons": [], "risks": [f"posting is {age} days old; limit is {freshness_days}"], "unknowns": [], "next_action": "none"}
+            return {
+                "recommendation": "Discard", "reasons": [],
+                "risks": [f"posting is {age} days old; limit is {freshness_days}"],
+                "unknowns": [], "next_action": "none",
+                "ignored_non_job_relevant_requirements": ignored_requirements,
+                "candidate_declared_job_constraints": declared_job_constraints,
+            }
     else:
         unknowns.append("posting date")
 
     candidate = profile.get("profile", {})
     constraints = profile.get("constraints", {})
-    target_roles = candidate.get("target_roles", [])
+    raw_target_roles = candidate.get("target_roles", [])
+    target_roles = raw_target_roles if isinstance(raw_target_roles, list) else [raw_target_roles]
     target_seniority = tokens(candidate.get("target_seniority", []))
     title_tokens = tokens(vacancy.get("title", ""))
     target_role_tokens = tokens(target_roles)
@@ -101,22 +297,42 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
     else:
         unknowns.append("seniority")
 
-    eligible_locations = tokens(constraints.get("countries", [])) | tokens(constraints.get("locations", []))
-    vacancy_location = tokens(vacancy.get("location", ""))
-    location_match = not eligible_locations or bool(eligible_locations & vacancy_location)
+    job_eligibility = constraints.get("job_eligibility", {})
+    work_authorization = job_eligibility.get("work_authorization", []) if isinstance(job_eligibility, dict) else []
+    eligible_locations = (
+        list(constraints.get("countries", []))
+        + list(constraints.get("locations", []))
+        + (list(work_authorization) if isinstance(work_authorization, list) else [])
+    )
+    location_match = location_is_eligible(vacancy.get("location", ""), eligible_locations)
     if location_match:
         reasons.append("location appears eligible")
     else:
-        return {"recommendation": "Discard", "reasons": reasons, "risks": ["location is outside configured eligibility"], "unknowns": unknowns, "next_action": "none"}
+        return {
+            "recommendation": "Discard", "reasons": reasons,
+            "risks": ["location is outside configured eligibility"], "unknowns": unknowns,
+            "next_action": "none", "ignored_non_job_relevant_requirements": ignored_requirements,
+            "candidate_declared_job_constraints": declared_job_constraints,
+        }
 
-    exclusion_tokens = tokens(constraints.get("excluded_roles", [])) | tokens(rules.get("evaluation", {}).get("hard_exclusions", []))
-    vacancy_all_tokens = tokens([vacancy.get("title", ""), vacancy.get("requirements", []), vacancy.get("responsibilities", [])])
+    raw_exclusions = list(constraints.get("excluded_roles", [])) + list(rules.get("evaluation", {}).get("hard_exclusions", []))
+    job_relevant_exclusions = [
+        item for item in raw_exclusions
+        if not is_protected_or_non_job_relevant_requirement(item)
+    ]
+    exclusion_tokens = tokens(job_relevant_exclusions)
+    vacancy_all_tokens = tokens([vacancy.get("title", ""), requirements, vacancy.get("responsibilities", [])])
     triggered = sorted(exclusion_tokens & vacancy_all_tokens)
     if triggered:
-        return {"recommendation": "Discard", "reasons": reasons, "risks": ["hard exclusion triggered: " + ", ".join(triggered)], "unknowns": unknowns, "next_action": "none"}
+        return {
+            "recommendation": "Discard", "reasons": reasons,
+            "risks": ["hard exclusion triggered: " + ", ".join(triggered)],
+            "unknowns": unknowns, "next_action": "none",
+            "ignored_non_job_relevant_requirements": ignored_requirements,
+            "candidate_declared_job_constraints": declared_job_constraints,
+        }
 
     evidence_tokens = tokens(candidate.get("strengths", [])) | tokens(candidate.get("verified_evidence", []))
-    requirements = [str(item) for item in vacancy.get("requirements", [])]
     matched_requirements = []
     for item in requirements:
         requirement_tokens = tokens(item)
@@ -146,6 +362,8 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
         "unknowns": unknowns,
         "matched_requirements": matched_requirements,
         "next_action": next_action,
+        "ignored_non_job_relevant_requirements": ignored_requirements,
+        "candidate_declared_job_constraints": declared_job_constraints,
     }
 
 
@@ -254,11 +472,100 @@ def stable_id(vacancy: dict[str, Any]) -> str:
     return "job-" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:12]
 
 
+def _tracker_schema_kind(fieldnames: list[str]) -> str:
+    current = len(fieldnames) == len(TRACKER_FIELDS) and set(fieldnames) == set(TRACKER_FIELDS)
+    if current:
+        return "current"
+    legacy = len(fieldnames) == len(LEGACY_TRACKER_FIELDS) and set(fieldnames) == set(LEGACY_TRACKER_FIELDS)
+    if legacy:
+        return "legacy"
+    missing = [field for field in TRACKER_FIELDS if field not in fieldnames]
+    supported = set(TRACKER_FIELDS) | {"last_verified"}
+    extra = [field for field in fieldnames if field not in supported]
+    detail = []
+    if missing:
+        detail.append(f"missing fields: {', '.join(missing)}")
+    if extra:
+        detail.append(f"unsupported extra fields: {', '.join(extra)}")
+    raise ValueError(f"unsupported tracker schema; {'; '.join(detail) or 'unrecognized columns'}")
+
+
 def read_tracker(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []
     with path.open(newline="", encoding="utf-8") as handle:
         return [_normalize_tracker_row(row) for row in csv.DictReader(handle)]
+
+
+def review_tracker(path: Path, as_of: date) -> dict[str, Any]:
+    """Derive neutral follow-up signals without changing tracker data or status."""
+    if not path.is_file():
+        raise FileNotFoundError(f"tracker does not exist: {path}")
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        _tracker_schema_kind(list(reader.fieldnames or []))
+        rows = [_normalize_tracker_row(row) for row in reader]
+    items: list[dict[str, Any]] = []
+    unknown_dates = 0
+    invalid_dates = 0
+    overdue_count = 0
+    for row in rows:
+        status = str(row.get("status", "")).strip()
+        normalized_status = status.casefold()
+        next_action = str(row.get("next_action", "")).strip()
+        raw_date = str(row.get("next_action_date", "")).strip()
+        due_date: Optional[date] = None
+        if not raw_date:
+            date_state = "unknown"
+            reason = "next_action_date is missing"
+            unknown_dates += 1
+        else:
+            try:
+                due_date = parse_iso_day(raw_date)
+                date_state = "valid"
+                reason = "not overdue"
+            except ValueError:
+                date_state = "invalid"
+                reason = "next_action_date is invalid"
+                invalid_dates += 1
+
+        overdue = bool(
+            next_action
+            and due_date is not None
+            and due_date < as_of
+            and normalized_status not in TERMINAL_TRACKER_STATUSES
+        )
+        if overdue:
+            reason = "follow_up_overdue"
+            overdue_count += 1
+        elif due_date is not None and normalized_status in TERMINAL_TRACKER_STATUSES:
+            reason = "terminal status"
+        elif due_date is not None and not next_action:
+            reason = "next_action is missing"
+
+        items.append({
+            "id": str(row.get("id", "")),
+            "company": str(row.get("company", "")),
+            "role": str(row.get("role", "")),
+            "status": status,
+            "next_action": next_action,
+            "next_action_date": raw_date,
+            "next_action_date_state": date_state,
+            "follow_up_overdue": overdue,
+            "reason": reason,
+        })
+
+    return {
+        "as_of": as_of.isoformat(),
+        "read_only": True,
+        "summary": {
+            "rows": len(items),
+            "follow_up_overdue": overdue_count,
+            "unknown_dates": unknown_dates,
+            "invalid_dates": invalid_dates,
+        },
+        "items": items,
+    }
 
 
 def _normalize_tracker_row(row: dict[str, Any]) -> dict[str, str]:
@@ -276,23 +583,11 @@ def migrate_tracker_schema(path: Path) -> bool:
         reader = csv.DictReader(handle)
         fieldnames = reader.fieldnames or []
         rows = list(reader)
-    if fieldnames == TRACKER_FIELDS:
+    schema_kind = _tracker_schema_kind(list(fieldnames))
+    if schema_kind == "current" and fieldnames == TRACKER_FIELDS:
         return False
-    if len(fieldnames) == len(TRACKER_FIELDS) and set(fieldnames) == set(TRACKER_FIELDS):
-        atomic_write_tracker(path, rows)
-        return True
-    if len(fieldnames) == len(LEGACY_TRACKER_FIELDS) and set(fieldnames) == set(LEGACY_TRACKER_FIELDS):
-        atomic_write_tracker(path, rows)
-        return True
-    missing = [field for field in TRACKER_FIELDS if field not in fieldnames]
-    supported = set(TRACKER_FIELDS) | {"last_verified"}
-    extra = [field for field in fieldnames if field not in supported]
-    detail = []
-    if missing:
-        detail.append(f"missing fields: {', '.join(missing)}")
-    if extra:
-        detail.append(f"unsupported extra fields: {', '.join(extra)}")
-    raise ValueError(f"unsupported tracker schema; {'; '.join(detail) or 'unrecognized columns'}")
+    atomic_write_tracker(path, rows)
+    return True
 
 
 def atomic_write_tracker(path: Path, rows: list[dict[str, str]]) -> None:
@@ -364,7 +659,12 @@ def track(
         "notes": "; ".join(evaluation.get("risks", [])),
         "vacancy_last_verified": as_of.isoformat(),
     }
-    duplicate = next((row for row in rows if row.get("id") == identity or canonical and row.get("canonical_url") == canonical), None)
+    duplicate = next((
+        row for row in rows
+        if row.get("id") == identity
+        or canonical and row.get("canonical_url") == canonical
+        or same_company_near_role(row, vacancy)
+    ), None)
     if duplicate:
         previous_status = duplicate.get("status", "identified")
         if previous_status in {"identified", "evaluating", "discarded"}:
@@ -492,22 +792,39 @@ def interview_brief(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--profile", required=True)
-    parser.add_argument("--rules", required=True)
-    parser.add_argument("--vacancy", required=True)
+    parser.add_argument("--profile")
+    parser.add_argument("--rules")
+    parser.add_argument("--vacancy")
     parser.add_argument("--as-of", required=True, help="YYYY-MM-DD")
     parser.add_argument("--tracker")
+    parser.add_argument("--review-tracker", help="read-only tracker follow-up review")
     parser.add_argument("--brief")
     parser.add_argument("--human-path", help="JSON/YAML file with sourced contacts, recruiter/poster and hiring-manager evidence")
     parser.add_argument("--interviewer-research", help="JSON/YAML file with sourced interviewer facts and labeled hypotheses")
     args = parser.parse_args()
     try:
+        as_of = parse_iso_day(args.as_of)
+        if args.review_tracker:
+            evaluation_options = (
+                args.profile, args.rules, args.vacancy, args.tracker, args.brief,
+                args.human_path, args.interviewer_research,
+            )
+            if any(evaluation_options):
+                raise ValueError("--review-tracker cannot be combined with evaluation or write options")
+            print(json.dumps(review_tracker(Path(args.review_tracker), as_of), indent=2, ensure_ascii=False))
+            return 0
+        missing = [
+            option for option, value in (
+                ("--profile", args.profile), ("--rules", args.rules), ("--vacancy", args.vacancy),
+            ) if not value
+        ]
+        if missing:
+            raise ValueError("evaluation mode requires " + ", ".join(missing))
         profile = load_document(Path(args.profile))
         rules = load_document(Path(args.rules))
         vacancy = load_document(Path(args.vacancy))
         human_path = load_document(Path(args.human_path)) if args.human_path else None
         interviewer_research = load_document(Path(args.interviewer_research)) if args.interviewer_research else None
-        as_of = parse_iso_day(args.as_of)
         result = evaluate(profile, rules, vacancy, as_of)
         if human_path is not None:
             _validated_human_path_retrieved_at(human_path, as_of)

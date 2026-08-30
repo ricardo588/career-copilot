@@ -10,11 +10,13 @@ The scenario uses only bundled synthetic JSON and a reserved `.test` URL. It mus
 
 - `demo-result.json`;
 - one-row `tracker.csv`;
+- read-only `tracker-review.json` with one neutral overdue follow-up;
 - separate vacancy and Human Path verification dates in that tracker row;
 - `interview-brief.md`;
 - recommendation `High`;
 - exactly three meaningfully supported requirements;
 - zero external actions.
+- no protected or proxy attribute used in fit scoring.
 
 Re-evaluating/tracking the same vacancy must update the existing row rather than add a duplicate. A vacancy-only refresh must preserve existing Human Path and interviewer evidence.
 

@@ -22,7 +22,7 @@ Ask one phase at a time and allow the user to skip optional fields. The first qu
 1. **CV availability** — ask `documents.has_cv`.
 2. **CV extraction and confirmation** — when true, request a local CV, follow `cv-first-onboarding.md`, and ask the user to confirm or correct the proposal. Never apply extracted fields silently.
 3. **Goals and evidence** — ask only for required items the CV did not establish or the user rejected.
-4. **Constraints** — at least one user-confirmed eligible country or location; optional work modes, employment types and exclusions.
+4. **Constraints** — at least one user-confirmed eligible country or location; optional work modes, employment types, structured `job_eligibility`, accommodations and exclusions. These are candidate declarations, not demographic inferences or fit evidence.
 5. **Preferences** — industries, source priority and vacancy freshness.
 6. **Compensation** — optional and disabled unless the user wants it considered.
 7. **Permissions** — tracker update policy and external-action mode. `draft_only` is the default; `confirm_each_external` requires explicit opt-in.

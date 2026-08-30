@@ -49,3 +49,10 @@
 ## Status summary
 
 Return active priorities, blockers with owners, and the next one to three concrete actions. Do not turn passive waiting into an artificial task.
+
+## Review follow-ups
+
+1. Run `scripts/pipeline.py --review-tracker <csv> --as-of <YYYY-MM-DD>` with an explicit review date.
+2. Treat `follow_up_overdue` as a derived reminder, not a process event or assertion about another person's response.
+3. Report missing dates as `unknown` and malformed dates as `invalid`.
+4. Preserve every tracker row, status and next action; the review path is read-only.
