@@ -66,6 +66,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.4.4 is a pilot release. It adds read-only overdue follow-up reporting and protected-attribute fit guardrails. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
+Version 0.5.0 is a pilot release. It adds private evidence stories, optional career-direction criteria, structured relationship intelligence and read-only interview debriefs while preserving draft-only external-action guardrails. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
 
 Licensed under Apache-2.0; see [LICENSE](LICENSE).
