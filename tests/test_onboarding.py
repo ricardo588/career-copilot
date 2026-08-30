@@ -341,6 +341,30 @@ class OnboardingTests(unittest.TestCase):
                 self.assertEqual(completed.returncode, 2)
                 self.assertIn("ERROR", completed.stderr)
 
+    def test_structured_eligibility_and_accommodations_are_checkpointed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "constraints.job_eligibility.work_authorization",
+                "--json-value", '["Mexico"]',
+            )
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "constraints.job_eligibility.travel", "--value", "up to 25 percent",
+            )
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "constraints.accommodations", "--json-value", '["step-free interview access"]',
+            )
+
+            state = json.loads((workspace / ".career_copilot_onboarding.json").read_text(encoding="utf-8"))
+            constraints = state["answers"]["constraints"]
+            self.assertEqual(constraints["job_eligibility"]["work_authorization"], ["Mexico"])
+            self.assertEqual(constraints["job_eligibility"]["travel"], "up to 25 percent")
+            self.assertEqual(constraints["accommodations"], ["step-free interview access"])
+
     def test_workspace_inside_distribution_is_rejected(self):
         forbidden = ROOT / "private-candidate-test"
         completed = subprocess.run(

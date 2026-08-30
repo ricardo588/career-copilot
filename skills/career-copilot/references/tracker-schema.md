@@ -46,6 +46,24 @@ Version 0.2 had one ambiguous `last_verified` column. On the first tracker write
 
 `status` is process state. `fit_recommendation` is the latest `High`, `Medium`, `Low` or `Discard` evaluation. Reevaluation refreshes vacancy and fit fields but does not regress an advanced process status such as `applied` or `interview`.
 
+## Read-only follow-up review
+
+Run `scripts/pipeline.py --review-tracker <csv> --as-of <YYYY-MM-DD>` to derive follow-up signals without adding a persisted column.
+
+- `follow_up_overdue` is true only when `next_action` is present, `next_action_date` is before `as_of`, and `status` is not `withdrawn`, `rejected` or `discarded`.
+- A date equal to `as_of` is not overdue.
+- Missing dates are `unknown`; malformed dates are `invalid`.
+- The signal is neutral: it does not infer lack of response or change `status`, `next_action`, rows, headers or file metadata.
+- `applied`, `contact`, `recruiter_screen` and `interview` remain confirmed process states.
+- The input file must exist and have exactly the current header (in any order) or the supported legacy 0.2 header. Missing files and unknown/extra-column schemas fail closed without rewriting bytes.
+
+The command emits one JSON object with:
+
+- `read_only: true` and the explicit `as_of` date;
+- `summary` with `rows`, `follow_up_overdue`, `unknown_dates` and `invalid_dates` counts;
+- `items`, one per tracker row, preserving `id`, `company`, `role`, `status`, `next_action` and `next_action_date`;
+- per-item `follow_up_overdue`, `next_action_date_state` (`valid`, `unknown` or `invalid`) and neutral `reason`.
+
 ## Dedupe
 
 1. Exact external job ID.

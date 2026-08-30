@@ -278,6 +278,46 @@ class PipelineTests(unittest.TestCase):
                 self.assertEqual(persisted[0]["id"], "legacy-1")
                 self.assertNotIn("last_verified", reader.fieldnames or [])
 
+    def test_company_and_near_identical_role_dedupe_preserves_stable_id(self):
+        first_vacancy = dict(self.vacancy)
+        first_vacancy["external_job_id"] = ""
+        first_vacancy["canonical_url"] = ""
+        evaluation = PIPELINE.evaluate(self.profile, self.rules, first_vacancy, self.as_of)
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = Path(tmp) / "tracker.csv"
+            first = PIPELINE.track(tracker, first_vacancy, evaluation, self.as_of)
+
+            refreshed = dict(self.vacancy)
+            refreshed["external_job_id"] = "NEW-SOURCE-ID"
+            refreshed["canonical_url"] = "https://jobs.example.test/acme/new-source"
+            refreshed["title"] = "Director, Technical Program"
+            second_evaluation = PIPELINE.evaluate(self.profile, self.rules, refreshed, self.as_of)
+            second = PIPELINE.track(tracker, refreshed, second_evaluation, self.as_of)
+
+            rows = PIPELINE.read_tracker(tracker)
+            self.assertEqual(second["action"], "updated_existing")
+            self.assertEqual(second["id"], first["id"])
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["id"], first["id"])
+            self.assertEqual(rows[0]["canonical_url"], refreshed["canonical_url"])
+
+    def test_fuzzy_dedupe_does_not_merge_distinct_location_or_conflicting_identity(self):
+        evaluation = PIPELINE.evaluate(self.profile, self.rules, self.vacancy, self.as_of)
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = Path(tmp) / "tracker.csv"
+            first = PIPELINE.track(tracker, self.vacancy, evaluation, self.as_of)
+
+            distinct = dict(self.vacancy)
+            distinct["external_job_id"] = "DEMO-TPD-002"
+            distinct["canonical_url"] = "https://jobs.example.test/acme/TPD-002"
+            distinct["location"] = "Toronto, Canada"
+            second_evaluation = PIPELINE.evaluate(self.profile, self.rules, distinct, self.as_of)
+            second = PIPELINE.track(tracker, distinct, second_evaluation, self.as_of)
+
+            self.assertEqual(first["action"], "added")
+            self.assertEqual(second["action"], "added")
+            self.assertEqual(len(PIPELINE.read_tracker(tracker)), 2)
+
     def test_track_automatically_migrates_legacy_tracker_without_erasing_human_evidence(self):
         legacy_fields = [
             "id", "company", "role", "location", "source", "canonical_url", "external_job_id",
@@ -406,6 +446,348 @@ class PipelineTests(unittest.TestCase):
         elsewhere["location"] = "Example City"
         self.assertEqual(PIPELINE.evaluate(self.profile, self.rules, elsewhere, self.as_of)["recommendation"], "Discard")
 
+    def test_protected_attributes_and_proxies_are_excluded_from_fit_scoring(self):
+        profile = json.loads(json.dumps(self.profile))
+        profile["profile"]["age"] = 55
+        profile["profile"]["gender"] = "female"
+        profile["profile"]["date_of_birth"] = "1971-01-01"
+        profile["profile"]["verified_evidence"] = [
+            "Led cloud transformation programs",
+            "Female executive born in 1971",
+        ]
+        vacancy = dict(self.vacancy)
+        vacancy["requirements"] = [
+            "Cloud transformation",
+            "Female candidate",
+            "Must be under 60 years old",
+            "Born after 1970",
+            "Recent headshot photograph",
+        ]
+
+        result = PIPELINE.evaluate(profile, self.rules, vacancy, self.as_of)
+
+        self.assertEqual(result["matched_requirements"], ["Cloud transformation"])
+        self.assertEqual(result["ignored_non_job_relevant_requirements"], 4)
+        self.assertFalse(any("age" in item.casefold() or "gender" in item.casefold() for item in result["unknowns"]))
+
+    def test_candidate_declared_location_eligibility_remains_job_relevant(self):
+        profile = json.loads(json.dumps(self.profile))
+        profile["profile"]["age"] = 55
+        profile["constraints"]["locations"] = ["Mexico"]
+        vacancy = dict(self.vacancy)
+        vacancy["location"] = "Example City"
+
+        result = PIPELINE.evaluate(profile, self.rules, vacancy, self.as_of)
+
+        self.assertEqual(result["recommendation"], "Discard")
+        self.assertIn("location is outside configured eligibility", result["risks"])
+
+    def test_structured_work_authorization_is_a_hard_constraint_without_substring_match(self):
+        profile = json.loads(json.dumps(self.profile))
+        profile["constraints"]["countries"] = []
+        profile["constraints"]["locations"] = []
+        profile["constraints"]["job_eligibility"] = {"work_authorization": ["Mexico"]}
+        vacancy = dict(self.vacancy)
+        vacancy["location"] = "New Mexico (Remote)"
+
+        result = PIPELINE.evaluate(profile, self.rules, vacancy, self.as_of)
+
+        self.assertEqual(result["recommendation"], "Discard")
+        self.assertIn("location is outside configured eligibility", result["risks"])
+
+    def test_plain_text_women_only_requirement_is_excluded(self):
+        vacancy = dict(self.vacancy)
+        vacancy["requirements"] = ["Women only", "Only women", "Program governance"]
+
+        result = PIPELINE.evaluate(self.profile, self.rules, vacancy, self.as_of)
+
+        self.assertEqual(result["ignored_non_job_relevant_requirements"], 2)
+        self.assertEqual(result["matched_requirements"], ["Program governance"])
+
+    def test_plain_text_date_religion_and_family_proxies_are_excluded(self):
+        vacancy = dict(self.vacancy)
+        vacancy["requirements"] = [
+            "Graduated after 2015",
+            "Class of 2015",
+            "Graduation year 2015",
+            "Candidate must be Catholic",
+            "Single applicants only",
+            "Graduado después de 2018",
+            "Año de graduación 2018",
+            "Candidato católico",
+            "Black candidates only",
+            "Candidatos latinos solamente",
+            "Western-sounding name required",
+            "El nombre debe sonar estadounidense",
+            "Program governance",
+        ]
+
+        result = PIPELINE.evaluate(self.profile, self.rules, vacancy, self.as_of)
+
+        self.assertEqual(result["ignored_non_job_relevant_requirements"], 12)
+        self.assertEqual(result["matched_requirements"], ["Program governance"])
+
+    def test_candidate_target_role_is_not_filtered_as_an_employer_requirement(self):
+        profile = json.loads(json.dumps(self.profile))
+        profile["profile"]["target_roles"] = ["Women Only Shelter Director"]
+        vacancy = dict(self.vacancy)
+        vacancy["title"] = "Women Only Shelter Director"
+
+        result = PIPELINE.evaluate(profile, self.rules, vacancy, self.as_of)
+
+        self.assertIn("title aligns with a target role", result["reasons"])
+
+    def test_job_relevant_language_is_not_removed_by_protected_attribute_guardrail(self):
+        profile = json.loads(json.dumps(self.profile))
+        profile["profile"]["verified_evidence"] = [
+            "Owned a single point of accountability",
+            "Led disability accessibility programs",
+            "Managed good faith negotiations",
+            "Delivered medical platform transformation",
+            "Directed aged care modernization",
+        ]
+        vacancy = dict(self.vacancy)
+        vacancy["requirements"] = [
+            "Single point of accountability",
+            "Disability accessibility programs",
+            "Good faith negotiations",
+            "Medical platform transformation",
+            "Aged care modernization",
+        ]
+
+        result = PIPELINE.evaluate(profile, self.rules, vacancy, self.as_of)
+
+        self.assertEqual(result["ignored_non_job_relevant_requirements"], 0)
+        self.assertEqual(result["matched_requirements"], vacancy["requirements"])
+
+    def test_structured_protected_requirements_are_ignored_without_keyword_deletion(self):
+        profile = json.loads(json.dumps(self.profile))
+        profile["profile"]["verified_evidence"] = ["Led women in technology programs"]
+        vacancy = dict(self.vacancy)
+        vacancy["requirements"] = [
+            {"category": "protected_attribute", "text": "Women only"},
+            {"category": "job_requirement", "text": "Women in technology programs"},
+        ]
+
+        result = PIPELINE.evaluate(profile, self.rules, vacancy, self.as_of)
+
+        self.assertEqual(result["ignored_non_job_relevant_requirements"], 1)
+        self.assertEqual(result["matched_requirements"], ["Women in technology programs"])
+
+    def test_english_and_spanish_guardrail_fixtures_classify_semantic_categories(self):
+        fixtures = PIPELINE.load_document(FIXTURES / "guardrail-fixtures.json")
+        for language in ("english", "spanish"):
+            with self.subTest(language=language, kind="excluded"):
+                self.assertTrue(all(
+                    PIPELINE.is_protected_or_non_job_relevant_requirement(item)
+                    for item in fixtures[language]["excluded"]
+                ))
+            with self.subTest(language=language, kind="job_relevant"):
+                self.assertFalse(any(
+                    PIPELINE.is_protected_or_non_job_relevant_requirement(item)
+                    for item in fixtures[language]["job_relevant"]
+                ))
+
+    def test_declared_eligibility_and_accommodation_are_structured_outside_fit_score(self):
+        profile = json.loads(json.dumps(self.profile))
+        profile["constraints"]["job_eligibility"] = {
+            "work_authorization": ["Mexico"],
+            "travel": "up to 25 percent",
+        }
+        profile["constraints"]["accommodations"] = ["step-free interview access"]
+
+        result = PIPELINE.evaluate(profile, self.rules, self.vacancy, self.as_of)
+
+        declared = result["candidate_declared_job_constraints"]
+        self.assertEqual(declared["eligibility"], profile["constraints"]["job_eligibility"])
+        self.assertEqual(declared["accommodations"], profile["constraints"]["accommodations"])
+        self.assertFalse(declared["used_as_fit_score"])
+        self.assertNotIn("step-free", json.dumps(result["matched_requirements"]).casefold())
+
+    def test_spanish_protected_candidate_requirements_are_not_scored(self):
+        profile = json.loads(json.dumps(self.profile))
+        profile["profile"]["verified_evidence"] = ["Mujer candidata nacida en 1971"]
+        vacancy = dict(self.vacancy)
+        vacancy["requirements"] = [
+            "Candidata debe ser mujer",
+            "Menor de 60 años de edad",
+            "Adjuntar fotografía reciente",
+        ]
+
+        result = PIPELINE.evaluate(profile, self.rules, vacancy, self.as_of)
+
+        self.assertEqual(result["ignored_non_job_relevant_requirements"], 3)
+        self.assertEqual(result["matched_requirements"], [])
+        self.assertFalse(any("evidence for" in item for item in result["unknowns"]))
+
+    def test_protected_attribute_contract_is_present_in_skill_and_evaluation_docs(self):
+        skill = (ROOT / "skills" / "career-copilot" / "SKILL.md").read_text(encoding="utf-8").casefold()
+        evaluation = (ROOT / "skills" / "career-copilot" / "references" / "evaluation.md").read_text(encoding="utf-8").casefold()
+        for text in (skill, evaluation):
+            self.assertIn("protected", text)
+            self.assertIn("age", text)
+            self.assertIn("gender", text)
+            self.assertIn("photo", text)
+            self.assertIn("accommodation", text)
+
+    def test_tracker_review_flags_only_actionable_overdue_rows_without_mutation(self):
+        statuses = ["applied", "contact", "recruiter_screen", "interview"]
+        rows = []
+        for index, status in enumerate(statuses, start=1):
+            row = {field: "" for field in PIPELINE.TRACKER_FIELDS}
+            row.update({
+                "id": f"active-{index}",
+                "company": "Synthetic Co",
+                "role": "Synthetic Role",
+                "status": status,
+                "next_action": "send neutral follow-up",
+                "next_action_date": "2026-08-25",
+            })
+            rows.append(row)
+        for index, status in enumerate(("withdrawn", "rejected", "discarded"), start=1):
+            row = {field: "" for field in PIPELINE.TRACKER_FIELDS}
+            row.update({
+                "id": f"terminal-{index}",
+                "status": status,
+                "next_action": "old action",
+                "next_action_date": "2026-08-20",
+            })
+            rows.append(row)
+        for identity, next_action, next_action_date in (
+            ("future", "follow up later", "2026-08-27"),
+            ("due-today", "follow up today", "2026-08-26"),
+            ("missing-date", "follow up", ""),
+            ("invalid-date", "follow up", "not-a-date"),
+            ("missing-action", "", "2026-08-20"),
+        ):
+            row = {field: "" for field in PIPELINE.TRACKER_FIELDS}
+            row.update({
+                "id": identity,
+                "status": "applied",
+                "next_action": next_action,
+                "next_action_date": next_action_date,
+            })
+            rows.append(row)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = Path(tmp) / "tracker.csv"
+            PIPELINE.atomic_write_tracker(tracker, rows)
+            before = tracker.read_bytes()
+            before_stat = tracker.stat()
+
+            review = PIPELINE.review_tracker(tracker, self.as_of)
+
+            self.assertEqual(review["summary"]["rows"], 12)
+            self.assertEqual(review["summary"]["follow_up_overdue"], 4)
+            self.assertEqual(review["summary"]["unknown_dates"], 1)
+            self.assertEqual(review["summary"]["invalid_dates"], 1)
+            overdue = [item for item in review["items"] if item["follow_up_overdue"]]
+            self.assertEqual({item["status"] for item in overdue}, set(statuses))
+            self.assertTrue(all("ghosted" not in json.dumps(item).casefold() for item in review["items"]))
+            self.assertEqual(next(item for item in review["items"] if item["id"] == "missing-date")["next_action_date_state"], "unknown")
+            self.assertEqual(next(item for item in review["items"] if item["id"] == "invalid-date")["next_action_date_state"], "invalid")
+            self.assertFalse(next(item for item in review["items"] if item["id"] == "due-today")["follow_up_overdue"])
+            self.assertEqual(tracker.read_bytes(), before)
+            after_stat = tracker.stat()
+            self.assertEqual(after_stat.st_mtime_ns, before_stat.st_mtime_ns)
+            self.assertEqual(stat.S_IMODE(after_stat.st_mode), stat.S_IMODE(before_stat.st_mode))
+            self.assertEqual([row["status"] for row in PIPELINE.read_tracker(tracker)], [row["status"] for row in rows])
+
+    def test_tracker_review_handles_blank_and_unknown_status_without_rewriting(self):
+        rows = []
+        for index, status in enumerate(("", "custom_pipeline_stage"), start=1):
+            row = {field: "" for field in PIPELINE.TRACKER_FIELDS}
+            row.update({
+                "id": f"unknown-status-{index}",
+                "status": status,
+                "next_action": "verify follow-up",
+                "next_action_date": "2026-08-20",
+            })
+            rows.append(row)
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = Path(tmp) / "tracker.csv"
+            PIPELINE.atomic_write_tracker(tracker, rows)
+            before = tracker.read_bytes()
+
+            review = PIPELINE.review_tracker(tracker, self.as_of)
+
+            self.assertEqual(review["summary"]["follow_up_overdue"], 2)
+            self.assertEqual([item["status"] for item in review["items"]], ["", "custom_pipeline_stage"])
+            self.assertEqual(tracker.read_bytes(), before)
+
+    def test_tracker_review_rejects_missing_or_unsupported_trackers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "missing.csv"
+            with self.assertRaisesRegex(FileNotFoundError, "does not exist"):
+                PIPELINE.review_tracker(missing, self.as_of)
+
+            unsupported = Path(tmp) / "unsupported.csv"
+            unsupported.write_text("id,status,unexpected\n1,applied,value\n", encoding="utf-8")
+            before = unsupported.read_bytes()
+            with self.assertRaisesRegex(ValueError, "unsupported tracker schema"):
+                PIPELINE.review_tracker(unsupported, self.as_of)
+            self.assertEqual(unsupported.read_bytes(), before)
+
+    def test_tracker_review_accepts_legacy_and_reordered_schema_without_migration(self):
+        legacy_fields = [
+            "id", "company", "role", "location", "source", "canonical_url", "external_job_id",
+            "date_posted", "date_discovered", "status", "fit_recommendation", "priority", "next_action",
+            "next_action_date", "contact", "human_path_status", "recruiter", "hiring_manager",
+            "interviewer", "notes", "last_verified",
+        ]
+        cases = (
+            ("legacy.csv", legacy_fields),
+            ("reordered.csv", list(reversed(PIPELINE.TRACKER_FIELDS))),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            for filename, fieldnames in cases:
+                tracker = Path(tmp) / filename
+                row = {field: "" for field in fieldnames}
+                row.update({
+                    "id": filename,
+                    "status": "applied",
+                    "next_action": "follow up",
+                    "next_action_date": "2026-08-20",
+                })
+                with tracker.open("w", newline="", encoding="utf-8") as handle:
+                    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerow(row)
+                before = tracker.read_bytes()
+                before_stat = tracker.stat()
+
+                review = PIPELINE.review_tracker(tracker, self.as_of)
+
+                self.assertEqual(review["summary"]["follow_up_overdue"], 1)
+                self.assertEqual(tracker.read_bytes(), before)
+                self.assertEqual(tracker.stat().st_mtime_ns, before_stat.st_mtime_ns)
+
+    def test_tracker_review_cli_accepts_explicit_as_of_without_evaluation_inputs(self):
+        row = {field: "" for field in PIPELINE.TRACKER_FIELDS}
+        row.update({
+            "id": "cli-overdue",
+            "status": "applied",
+            "next_action": "follow up",
+            "next_action_date": "2026-08-25",
+        })
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = Path(tmp) / "tracker.csv"
+            PIPELINE.atomic_write_tracker(tracker, [row])
+            before = tracker.read_bytes()
+            completed = subprocess.run(
+                [
+                    sys.executable, str(SCRIPT),
+                    "--review-tracker", str(tracker),
+                    "--as-of", "2026-08-26",
+                ],
+                check=True, capture_output=True, text=True,
+            )
+            result = json.loads(completed.stdout)
+            self.assertEqual(result["as_of"], "2026-08-26")
+            self.assertTrue(result["read_only"])
+            self.assertEqual(result["summary"]["follow_up_overdue"], 1)
+            self.assertEqual(tracker.read_bytes(), before)
+
     def test_cli_without_human_path_reports_not_supplied(self):
         fixtures = FIXTURES
         with tempfile.TemporaryDirectory() as tmp:
@@ -458,12 +840,16 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(result["external_actions"], 0)
             self.assertEqual(result["human_path"]["status"], "confirmed")
             self.assertEqual(result["tracker_rows"], 1)
+            self.assertTrue(result["tracker_review"]["read_only"])
+            self.assertEqual(result["tracker_review"]["summary"]["follow_up_overdue"], 1)
             tracker_row = PIPELINE.read_tracker(output / "tracker.csv")[0]
+            self.assertEqual(tracker_row["status"], "applied")
             self.assertEqual(tracker_row["vacancy_last_verified"], "2026-08-26")
             self.assertEqual(tracker_row["human_path_last_verified"], "2026-08-26")
             self.assertTrue((output / "tracker.csv").is_file())
             self.assertTrue((output / "interview-brief.md").is_file())
             self.assertTrue((output / "demo-result.json").is_file())
+            self.assertTrue((output / "tracker-review.json").is_file())
             brief = (output / "interview-brief.md").read_text(encoding="utf-8")
             self.assertIn("## Human Path", brief)
             self.assertIn("## Interviewer intelligence", brief)

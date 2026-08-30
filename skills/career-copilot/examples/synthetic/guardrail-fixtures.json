@@ -1,0 +1,30 @@
+{
+  "english": {
+    "excluded": [
+      {"category": "protected_attribute", "text": "Female candidate"},
+      {"category": "protected_proxy", "text": "Graduated after 2015"},
+      {"category": "non_job_relevant", "text": "Single applicants only"}
+    ],
+    "job_relevant": [
+      {"category": "job_requirement", "text": "Aged care modernization"},
+      {"category": "job_requirement", "text": "Single point of accountability"},
+      {"category": "job_requirement", "text": "Disability accessibility programs"},
+      {"category": "job_requirement", "text": "Good faith negotiations"},
+      {"category": "job_requirement", "text": "Medical platform transformation"},
+      {"category": "job_requirement", "text": "Birth certificate processing"},
+      {"category": "job_requirement", "text": "Born-digital records management"}
+    ]
+  },
+  "spanish": {
+    "excluded": [
+      {"category": "protected_attribute", "text": "Candidata embarazada"},
+      {"category": "protected_proxy", "text": "Nacido después de 1980"},
+      {"category": "non_job_relevant", "text": "Candidato católico"}
+    ],
+    "job_relevant": [
+      {"category": "job_requirement", "text": "Accesibilidad para personas con discapacidad"},
+      {"category": "job_requirement", "text": "Plataforma médica empresarial"},
+      {"category": "job_requirement", "text": "Negociación de buena fe"}
+    ]
+  }
+}

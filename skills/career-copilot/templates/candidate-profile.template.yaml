@@ -13,6 +13,10 @@ constraints:
   locations: []
   work_modes: []
   employment_types: []
+  job_eligibility:
+    work_authorization: []
+    travel: ""
+  accommodations: []
   excluded_roles: []
   excluded_industries: []
 compensation:

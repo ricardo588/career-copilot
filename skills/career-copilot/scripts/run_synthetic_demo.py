@@ -6,10 +6,19 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
-from pipeline import evaluate, interview_brief, load_document, read_tracker, summarize_human_path, track
+from pipeline import (
+    atomic_write_tracker,
+    evaluate,
+    interview_brief,
+    load_document,
+    read_tracker,
+    review_tracker,
+    summarize_human_path,
+    track,
+)
 
 
 def main() -> int:
@@ -33,6 +42,20 @@ def main() -> int:
     tracker_path = output / "tracker.csv"
     human_summary = summarize_human_path(vacancy, human_path)
     tracker_result = track(tracker_path, vacancy, evaluation, as_of, human_path, interviewer_research)
+    tracker_rows = read_tracker(tracker_path)
+    tracker_rows[0]["status"] = "applied"
+    tracker_rows[0]["next_action"] = "send neutral follow-up"
+    tracker_rows[0]["next_action_date"] = (as_of - timedelta(days=1)).isoformat()
+    atomic_write_tracker(tracker_path, tracker_rows)
+    tracker_before_review = tracker_path.read_bytes()
+    tracker_review = review_tracker(tracker_path, as_of)
+    if tracker_path.read_bytes() != tracker_before_review:
+        raise RuntimeError("tracker review mutated the synthetic tracker")
+    tracker_review_path = output / "tracker-review.json"
+    tracker_review_path.write_text(
+        json.dumps(tracker_review, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     brief_path = output / "interview-brief.md"
     brief_path.write_text(
         interview_brief(profile, vacancy, evaluation, human_path, interviewer_research),
@@ -46,6 +69,8 @@ def main() -> int:
         "human_path": human_summary,
         "tracker": tracker_result,
         "tracker_rows": len(read_tracker(tracker_path)),
+        "tracker_review": tracker_review,
+        "tracker_review_artifact": str(tracker_review_path),
         "interview_brief": str(brief_path),
     }
     result_path = output / "demo-result.json"

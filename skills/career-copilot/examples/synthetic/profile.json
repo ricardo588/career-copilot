@@ -23,6 +23,11 @@
     "locations": [],
     "work_modes": ["Remote", "Hybrid"],
     "employment_types": ["Full-time"],
+    "job_eligibility": {
+      "work_authorization": ["Mexico"],
+      "travel": "up to 25 percent"
+    },
+    "accommodations": [],
     "excluded_roles": ["Chief Information Security Officer"],
     "excluded_industries": []
   },

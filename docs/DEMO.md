@@ -12,7 +12,8 @@ The bundled scenario proves the local workflow without using a real candidate, e
 6. Re-run safely without creating a duplicate.
 7. Load sourced interviewer facts plus explicitly labeled hypotheses.
 8. Generate an interview brief using only declared evidence.
-9. Record that zero external actions occurred.
+9. Add a synthetic next action and derive one read-only `follow_up_overdue` signal without changing tracker status during review.
+10. Record that zero external actions occurred.
 
 ## Run
 
@@ -35,6 +36,7 @@ Generated artifacts:
 
 - `demo-result.json`
 - `tracker.csv`
+- `tracker-review.json`
 - `interview-brief.md`
 
 ## Pass criteria
@@ -47,6 +49,9 @@ Generated artifacts:
 - `vacancy_last_verified` equals the fixed evaluation date.
 - `human_path_last_verified` equals the Human Path artifact's validated `retrieved_at`.
 - `external_actions` is `0`.
+- `tracker_review.read_only` is `true` and exactly one item is `follow_up_overdue`.
+- The persisted tracker status remains `applied`; review does not mutate it.
+- Protected attributes and their name/photo/date proxies are excluded from fit scoring.
 - The interview brief contains Human Path, interviewer intelligence and the evidence guardrail.
 
 The fixed default evaluation date is `2026-08-26`, making the test reproducible.
