@@ -39,6 +39,18 @@ Generated artifacts:
 - `tracker-review.json`
 - `interview-brief.md`
 
+Exercise the read-only relationship and debrief modes separately (their outputs must be outside the repository):
+
+```bash
+python3 skills/career-copilot/scripts/pipeline.py \
+  --relationship-prep skills/career-copilot/examples/synthetic/relationship-meeting.json \
+  --relationship-prep-md "$OUTPUT_DIR/relationship-prep.md"
+
+python3 skills/career-copilot/scripts/pipeline.py \
+  --interview-debrief skills/career-copilot/examples/synthetic/interview-debrief.json \
+  --interview-debrief-md "$OUTPUT_DIR/interview-debrief.md"
+```
+
 ## Pass criteria
 
 - `evaluation.recommendation` is `High`.

@@ -1,0 +1,27 @@
+{
+  "company": "Acme Cloud Services",
+  "role": "Transformation Program Director",
+  "outcome": "ambiguous",
+  "sentiment": "mixed",
+  "observed_facts": [
+    "The synthetic panel asked two governance questions.",
+    "The stated next-step date remained unknown."
+  ],
+  "candidate_interpretation": [
+    "The governance example may have needed a more concise opening."
+  ],
+  "preparation": ["Role context was reviewed."],
+  "logistics": ["Synthetic video call started on time."],
+  "story_quality": ["One story had clear actions but an unconfirmed outcome."],
+  "questions": ["The candidate asked how success is measured."],
+  "signals": ["No hiring decision was stated."],
+  "close": ["No next-step commitment was made."],
+  "improvements": ["Lead with the verified result and keep unknown metrics explicit."],
+  "learning": ["Future briefs should prompt for a 30-second governance summary."],
+  "unanswered_questions": ["Who owns the final decision?"],
+  "authorized_follow_up": {
+    "contact": false,
+    "send": false
+  },
+  "follow_up_draft": "Draft only: thank you for the conversation and the context on governance priorities."
+}

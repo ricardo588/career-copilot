@@ -45,24 +45,34 @@ Run this after canonical vacancy verification and before final prioritization.
 
 ```json
 {
-  "contacts": [
+  "relationships": [
     {
       "name": "Example Person",
-      "path_type": "trusted_contact",
+      "relationship_role": "connector",
+      "influence": "moderate",
+      "strength": "strong",
       "current_company": "Example Company",
       "current_role": "Example Role",
-      "relationship": "former colleague",
+      "evidence": ["Former colleague", "Current public profile"],
       "source_url": "https://example.test/profile",
-      "confidence": "confirmed"
+      "confidence": "confirmed",
+      "freshness": "YYYY-MM-DD",
+      "authorization": {
+        "contact": true,
+        "reference": false,
+        "referral": false,
+        "follow_up": false,
+        "introduce": false
+      }
     }
   ],
-  "recruiter": null,
-  "hiring_manager": null,
   "retrieved_at": "YYYY-MM-DD"
 }
 ```
 
-Use `scripts/pipeline.py --human-path <private-json>` to validate and incorporate this evidence into the tracker and brief. Omitting `--human-path` means “not refreshed,” not `none_found`. An explicit artifact with no credible path may record `none_found` together with its validated retrieval date.
+Use distinct `relationship_role` values for contacts, advocates, connectors, recruiter/posters and probable versus confirmed decision makers. Authorization is independent; discovery never grants it. Legacy `contacts`/`recruiter`/`hiring_manager` artifacts remain readable for migration compatibility.
+
+Use `scripts/pipeline.py --human-path <private-json>` to validate and incorporate the minimum evidence into the tracker and brief. Omitting `--human-path` means “not refreshed,” not `none_found`. An explicit artifact with no credible path may record `none_found` together with its validated retrieval date.
 
 ## Interviewer research trigger
 

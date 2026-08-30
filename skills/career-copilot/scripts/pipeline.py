@@ -114,6 +114,16 @@ PROTECTED_REQUIREMENT_PATTERNS = [
 PROTECTED_REQUIREMENT_CATEGORIES = {
     "protected_attribute", "protected_proxy", "non_job_relevant",
 }
+RELATIONSHIP_ROLES = {
+    "contact",
+    "advocate",
+    "connector",
+    "recruiter/poster",
+    "probable decision maker",
+    "confirmed decision maker",
+    "reference",
+}
+DEBRIEF_OUTCOMES = {"positive", "ambiguous", "rejected", "no_response", "failed_interview"}
 
 
 def load_document(path: Path) -> dict[str, Any]:
@@ -369,62 +379,135 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
     }
 
 
+def _as_text_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if value is None:
+        return []
+    text = str(value).strip()
+    return [text] if text else []
+
+
+def _relationship_role(item: dict[str, Any], fallback: str = "contact") -> str:
+    role = str(item.get("relationship_role", item.get("path_type", item.get("role", fallback)))).strip().casefold()
+    if role in {"recruiter", "recruiter/poster", "poster"}:
+        return "recruiter/poster"
+    if role in {"decision maker", "decisionmaker", "hiring manager", "hiring_manager"}:
+        status = str(item.get("decision_maker_status", item.get("confidence", "probable"))).strip().casefold()
+        return "confirmed decision maker" if status == "confirmed" else "probable decision maker"
+    if role in RELATIONSHIP_ROLES:
+        return role
+    return fallback
+
+
+def _relationship_authorization(item: dict[str, Any]) -> dict[str, bool]:
+    raw = item.get("authorization")
+    authorization = raw if isinstance(raw, dict) else {}
+    contact = authorization.get("contact")
+    if contact is None:
+        contact = authorization.get("can_contact")
+    if contact is None and str(item.get("path_type", "")).casefold() == "trusted_contact" and str(item.get("confidence", "")).casefold() == "confirmed":
+        contact = True
+    return {
+        "contact": bool(contact),
+        "reference": bool(authorization.get("reference", authorization.get("can_reference", False))),
+        "referral": bool(authorization.get("referral", False)),
+        "follow_up": bool(authorization.get("follow_up", False)),
+        "introduce": bool(authorization.get("introduce", False)),
+    }
+
+
+def _normalize_relationship_entry(item: dict[str, Any], fallback_role: str, company: str) -> dict[str, Any]:
+    source_url = str(item.get("source_url", "")).strip()
+    current_company = str(item.get("current_company", "")).strip()
+    current_role = str(item.get("current_role", "")).strip()
+    role = _relationship_role(item, fallback_role)
+    confidence = str(item.get("confidence", "")).strip().casefold()
+    company_required = role in {"contact", "advocate", "connector", "probable decision maker", "confirmed decision maker"}
+    company_matches = not company_required or not current_company or not company or current_company.casefold() == company
+    freshness = str(item.get("freshness", item.get("retrieved_at", ""))).strip()
+    authorization = _relationship_authorization(item)
+    return {
+        "name": str(item.get("name", "unknown")).strip() or "unknown",
+        "relationship_role": role,
+        "influence": str(item.get("influence", item.get("path_type", ""))).strip(),
+        "strength": str(item.get("strength", item.get("relationship_strength", ""))).strip(),
+        "current_company": current_company,
+        "current_role": current_role,
+        "evidence": _as_text_list(item.get("evidence", item.get("source_evidence", []))),
+        "freshness": freshness,
+        "authorization": authorization,
+        "source_url": source_url,
+        "decision_maker_status": "confirmed" if role == "confirmed decision maker" and confidence == "confirmed" else "probable" if role in {"probable decision maker", "confirmed decision maker"} else "",
+        "company_matches": company_matches,
+        "confidence": confidence,
+    }
+
+
+def _gather_relationship_candidates(research: dict[str, Any], company: str) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    raw_relationships = research.get("relationships", [])
+    if isinstance(raw_relationships, list) and raw_relationships:
+        for item in raw_relationships:
+            if isinstance(item, dict):
+                candidates.append(_normalize_relationship_entry(item, _relationship_role(item), company))
+        return candidates
+    for item in research.get("contacts", []) or []:
+        if isinstance(item, dict):
+            normalized = dict(item)
+            normalized.setdefault("path_type", "trusted_contact")
+            candidates.append(_normalize_relationship_entry(normalized, "contact", company))
+    for key, fallback in (("recruiter", "recruiter/poster"), ("hiring_manager", "probable decision maker")):
+        item = research.get(key)
+        if isinstance(item, dict):
+            normalized = dict(item)
+            normalized.setdefault("path_type", fallback)
+            candidates.append(_normalize_relationship_entry(normalized, fallback, company))
+    return candidates
+
+
+def _relationship_contact_authorized(item: dict[str, Any]) -> bool:
+    return bool(item.get("authorization", {}).get("contact"))
+
+
 def summarize_human_path(vacancy: dict[str, Any], research: dict[str, Any]) -> dict[str, Any]:
     """Separate sourced human paths from possible or unsupported identities."""
     _validate_human_path_shape(research)
     company = str(vacancy.get("company", "")).strip().casefold()
-    candidates: list[dict[str, Any]] = []
-    for item in research.get("contacts", []) or []:
-        if isinstance(item, dict):
-            candidates.append(dict(item))
-    for key, path_type in (("recruiter", "recruiter_or_poster"), ("hiring_manager", "hiring_manager")):
-        item = research.get(key)
-        if isinstance(item, dict):
-            normalized = dict(item)
-            normalized.setdefault("path_type", path_type)
-            candidates.append(normalized)
+    candidates = _gather_relationship_candidates(research, company)
 
     confirmed: list[dict[str, Any]] = []
     unverified: list[dict[str, Any]] = []
     for item in candidates:
-        name = str(item.get("name", "")).strip()
         source_url = str(item.get("source_url", "")).strip()
-        confidence = str(item.get("confidence", "")).casefold()
-        path_type = str(item.get("path_type", "possible_contact"))
-        current_company = str(item.get("current_company", "")).strip().casefold()
-        company_required = path_type in {"trusted_contact", "possible_contact", "hiring_manager"}
-        company_matches = not company_required or bool(company and current_company == company)
-        normalized = {
-            "name": name or "unknown",
-            "path_type": path_type,
-            "current_role": str(item.get("current_role", "")).strip(),
-            "current_company": str(item.get("current_company", "")).strip(),
-            "relationship": str(item.get("relationship", "")).strip(),
-            "source_url": source_url,
-        }
-        if name and source_url.startswith(("https://", "http://")) and confidence == "confirmed" and company_matches:
-            confirmed.append(normalized)
+        if source_url.startswith(("https://", "http://")) and item["confidence"] == "confirmed" and item["company_matches"]:
+            confirmed.append(item)
         else:
-            unverified.append(normalized)
+            unverified.append(item)
 
-    confirmed_types = {item["path_type"] for item in confirmed}
+    confirmed_types = {item["relationship_role"] for item in confirmed}
     unknowns = []
-    if "trusted_contact" not in confirmed_types:
+    if not any(item["relationship_role"] in {"contact", "advocate", "connector"} and item.get("authorization", {}).get("contact") for item in confirmed):
         unknowns.append("trusted company contact")
-    if "recruiter_or_poster" not in confirmed_types:
+    if "recruiter/poster" not in confirmed_types:
         unknowns.append("recruiter/poster")
-    if "hiring_manager" not in confirmed_types:
-        unknowns.append("hiring manager")
+    if not any(item["relationship_role"] in {"probable decision maker", "confirmed decision maker"} for item in confirmed):
+        unknowns.append("decision maker")
 
-    order = {"trusted_contact": 0, "recruiter_or_poster": 1, "hiring_manager": 2}
-    confirmed.sort(key=lambda item: order.get(item["path_type"], 9))
+    order = {"contact": 0, "advocate": 0, "connector": 0, "recruiter/poster": 1, "probable decision maker": 2, "confirmed decision maker": 2, "reference": 3}
+    confirmed.sort(key=lambda item: (order.get(item["relationship_role"], 9), item["name"].casefold()))
     status = "confirmed" if confirmed else "unverified" if unverified else "none_found"
     return {
         "status": status,
+        "relationships": candidates,
         "confirmed_paths": confirmed,
         "unverified_paths": unverified,
         "unknowns": unknowns,
         "recommended_path": confirmed[0] if confirmed else None,
+        "authorization_summary": {
+            "contact_authorized": [item["name"] for item in confirmed if _relationship_contact_authorized(item)],
+            "contact_denied": [item["name"] for item in confirmed if not _relationship_contact_authorized(item)],
+        },
         "guardrail": "Research is read-only; a path is not permission to contact anyone.",
     }
 
@@ -432,10 +515,12 @@ def summarize_human_path(vacancy: dict[str, Any], research: dict[str, Any]) -> d
 def _not_supplied_human_summary() -> dict[str, Any]:
     return {
         "status": "not_supplied",
+        "relationships": [],
         "confirmed_paths": [],
         "unverified_paths": [],
         "unknowns": ["Human Path artifact"],
         "recommended_path": None,
+        "authorization_summary": {"contact_authorized": [], "contact_denied": []},
         "guardrail": "No Human Path artifact was supplied; existing tracker evidence was not refreshed.",
     }
 
@@ -443,6 +528,10 @@ def _not_supplied_human_summary() -> dict[str, Any]:
 def _validate_human_path_shape(research: dict[str, Any]) -> None:
     if not isinstance(research, dict):
         raise ValueError("Human Path artifact must be a mapping")
+    relationships = research.get("relationships")
+    if relationships is not None:
+        if not isinstance(relationships, list) or any(not isinstance(item, dict) for item in relationships):
+            raise ValueError("Human Path artifact relationships must be a list of mappings")
     contacts = research.get("contacts", [])
     if not isinstance(contacts, list) or any(not isinstance(item, dict) for item in contacts):
         raise ValueError("Human Path artifact contacts must be a list of mappings")
@@ -619,9 +708,15 @@ def track(
         retrieved_at = _validated_human_path_retrieved_at(human_path, as_of)
         human_summary = summarize_human_path(vacancy, human_path)
         confirmed_paths = human_summary["confirmed_paths"]
-        contacts = [item["name"] for item in confirmed_paths if item["path_type"] == "trusted_contact"]
-        recruiters = [item["name"] for item in confirmed_paths if item["path_type"] == "recruiter_or_poster"]
-        hiring_managers = [item["name"] for item in confirmed_paths if item["path_type"] == "hiring_manager"]
+        contacts = [
+            item["name"] for item in confirmed_paths
+            if item["relationship_role"] in {"contact", "advocate", "connector"} and item.get("authorization", {}).get("contact")
+        ]
+        recruiters = [item["name"] for item in confirmed_paths if item["relationship_role"] == "recruiter/poster"]
+        hiring_managers = [
+            item["name"] for item in confirmed_paths
+            if item["relationship_role"] in {"probable decision maker", "confirmed decision maker"}
+        ]
         human_fields = {
             "contact": "; ".join(contacts),
             "human_path_status": human_summary["status"],
@@ -740,16 +835,32 @@ def interview_brief(
     ]
     if human_summary["confirmed_paths"]:
         for item in human_summary["confirmed_paths"]:
+            contact_state = "contact authorized" if item.get("authorization", {}).get("contact") else "identity confirmed; contact not authorized"
+            role = item.get("relationship_role", item.get("path_type", "relationship"))
+            company_name = item.get("current_company", "")
+            role_name = item.get("current_role", "")
+            influence = item.get("influence", "")
+            strength = item.get("strength", "")
+            freshness = item.get("freshness", "")
+            detail_bits = [bit for bit in (
+                f"influence {influence}" if influence else "",
+                f"strength {strength}" if strength else "",
+                f"freshness {freshness}" if freshness else "",
+            ) if bit]
+            detail = f"; {'; '.join(detail_bits)}" if detail_bits else ""
+            company_segment = f" at {company_name}" if company_name else ""
+            role_segment = f" — {role_name}" if role_name else ""
             lines.append(
-                f"- Confirmed {item['path_type']}: {item['name']} — {item['current_role']} "
-                f"({item['source_url']})"
+                f"- Confirmed {role}: {item['name']}{role_segment}{company_segment}"
+                f" ({item['source_url']}){detail}; {contact_state}"
             )
     elif human_summary["status"] == "not_supplied":
         lines.append("- No Human Path artifact was supplied; current human evidence is unknown.")
     else:
-        lines.append("- No sourced contact, recruiter/poster or hiring manager was confirmed.")
+        lines.append("- No sourced contact, recruiter/poster or decision maker was confirmed.")
     lines.extend([
         "- Read-only research is not permission to contact anyone.",
+        "- Authorization, relationship role, influence and strength are separate fields.",
         "",
         "## Interviewer intelligence",
     ])
@@ -792,19 +903,258 @@ def interview_brief(
     return "\n".join(lines) + "\n"
 
 
+def relationship_meeting_prep(relationship_artifact: dict[str, Any], meeting: dict[str, Any]) -> str:
+    if not isinstance(relationship_artifact, dict):
+        raise ValueError("relationship artifact must be a mapping")
+    if not isinstance(meeting, dict):
+        raise ValueError("meeting prep artifact must be a mapping")
+    candidates = _gather_relationship_candidates(relationship_artifact, str(meeting.get("company", "")).strip().casefold())
+    lines = [
+        f"# Informational meeting prep — {meeting.get('topic', 'relationship conversation')}",
+        "",
+        "## Objective",
+        f"- {str(meeting.get('objective', '')).strip() or 'unknown'}",
+        "",
+        "## Timebox",
+        f"- {str(meeting.get('timebox_minutes', '')).strip() or 'unknown'} minutes",
+        "",
+        "## Context",
+        f"- {str(meeting.get('context', '')).strip() or 'unknown'}",
+        "",
+        "## Questions",
+    ]
+    questions = _as_text_list(meeting.get("questions", []))
+    if questions:
+        lines.extend(f"- {question}" for question in questions)
+    else:
+        lines.append("- No questions were supplied.")
+    lines.extend([
+        "",
+        "## Relationship model",
+    ])
+    if candidates:
+        for item in candidates:
+            auth = item.get("authorization", {})
+            auth_bits = [name for name, allowed in (("contact", auth.get("contact")), ("reference", auth.get("reference")), ("referral", auth.get("referral")), ("follow_up", auth.get("follow_up")), ("introduce", auth.get("introduce"))) if allowed]
+            lines.append(
+                f"- {item['name']} — {item['relationship_role']}; influence {item['influence'] or 'unknown'}; strength {item['strength'] or 'unknown'}; "
+                f"{item['current_role'] or 'current role unknown'} at {item['current_company'] or 'current company unknown'}; "
+                f"freshness {item['freshness'] or 'unknown'}; authorization {', '.join(auth_bits) if auth_bits else 'none'}"
+            )
+    else:
+        lines.append("- No relationship entries were supplied.")
+    lines.extend([
+        "",
+        "## Draft follow-up",
+    ])
+    draft_follow_up = str(meeting.get("draft_follow_up", "")).strip()
+    if draft_follow_up:
+        lines.append(draft_follow_up)
+    else:
+        lines.append("- No draft follow-up was supplied.")
+    lines.extend([
+        "",
+        "## Recorded outcome",
+    ])
+    outcome = meeting.get("outcome", {})
+    if isinstance(outcome, dict) and outcome:
+        for key in sorted(outcome):
+            lines.append(f"- {key}: {outcome[key]}")
+    elif outcome:
+        lines.append(f"- {outcome}")
+    else:
+        lines.append("- No outcome was supplied; do not infer a commitment, referral or next step.")
+    lines.extend([
+        "",
+        "## Guardrails",
+        "- Discovery does not imply permission to contact, refer or connect.",
+        "- Outcome commitments and referrals are only confirmed when explicitly approved.",
+        "- Keep the follow-up as a draft unless and until explicit approval and external readback exist.",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def interview_debrief(debrief: dict[str, Any]) -> str:
+    if not isinstance(debrief, dict):
+        raise ValueError("interview debrief artifact must be a mapping")
+    outcome = str(debrief.get("outcome", "")).strip().casefold()
+    if outcome not in DEBRIEF_OUTCOMES:
+        raise ValueError("interview debrief outcome must be one of positive, ambiguous, rejected, no_response or failed_interview")
+    sections = debrief.get("sections", {})
+    if sections is not None and not isinstance(sections, dict):
+        raise ValueError("interview debrief sections must be a mapping")
+    lines = [
+        f"# Interview debrief — {str(debrief.get('company', 'unknown')).strip() or 'unknown'} / {str(debrief.get('role', 'unknown')).strip() or 'unknown'}",
+        "",
+        "## Outcome",
+        f"- {outcome}",
+        f"- Sentiment is recorded for reflection only: {str(debrief.get('sentiment', 'unknown')).strip() or 'unknown'}",
+        "- Sentiment never changes tracker state.",
+        "",
+        "## Observed facts",
+    ]
+    observed_facts = _as_text_list(debrief.get("observed_facts", []))
+    for item in observed_facts:
+        lines.append(f"- {item}")
+    if not observed_facts:
+        lines.append("- No observed facts were supplied.")
+    lines.extend([
+        "",
+        "## Candidate interpretation",
+    ])
+    for item in _as_text_list(debrief.get("candidate_interpretation", [])):
+        lines.append(f"- {item}")
+    if lines[-1] == "## Candidate interpretation":
+        lines.append("- No interpretation was supplied.")
+    lines.extend([
+        "",
+        "## Learning for future briefs",
+    ])
+    learning = _as_text_list(debrief.get("learning", []))
+    if learning:
+        lines.extend(f"- {item}" for item in learning)
+    else:
+        lines.append("- No learning was supplied.")
+    lines.extend([
+        "",
+        "## Unanswered questions",
+    ])
+    unanswered = _as_text_list(debrief.get("unanswered_questions", []))
+    if unanswered:
+        lines.extend(f"- {item}" for item in unanswered)
+    else:
+        lines.append("- No unanswered questions were supplied.")
+    lines.extend([
+        "",
+        "## Debrief themes",
+    ])
+    theme_fields = [
+        ("Preparation", debrief.get("preparation")),
+        ("Logistics", debrief.get("logistics")),
+        ("Story quality", debrief.get("story_quality")),
+        ("Questions", debrief.get("questions")),
+        ("Signals", debrief.get("signals")),
+        ("Close", debrief.get("close")),
+        ("Improvements", debrief.get("improvements")),
+    ]
+    for label, value in theme_fields:
+        lines.append(f"### {label}")
+        items = _as_text_list(value)
+        if items:
+            lines.extend(f"- {item}" for item in items)
+        else:
+            lines.append("- Not supplied.")
+    lines.extend([
+        "",
+        "## Authorized follow-up",
+    ])
+    authorized_follow_up = debrief.get("authorized_follow_up", {})
+    if isinstance(authorized_follow_up, dict):
+        if authorized_follow_up:
+            for key in sorted(authorized_follow_up):
+                value = authorized_follow_up[key]
+                lines.append(f"- {key}: {value}")
+        else:
+            lines.append("- None supplied.")
+    else:
+        lines.append(f"- {authorized_follow_up}")
+    lines.extend([
+        "",
+        "## Follow-up draft",
+    ])
+    draft = str(debrief.get("follow_up_draft", "")).strip()
+    if draft:
+        lines.append(draft)
+    elif outcome in {"rejected", "failed_interview"}:
+        lines.append("- Draft follow-up required but not supplied.")
+    else:
+        lines.append("- No follow-up draft; keep this debrief read-only.")
+    lines.extend([
+        "",
+        "## Guardrails",
+        "- Learning may inform future briefs, but it does not rewrite prior tracker rows or interview history.",
+        "- Keep any follow-up as a draft unless explicit approval and external readback exist.",
+        "- Rejections and failed interviews may receive a closure draft; every outcome remains read-only until a separately approved external action is executed and verified.",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def write_private_markdown(raw_path: str, markdown: str) -> Path:
+    path = Path(raw_path).expanduser()
+    if path.exists() and path.is_symlink():
+        raise ValueError("private markdown output cannot be a symlink")
+    path = path.resolve()
+    distribution_root = Path(__file__).resolve().parents[3]
+    if path == distribution_root or distribution_root in path.parents:
+        raise ValueError("private markdown output must be outside the distribution or installed profile")
+    for ancestor in (path.parent, *path.parent.parents):
+        if (ancestor / ".git").exists():
+            raise ValueError("private markdown output must be outside Git repositories")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    os.chmod(path.parent, 0o700)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(markdown, encoding="utf-8")
+    os.chmod(temporary, 0o600)
+    temporary.replace(path)
+    if path.read_text(encoding="utf-8") != markdown:
+        raise RuntimeError("private markdown readback verification failed")
+    return path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile")
     parser.add_argument("--rules")
     parser.add_argument("--vacancy")
-    parser.add_argument("--as-of", required=True, help="YYYY-MM-DD")
+    parser.add_argument("--as-of", help="YYYY-MM-DD; required for evaluation and tracker review")
     parser.add_argument("--tracker")
     parser.add_argument("--review-tracker", help="read-only tracker follow-up review")
     parser.add_argument("--brief")
     parser.add_argument("--human-path", help="JSON/YAML file with sourced contacts, recruiter/poster and hiring-manager evidence")
     parser.add_argument("--interviewer-research", help="JSON/YAML file with sourced interviewer facts and labeled hypotheses")
+    parser.add_argument("--relationship-prep", help="JSON/YAML file with an informational meeting prep artifact")
+    parser.add_argument("--meeting", help="optional separate JSON/YAML meeting objectives, questions and outcome")
+    parser.add_argument("--relationship-prep-md", help="write the informational meeting prep markdown to this path")
+    parser.add_argument("--interview-debrief", help="JSON/YAML file with a post-interview debrief artifact")
+    parser.add_argument("--interview-debrief-md", help="write the interview debrief markdown to this path")
     args = parser.parse_args()
     try:
+        special_modes = [name for name, enabled in (("relationship-prep", args.relationship_prep), ("interview-debrief", args.interview_debrief)) if enabled]
+        if args.relationship_prep_md and not args.relationship_prep:
+            raise ValueError("--relationship-prep-md requires --relationship-prep")
+        if args.meeting and not args.relationship_prep:
+            raise ValueError("--meeting requires --relationship-prep")
+        if args.interview_debrief_md and not args.interview_debrief:
+            raise ValueError("--interview-debrief-md requires --interview-debrief")
+        if special_modes:
+            if len(special_modes) > 1:
+                raise ValueError("relationship prep and interview debrief modes are separate")
+            evaluation_options = (
+                args.profile, args.rules, args.vacancy, args.tracker, args.review_tracker, args.brief,
+                args.human_path, args.interviewer_research,
+            )
+            if any(evaluation_options):
+                raise ValueError("relationship or debrief modes cannot be combined with evaluation or tracker options")
+            if args.relationship_prep:
+                relationship_artifact = load_document(Path(args.relationship_prep))
+                meeting = load_document(Path(args.meeting)) if args.meeting else relationship_artifact.get("meeting", {})
+                markdown = relationship_meeting_prep(relationship_artifact, meeting)
+                payload: dict[str, Any] = {"relationship_prep": relationship_artifact, "markdown": markdown}
+                if args.relationship_prep_md:
+                    prep_path = write_private_markdown(args.relationship_prep_md, markdown)
+                    payload["relationship_prep_markdown"] = str(prep_path)
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                return 0
+            debrief_artifact = load_document(Path(args.interview_debrief))
+            markdown = interview_debrief(debrief_artifact)
+            payload = {"interview_debrief": debrief_artifact, "markdown": markdown}
+            if args.interview_debrief_md:
+                debrief_path = write_private_markdown(args.interview_debrief_md, markdown)
+                payload["interview_debrief_markdown"] = str(debrief_path)
+            print(json.dumps(payload, indent=2, ensure_ascii=False))
+            return 0
+        if not args.as_of:
+            raise ValueError("--as-of is required for evaluation and tracker review")
         as_of = parse_iso_day(args.as_of)
         if args.review_tracker:
             evaluation_options = (

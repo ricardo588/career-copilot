@@ -1,0 +1,40 @@
+{
+  "relationships": [
+    {
+      "name": "Synthetic Connector",
+      "relationship_role": "connector",
+      "influence": "moderate",
+      "strength": "medium",
+      "current_company": "Acme Cloud Services",
+      "current_role": "Regional Transformation Director",
+      "evidence": ["Synthetic candidate-owned contact record"],
+      "freshness": "2026-08-26",
+      "source_url": "https://example.test/people/synthetic-connector",
+      "confidence": "confirmed",
+      "authorization": {
+        "contact": true,
+        "reference": false,
+        "referral": false,
+        "follow_up": true,
+        "introduce": false
+      }
+    }
+  ],
+  "meeting": {
+    "company": "Acme Cloud Services",
+    "topic": "Transformation organization",
+    "objective": "Understand the operating model without requesting a referral.",
+    "timebox_minutes": 20,
+    "context": "Synthetic informational conversation.",
+    "questions": [
+      "Which transformation outcomes matter most this year?",
+      "How are decisions made across regional teams?"
+    ],
+    "draft_follow_up": "Draft only: thank you for the synthetic context; I will use it to refine my research.",
+    "outcome": {
+      "facts": ["A 20-minute synthetic conversation occurred."],
+      "commitments": [],
+      "referral_confirmed": false
+    }
+  }
+}

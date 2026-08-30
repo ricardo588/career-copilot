@@ -40,6 +40,7 @@ Use this skill to run a structured job search from each user's private candidate
 - Deduplicate and maintain a private application tracker.
 - Reconcile recruiter or ATS evidence with pipeline state.
 - Prepare networking, application, follow-up and interview drafts.
+- Prepare relationship meetings and post-interview debriefs without acting externally or mutating tracker state.
 - Use optional Google Sheets, Gmail or Obsidian adapters.
 
 ## Startup
@@ -86,6 +87,8 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 5. Deduplicate and update using `references/tracker-schema.md`.
 6. For every viable vacancy, run the Human Path workflow in `references/human-path-and-interviewer-research.md`: check current trusted contacts, the exact recruiter/poster and the confirmed or likely hiring manager.
 7. Apply `references/privacy-and-actions.md` before any external action. Human Path research is never authorization to contact.
+
+For relationship artifacts, informational-meeting preparation and post-interview reflection, apply `references/relationships-and-debriefs.md`. Keep role, influence, strength, current company/role, evidence/freshness and authorization independent. Probable and confirmed decision makers must never be collapsed.
 8. Verify every state write by reading it back.
 9. Separate confirmed facts, interpretation, unknowns, changes and next action.
 
@@ -130,6 +133,8 @@ Read `references/adapters.md` before use.
 - Never fabricate missing candidate evidence to improve fit.
 - Never infer a metric or outcome in a story. Keep explicit unknowns and source every confirmed metric.
 - Unknown career preferences do not filter roles. Departure wording stays private and draft-only unless separately authorized for an exact use.
+- Never infer contact, reference, referral, introduction or follow-up authorization from relationship discovery alone.
+- Interview sentiment and candidate interpretation never change tracker state. Debrief learning may inform future briefs but cannot rewrite history.
 - Never infer or score age, gender, sex, race, ethnicity, religion, disability, family status, pregnancy or other protected attributes.
 - Never use name, photo or date proxies. Candidate-declared job eligibility or accommodation constraints remain allowed only as structured explicit constraints, never as protected inference or positive/negative evidence points.
 - Do not send, apply, publish, modify public profiles or contact people without explicit approval for that exact action.
@@ -164,6 +169,7 @@ See `references/demo.md` for pass criteria.
 - `references/demo.md` — synthetic end-to-end verification.
 - `references/human-path-and-interviewer-research.md` — sourced Human Path and interviewer intelligence.
 - `references/story-bank-and-career-direction.md` — private evidence stories, view reuse and optional career criteria.
+- `references/relationships-and-debriefs.md` — relationship roles/authorization, informational meetings and read-only interview debriefs.
 
 ## Verification
 
@@ -176,3 +182,4 @@ See `references/demo.md` for pass criteria.
 - External actions were not claimed without execution evidence.
 - No private data was written inside the skill or distribution repository.
 - Story views reused confirmed private records by stable ID without duplicating or inventing facts.
+- Relationship/debrief artifacts remained read-only and outside the repository, with tracker state unchanged.

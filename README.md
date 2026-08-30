@@ -10,6 +10,8 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 - Private structured story bank with provenance, explicit unknowns and reusable evaluation/interview/CV views
 - Optional career criteria and candidate-approved departure narrative with facts, interpretations and preferences kept separate
 - Human Path research for current contacts, recruiter/poster and hiring manager
+- Structured relationship intelligence with role, influence, strength, evidence freshness and independent authorization
+- Informational-meeting prep/outcome records and fact-separated post-interview debriefs with draft-only follow-up
 - Interviewer intelligence from sourced facts with hypotheses kept separate
 - Canonical deduplication and local CSV tracking
 - Independent vacancy and Human Path verification clocks with conservative legacy migration
