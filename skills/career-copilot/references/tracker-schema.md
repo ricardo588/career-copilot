@@ -12,6 +12,7 @@ Version 0.3 uses `tracker.csv` in the private workspace.
 - `human_path_last_verified`: validated `retrieved_at` from the most recently supplied Human Path artifact.
 - `status`, `fit_recommendation`, `priority`
 - `next_action`, `next_action_date`
+- `evidence_ref`: optional opaque private Gmail evidence reference (`evidence/gmail-evidence.jsonl#<UUID>`); never an email body, message ID or other source content.
 - `contact`, `human_path_status`, `recruiter`, `hiring_manager`, `interviewer`, `notes`
 
 ## Independent freshness clocks

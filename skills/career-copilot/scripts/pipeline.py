@@ -20,9 +20,10 @@ TRACKER_FIELDS = [
     "id", "company", "role", "location", "source", "canonical_url", "external_job_id",
     "date_posted", "date_discovered", "status", "fit_recommendation", "priority", "next_action",
     "next_action_date", "contact", "human_path_status", "recruiter", "hiring_manager",
-    "interviewer", "notes", "vacancy_last_verified", "human_path_last_verified",
+    "interviewer", "notes", "vacancy_last_verified", "human_path_last_verified", "evidence_ref",
 ]
-LEGACY_TRACKER_FIELDS = TRACKER_FIELDS[:-2] + ["last_verified"]
+PRE_EVIDENCE_TRACKER_FIELDS = TRACKER_FIELDS[:-1]
+LEGACY_TRACKER_FIELDS = PRE_EVIDENCE_TRACKER_FIELDS[:-2] + ["last_verified"]
 STOPWORDS = {"and", "or", "the", "a", "an", "of", "for", "to", "in", "with", "de", "la", "el", "y", "para", "con"}
 TERMINAL_TRACKER_STATUSES = {"withdrawn", "rejected", "discarded"}
 PROTECTED_REQUIREMENT_PATTERNS = [
@@ -563,10 +564,25 @@ def stable_id(vacancy: dict[str, Any]) -> str:
     return "job-" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:12]
 
 
+def validate_evidence_ref(value: Optional[str]) -> str:
+    """Allow opaque, private evidence references only; no message content belongs in tracker.csv."""
+    if value is None:
+        return ""
+    reference = str(value).strip()
+    if not reference:
+        return ""
+    if not re.fullmatch(r"evidence/gmail-evidence\.jsonl#[0-9a-f-]{36}", reference):
+        raise ValueError("evidence_ref must be an opaque Gmail evidence reference")
+    return reference
+
+
 def _tracker_schema_kind(fieldnames: list[str]) -> str:
     current = len(fieldnames) == len(TRACKER_FIELDS) and set(fieldnames) == set(TRACKER_FIELDS)
     if current:
         return "current"
+    pre_evidence = len(fieldnames) == len(PRE_EVIDENCE_TRACKER_FIELDS) and set(fieldnames) == set(PRE_EVIDENCE_TRACKER_FIELDS)
+    if pre_evidence:
+        return "pre_evidence"
     legacy = len(fieldnames) == len(LEGACY_TRACKER_FIELDS) and set(fieldnames) == set(LEGACY_TRACKER_FIELDS)
     if legacy:
         return "legacy"
@@ -699,8 +715,10 @@ def track(
     as_of: date,
     human_path: Optional[dict[str, Any]] = None,
     interviewer_research: Optional[dict[str, Any]] = None,
+    evidence_ref: Optional[str] = None,
 ) -> dict[str, Any]:
     identity = stable_id(vacancy)
+    referenced_evidence = validate_evidence_ref(evidence_ref)
     canonical = canonicalize_url(str(vacancy.get("canonical_url", "")))
     human_summary = _not_supplied_human_summary()
     human_fields: dict[str, str] = {}
@@ -756,6 +774,8 @@ def track(
         "notes": "; ".join(evaluation.get("risks", [])),
         "vacancy_last_verified": as_of.isoformat(),
     }
+    if referenced_evidence:
+        evaluation_fields["evidence_ref"] = referenced_evidence
     duplicate = next((
         row for row in rows
         if row.get("id") == identity
@@ -1112,6 +1132,7 @@ def main() -> int:
     parser.add_argument("--brief")
     parser.add_argument("--human-path", help="JSON/YAML file with sourced contacts, recruiter/poster and hiring-manager evidence")
     parser.add_argument("--interviewer-research", help="JSON/YAML file with sourced interviewer facts and labeled hypotheses")
+    parser.add_argument("--evidence-ref", help="Opaque private Gmail evidence reference for this tracker update")
     parser.add_argument("--relationship-prep", help="JSON/YAML file with an informational meeting prep artifact")
     parser.add_argument("--meeting", help="optional separate JSON/YAML meeting objectives, questions and outcome")
     parser.add_argument("--relationship-prep-md", help="write the informational meeting prep markdown to this path")
@@ -1184,7 +1205,7 @@ def main() -> int:
         payload: dict[str, Any] = {"evaluation": result, "human_path": human_summary}
         if args.tracker:
             payload["tracker"] = track(
-                Path(args.tracker), vacancy, result, as_of, human_path, interviewer_research,
+                Path(args.tracker), vacancy, result, as_of, human_path, interviewer_research, args.evidence_ref,
             )
         if args.brief:
             brief_path = Path(args.brief)
