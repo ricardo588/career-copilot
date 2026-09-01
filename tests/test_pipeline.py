@@ -537,6 +537,7 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("date_received: confirmed — 2026-08-26", brief)
         self.assertIn("## Total package comparison", brief)
         self.assertIn("Base", brief)
+        self.assertIn("Base: offer 180000 (unknown)", brief)
         self.assertIn("Candidate tradeoffs", brief)
         self.assertIn("## Market research", brief)
         self.assertIn("source date: 2026-08-20", brief)

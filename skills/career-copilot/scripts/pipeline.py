@@ -568,7 +568,7 @@ def _field_value_status(value: Any) -> tuple[str, str]:
     if not text:
         return "unknown", "unknown"
     if status not in {"confirmed", "unknown"}:
-        status = "confirmed"
+        status = "unknown" if status else "confirmed"
     return text, status or "confirmed"
 
 
