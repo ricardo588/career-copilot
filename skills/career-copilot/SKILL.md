@@ -41,6 +41,7 @@ Use this skill to run a structured job search from each user's private candidate
 - Reconcile recruiter or ATS evidence with pipeline state.
 - Prepare networking, application, follow-up and interview drafts.
 - Maintain private evidence-backed target companies without inferring hiring or contact authorization.
+- Generate a private, read-only weekly campaign plan without quotas or status mutation.
 - Prepare relationship meetings and post-interview debriefs without acting externally or mutating tracker state.
 - Use optional Google Sheets, Gmail or Obsidian adapters.
 
@@ -92,8 +93,9 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 9. For target-company research, read `references/target-companies.md`. Preserve candidate preferences separately from sourced market signals, use separate company/Human Path clocks, and never infer contact authorization.
 
 For relationship artifacts, informational-meeting preparation and post-interview reflection, apply `references/relationships-and-debriefs.md`. Keep role, influence, strength, current company/role, evidence/freshness and authorization independent. Probable and confirmed decision makers must never be collapsed.
-10. Verify every state write by reading it back.
-11. Separate confirmed facts, interpretation, unknowns, changes and next action.
+10. For a weekly campaign review, read `references/weekly-campaign.md`. Keep drafts, approval, attempts, verified outcomes and learning distinct; do not force activity, mutate state or send messages.
+11. Verify every state write by reading it back.
+12. Separate confirmed facts, interpretation, unknowns, changes and next action.
 
 For deterministic local evaluation/tracking/brief generation, use:
 
@@ -168,6 +170,7 @@ See `references/demo.md` for pass criteria.
 - `references/evaluation.md` — qualitative fit decision.
 - `references/requirement-matrix-and-cv-review.md` — cited matrix and opt-in local CV review.
 - `references/target-companies.md` — private, source-dated target-company research.
+- `references/weekly-campaign.md` — configurable, read-only weekly campaign review.
 - `references/tracker-schema.md` — local tracker and state rules.
 - `references/privacy-and-actions.md` — privacy and authorization model.
 - `references/adapters.md` — optional integration safety contract.
