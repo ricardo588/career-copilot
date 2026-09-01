@@ -117,6 +117,23 @@ class TargetCompanyTests(unittest.TestCase):
         self.assertEqual(company["current_signals"][0]["source_url"], self.record["current_signals"][0]["source_url"])
         with self.assertRaisesRegex(ValueError, "identity"):
             TARGETS.archive_company(archived, "company-not-present", self.as_of, "Nope")
+        with self.assertRaisesRegex(ValueError, "archived"):
+            TARGETS.upsert_registry(archived, self.record, date(2026, 9, 3))
+
+    def test_private_registry_rejects_symlink_parents_and_read_only_missing_load_creates_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            registry = {"schema_version": 1, "companies": []}
+            actual = root / "actual"
+            actual.mkdir()
+            linked_parent = root / "linked-private"
+            linked_parent.symlink_to(actual, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                TARGETS.write_registry(linked_parent / "targets.json", registry)
+            self.assertFalse((actual / "targets.json").exists())
+            absent = root / "review-only" / "targets.json"
+            self.assertEqual(TARGETS.load_registry(absent, read_only=True), registry)
+            self.assertFalse(absent.parent.exists())
 
     def test_private_registry_rejects_git_and_symlinks_and_uses_private_permissions(self):
         with tempfile.TemporaryDirectory() as tmp:
