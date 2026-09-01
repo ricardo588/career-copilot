@@ -490,6 +490,75 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("Cloud delivery: direct; evidence refs: profile.verified_evidence[0]", brief)
         self.assertIn("Transferability is analysis, not direct experience", brief)
 
+    def test_offer_negotiation_brief_renders_provenance_comparison_and_drafts(self):
+        offer = {
+            "company": "Acme Cloud Services",
+            "role": "Transformation Program Director",
+            "record": {
+                "source": {"value": "https://example.test/offers/acme", "status": "confirmed"},
+                "date_received": {"value": "2026-08-26", "status": "confirmed"},
+                "currency": {"value": "USD", "status": "confirmed"},
+                "geography": {"value": "Remote in Canada", "status": "confirmed"},
+                "employment_type": {"value": "full-time", "status": "confirmed"},
+            },
+            "package": {
+                "base": {"offer": "180000", "candidate_priority": "195000 floor", "status": "needs review"},
+                "variable": {"offer": "15% bonus", "candidate_priority": "20% bonus", "status": "confirmed"},
+                "equity": {"offer": "600 RSUs", "candidate_priority": "1-year refresh grant", "status": "unknown"},
+                "benefits": {"offer": "standard health and pension", "candidate_priority": "expanded parental leave", "status": "confirmed"},
+                "location": {"offer": "Remote in Canada", "candidate_priority": "Hybrid optional", "status": "confirmed"},
+                "flexibility": {"offer": "occasional travel", "candidate_priority": "no more than 10% travel", "status": "confirmed"},
+                "scope": {"offer": "enterprise transformation portfolio", "candidate_priority": "clear decision rights", "status": "confirmed"},
+                "risk": {"offer": "annual incentive is discretionary", "candidate_priority": "base protection if targets slip", "status": "confirmed"},
+                "candidate_tradeoffs": {"offer": "larger scope", "candidate_priority": "accept smaller bonus for stronger scope", "status": "confirmed"},
+            },
+            "market_research": [
+                {
+                    "summary": "Synthetic salary guide suggests director-level packages are influenced by travel demands.",
+                    "source_url": "https://example.test/research/salary-guide",
+                    "source_date": "2026-08-20",
+                    "retrieved_at": "2026-08-26",
+                }
+            ],
+            "candidate_priorities": ["Protect base pay", "Preserve flexibility"],
+            "questions": ["Can you confirm the bonus plan and vesting schedule?"],
+            "drafts": [
+                {"kind": "acknowledgement", "text": "Thank you for the offer and the clear outline of the role."},
+                {"kind": "clarification", "text": "Can you confirm whether the bonus target is prorated in year one?"},
+                {"kind": "counterproposal", "text": "Could we move the base salary to 195000 and add a signing bonus?"},
+                {"kind": "accept", "text": "Draft only: I am ready to accept once the final terms are confirmed."},
+                {"kind": "decline", "text": "Draft only: I will decline if the final package cannot meet the stated floor."},
+            ],
+        }
+        brief = PIPELINE.offer_negotiation_brief(offer)
+        self.assertIn("# Offer negotiation — Acme Cloud Services / Transformation Program Director", brief)
+        self.assertIn("## Offer record", brief)
+        self.assertIn("source: confirmed — https://example.test/offers/acme", brief)
+        self.assertIn("date_received: confirmed — 2026-08-26", brief)
+        self.assertIn("## Total package comparison", brief)
+        self.assertIn("Base", brief)
+        self.assertIn("Candidate tradeoffs", brief)
+        self.assertIn("## Market research", brief)
+        self.assertIn("source date: 2026-08-20", brief)
+        self.assertIn("## Candidate priorities and questions", brief)
+        self.assertIn("Protect base pay", brief)
+        self.assertIn("## Negotiation drafts", brief)
+        self.assertIn("Acknowledgement", brief)
+        self.assertIn("Counterproposal", brief)
+        self.assertIn("Accept", brief)
+        self.assertIn("## Guardrails", brief)
+        self.assertIn("not legal, tax or financial advice", brief)
+
+    def test_offer_negotiation_rejects_unverified_external_actions(self):
+        offer = {
+            "company": "Acme Cloud Services",
+            "role": "Transformation Program Director",
+            "requested_action": "send",
+            "authorization": {"exact": False, "readback_verified": False},
+        }
+        with self.assertRaisesRegex(ValueError, "exact authorization and verified readback"):
+            PIPELINE.offer_negotiation_brief(offer)
+
     def test_stale_or_ineligible_vacancy_is_discarded(self):
         stale = dict(self.vacancy)
         stale["date_posted"] = "2026-07-01"
@@ -900,11 +969,15 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(tracker_row["human_path_last_verified"], "2026-08-26")
             self.assertTrue((output / "tracker.csv").is_file())
             self.assertTrue((output / "interview-brief.md").is_file())
+            self.assertTrue((output / "offer-negotiation.md").is_file())
             self.assertTrue((output / "demo-result.json").is_file())
             self.assertTrue((output / "tracker-review.json").is_file())
             brief = (output / "interview-brief.md").read_text(encoding="utf-8")
+            offer_brief = (output / "offer-negotiation.md").read_text(encoding="utf-8")
             self.assertIn("## Human Path", brief)
             self.assertIn("## Interviewer intelligence", brief)
+            self.assertIn("## Offer record", offer_brief)
+            self.assertIn("## Negotiation drafts", offer_brief)
 
 
 if __name__ == "__main__":

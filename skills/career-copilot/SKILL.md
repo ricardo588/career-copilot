@@ -93,6 +93,7 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 9. For target-company research, read `references/target-companies.md`. Preserve candidate preferences separately from sourced market signals, use separate company/Human Path clocks, and never infer contact authorization.
 
 For relationship artifacts, informational-meeting preparation, assessment briefs and post-interview reflection, apply `references/relationships-and-debriefs.md` and `references/assessment-prep.md`. Keep role, influence, strength, current company/role, evidence/freshness and authorization independent. Probable and confirmed decision makers must never be collapsed.
+For private offer records and negotiation drafts, apply `references/offers-and-negotiation.md`. Preserve source/date/currency/geography/employment type, compare total package components against candidate priorities and keep market notes source- and date-attributed.
 10. For a weekly campaign review, read `references/weekly-campaign.md`. Keep drafts, approval, attempts, verified outcomes and learning distinct; do not force activity, mutate state or send messages.
 11. Verify every state write by reading it back.
 12. Separate confirmed facts, interpretation, unknowns, changes and next action.
@@ -179,6 +180,7 @@ See `references/demo.md` for pass criteria.
 - `references/story-bank-and-career-direction.md` — private evidence stories, view reuse and optional career criteria.
 - `references/assessment-prep.md` — private presentation, case and assessment prep.
 - `references/relationships-and-debriefs.md` — relationship roles/authorization, informational meetings, assessment briefs and read-only interview debriefs.
+- `references/offers-and-negotiation.md` — private offer records, total-package comparison and negotiation drafts.
 
 ## Verification
 
@@ -192,3 +194,4 @@ See `references/demo.md` for pass criteria.
 - No private data was written inside the skill or distribution repository.
 - Story views reused confirmed private records by stable ID without duplicating or inventing facts.
 - Relationship/debrief artifacts remained read-only and outside the repository, with tracker state unchanged.
+- Offer negotiation artifacts remained read-only and outside the repository, with no external accept/decline/send/sign action claimed without exact authorization and verified readback.

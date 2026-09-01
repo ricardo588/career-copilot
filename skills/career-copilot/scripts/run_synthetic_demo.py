@@ -14,6 +14,7 @@ from pipeline import (
     evaluate,
     interview_brief,
     load_document,
+    offer_negotiation_brief,
     read_tracker,
     review_tracker,
     summarize_human_path,
@@ -36,6 +37,7 @@ def main() -> int:
     vacancy = load_document(fixtures / "vacancy.json")
     human_path = load_document(fixtures / "human-path.json")
     interviewer_research = load_document(fixtures / "interviewer-research.json")
+    offer_negotiation = load_document(fixtures / "offer-negotiation.json")
     as_of = date.fromisoformat(args.as_of)
 
     evaluation = evaluate(profile, rules, vacancy, as_of)
@@ -61,6 +63,11 @@ def main() -> int:
         interview_brief(profile, vacancy, evaluation, human_path, interviewer_research),
         encoding="utf-8",
     )
+    offer_path = output / "offer-negotiation.md"
+    offer_path.write_text(
+        offer_negotiation_brief(offer_negotiation),
+        encoding="utf-8",
+    )
 
     result = {
         "scenario": "synthetic_profile_to_interview",
@@ -72,6 +79,7 @@ def main() -> int:
         "tracker_review": tracker_review,
         "tracker_review_artifact": str(tracker_review_path),
         "interview_brief": str(brief_path),
+        "offer_negotiation": str(offer_path),
     }
     result_path = output / "demo-result.json"
     result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

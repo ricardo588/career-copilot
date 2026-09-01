@@ -15,6 +15,7 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 - Human Path research for current contacts, recruiter/poster and hiring manager
 - Structured relationship intelligence with role, influence, strength, evidence freshness and independent authorization
 - Informational-meeting prep/outcome records and fact-separated post-interview debriefs with draft-only follow-up
+- Private offer records, source-dated total-package comparison and negotiation drafts with exact authorization boundaries
 - Interviewer intelligence from sourced facts with hypotheses kept separate
 - Canonical deduplication and local CSV tracking
 - Independent vacancy and Human Path verification clocks with conservative legacy migration

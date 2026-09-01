@@ -12,11 +12,11 @@
 
 - Candidate identity and contact information
 - CVs and supporting documents
-- Compensation preferences
+- Compensation preferences and private offer records
 - Contacts and networking history
 - Story-bank evidence, metrics, provenance and career-direction preferences
-- Relationship evidence/authorization, meeting outcomes and interview debrief reflections
-- Emails and message IDs
+- Relationship evidence/authorization, meeting outcomes, interview debrief reflections and negotiation drafts
+- Market research notes, source dates and message IDs
 - Live vacancy/application tracker
 - Account identifiers, tokens and credential files
 - Hermes sessions, memories and profile exports
