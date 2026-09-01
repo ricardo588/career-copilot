@@ -107,7 +107,7 @@ def build_weekly_plan(tracker_path: Path, target_registry_path: Path, context: d
     """Read existing artifacts and produce a plan; never write tracker or registry data."""
     validated_context = _validate_context(context)
     tracker_review = PIPELINE.review_tracker(tracker_path, week_start)
-    registry = TARGETS.load_registry(target_registry_path)
+    registry = TARGETS.load_registry(target_registry_path, read_only=True)
     target_review = TARGETS.review_registry(registry, week_start, company_stale_after_days=30, human_path_stale_after_days=30)
     overdue = [item for item in tracker_review["items"] if item["follow_up_overdue"]]
     active_count = sum(1 for item in tracker_review["items"] if str(item.get("status", "")).casefold() not in {"withdrawn", "rejected", "discarded"})

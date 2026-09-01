@@ -17,6 +17,7 @@ SCHEMA_VERSION = 1
 IDENTITY_STATUSES = {"confirmed", "unknown", "confidential"}
 ACTIVE_STATUSES = {"active", "archived"}
 PREFERENCE_ASSERTION_WORDS = {"best", "excellent", "good company", "great company", "definitely hiring", "is hiring"}
+SYSTEM_PATH_SYMLINKS = {Path("/var"), Path("/tmp")}  # macOS compatibility; user-controlled links still fail closed.
 
 
 def load_document(path: Path) -> dict[str, Any]:
@@ -36,18 +37,20 @@ def parse_date(value: Any, field: str) -> date:
         raise ValueError(f"{field} must be an ISO YYYY-MM-DD date") from exc
 
 
-def private_path(raw_path: Path) -> Path:
+def private_path(raw_path: Path, *, create_parent: bool = True) -> Path:
+    """Validate a private path without resolving away symlink ancestry."""
     expanded = raw_path.expanduser()
-    if expanded.is_symlink():
-        raise ValueError("private target-company registry cannot be a symlink")
-    path = expanded.resolve(strict=False)
-    for parent in (path.parent, *path.parents):
-        if parent.is_symlink():
+    raw_absolute = expanded.absolute()
+    for candidate in (raw_absolute, *raw_absolute.parents):
+        if candidate.is_symlink() and candidate not in SYSTEM_PATH_SYMLINKS:
             raise ValueError("private target-company registry cannot be beneath a symlink")
+    path = raw_absolute.resolve(strict=False)
+    for parent in (path.parent, *path.parents):
         if (parent / ".git").exists():
             raise ValueError("private target-company registry must be outside a Git repository")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    os.chmod(path.parent, 0o700)
+    if create_parent:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        os.chmod(path.parent, 0o700)
     return path
 
 
@@ -63,8 +66,8 @@ def write_registry(path: Path, registry: dict[str, Any]) -> None:
         raise RuntimeError("private target-company registry write verification failed")
 
 
-def load_registry(path: Path) -> dict[str, Any]:
-    destination = private_path(path)
+def load_registry(path: Path, *, read_only: bool = False) -> dict[str, Any]:
+    destination = private_path(path, create_parent=not read_only)
     if not destination.exists():
         return {"schema_version": SCHEMA_VERSION, "companies": []}
     if destination.is_symlink():
@@ -212,7 +215,9 @@ def upsert_registry(registry: dict[str, Any], record: dict[str, Any], as_of: dat
         companies.append(candidate)
         return {"schema_version": SCHEMA_VERSION, "companies": companies}, {"action": "added", "id": candidate["id"]}
     existing = companies[existing_index]
-    if existing.get("status") not in ACTIVE_STATUSES:
+    if existing.get("status") == "archived":
+        raise ValueError("archived target company cannot be refreshed; add a new active target instead")
+    if existing.get("status") != "active":
         raise ValueError("existing company status is invalid")
     existing_signals = [item for item in existing.get("current_signals", []) if isinstance(item, dict)]
     existing_paths = [item for item in existing.get("human_paths", []) if isinstance(item, dict)]
@@ -283,7 +288,7 @@ def main() -> int:
     try:
         as_of = parse_date(args.as_of, "as_of")
         registry_path = Path(args.registry)
-        registry = load_registry(registry_path)
+        registry = load_registry(registry_path, read_only=args.review)
         if args.review:
             result = review_registry(registry, as_of, company_stale_after_days=args.company_stale_after_days, human_path_stale_after_days=args.human_path_stale_after_days)
         elif args.archive:
