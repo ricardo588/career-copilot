@@ -39,10 +39,10 @@ Use this skill to run a structured job search from each user's private candidate
 - Evaluate vacancies against verified evidence, reusable story records and constraints.
 - Deduplicate and maintain a private application tracker.
 - Reconcile recruiter or ATS evidence with pipeline state.
-- Prepare networking, application, follow-up and interview drafts.
+- Prepare networking, application, follow-up, interview and assessment drafts.
 - Maintain private evidence-backed target companies without inferring hiring or contact authorization.
 - Generate a private, read-only weekly campaign plan without quotas or status mutation.
-- Prepare relationship meetings and post-interview debriefs without acting externally or mutating tracker state.
+- Prepare relationship meetings, assessment briefs and post-interview debriefs without acting externally or mutating tracker state.
 - Use optional Google Sheets, Gmail or Obsidian adapters.
 
 ## Startup
@@ -92,7 +92,7 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 8. Apply `references/privacy-and-actions.md` before any external action. Human Path research is never authorization to contact.
 9. For target-company research, read `references/target-companies.md`. Preserve candidate preferences separately from sourced market signals, use separate company/Human Path clocks, and never infer contact authorization.
 
-For relationship artifacts, informational-meeting preparation and post-interview reflection, apply `references/relationships-and-debriefs.md`. Keep role, influence, strength, current company/role, evidence/freshness and authorization independent. Probable and confirmed decision makers must never be collapsed.
+For relationship artifacts, informational-meeting preparation, assessment briefs and post-interview reflection, apply `references/relationships-and-debriefs.md` and `references/assessment-prep.md`. Keep role, influence, strength, current company/role, evidence/freshness and authorization independent. Probable and confirmed decision makers must never be collapsed.
 10. For a weekly campaign review, read `references/weekly-campaign.md`. Keep drafts, approval, attempts, verified outcomes and learning distinct; do not force activity, mutate state or send messages.
 11. Verify every state write by reading it back.
 12. Separate confirmed facts, interpretation, unknowns, changes and next action.
@@ -177,7 +177,8 @@ See `references/demo.md` for pass criteria.
 - `references/demo.md` — synthetic end-to-end verification.
 - `references/human-path-and-interviewer-research.md` — sourced Human Path and interviewer intelligence.
 - `references/story-bank-and-career-direction.md` — private evidence stories, view reuse and optional career criteria.
-- `references/relationships-and-debriefs.md` — relationship roles/authorization, informational meetings and read-only interview debriefs.
+- `references/assessment-prep.md` — private presentation, case and assessment prep.
+- `references/relationships-and-debriefs.md` — relationship roles/authorization, informational meetings, assessment briefs and read-only interview debriefs.
 
 ## Verification
 

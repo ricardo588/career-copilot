@@ -1013,6 +1013,183 @@ def relationship_meeting_prep(relationship_artifact: dict[str, Any], meeting: di
     return "\n".join(lines) + "\n"
 
 
+def assessment_prep(prep: dict[str, Any]) -> str:
+    if not isinstance(prep, dict):
+        raise ValueError("assessment prep artifact must be a mapping")
+    assessment_type = str(prep.get("assessment_type", prep.get("type", "assessment"))).strip() or "assessment"
+    assessment_kind = assessment_type.casefold()
+
+    lines = [
+        f"# Assessment prep — {str(prep.get('company', 'unknown')).strip() or 'unknown'} / {str(prep.get('role', 'unknown')).strip() or 'unknown'}",
+        "",
+        "## Assessment type",
+        f"- {assessment_type}",
+        "",
+        "## Known instructions",
+    ]
+    instructions = _as_text_list(prep.get("known_instructions", prep.get("instructions", [])))
+    if instructions:
+        lines.extend(f"- {item}" for item in instructions)
+    else:
+        lines.append("- No confirmed instructions were supplied.")
+
+    lines.extend([
+        "",
+        "## Assumptions and open questions",
+        "### Assumptions",
+    ])
+    assumptions = _as_text_list(prep.get("assumptions", []))
+    if assumptions:
+        lines.extend(f"- {item}" for item in assumptions)
+    else:
+        lines.append("- None supplied; keep the working assumptions explicit.")
+    lines.append("### Open questions")
+    open_questions = _as_text_list(prep.get("open_questions", prep.get("questions", [])))
+    if open_questions:
+        lines.extend(f"- {item}" for item in open_questions)
+    else:
+        lines.append("- None supplied.")
+
+    lines.extend([
+        "",
+        "## Suggested structure",
+    ])
+    suggested_structure = prep.get("suggested_structure", {})
+    structure_defaults = {
+        "problem": "Restate the problem or decision in your own words.",
+        "evidence": "Use only verified facts, examples and constraints.",
+        "options": "Compare the main feasible approaches and tradeoffs.",
+        "recommendation": "State the preferred answer or direction and why.",
+        "risks": "Name the main risks, assumptions and pressure points.",
+        "next_steps": "Close with what you would validate, rehearse or do next.",
+    }
+    if isinstance(suggested_structure, dict) and suggested_structure:
+        for key in ("problem", "evidence", "options", "recommendation", "risks", "next_steps"):
+            items = _as_text_list(suggested_structure.get(key, []))
+            label = key.replace("_", " ").title()
+            lines.append(f"### {label}")
+            if items:
+                lines.extend(f"- {item}" for item in items)
+            else:
+                lines.append(f"- {structure_defaults[key]}")
+    else:
+        for key in ("problem", "evidence", "options", "recommendation", "risks", "next_steps"):
+            lines.append(f"- {key.replace('_', ' ').title()}: {structure_defaults[key]}")
+
+    lines.extend([
+        "",
+        "## Evidence to bring",
+    ])
+    evidence = _as_text_list(prep.get("evidence", prep.get("verified_evidence", [])))
+    if evidence:
+        lines.extend(f"- {item}" for item in evidence)
+    else:
+        lines.append("- Use only candidate-approved evidence that is already verified elsewhere.")
+
+    lines.extend([
+        "",
+        "## Rehearsal plan",
+    ])
+    rehearsal = prep.get("rehearsal", {})
+    if isinstance(rehearsal, dict) and rehearsal:
+        timebox = str(rehearsal.get("timebox_minutes", rehearsal.get("timebox", ""))).strip()
+        lines.append(f"- Timebox: {timebox or 'unknown'} minutes")
+        segments = _as_text_list(rehearsal.get("segments", rehearsal.get("steps", [])))
+        if segments:
+            lines.extend(f"- {segment}" for segment in segments)
+        else:
+            lines.append("- No rehearsal segments were supplied.")
+    else:
+        lines.append("- No rehearsal plan was supplied.")
+
+    lines.extend([
+        "",
+        "## Technical and logistics checks",
+    ])
+    technical_checks = _as_text_list(prep.get("technical_checks", []))
+    logistics_checks = _as_text_list(prep.get("logistics_checks", []))
+    if technical_checks:
+        lines.extend(f"- Tech: {item}" for item in technical_checks)
+    else:
+        lines.append("- Tech: verify platform, audio, screen sharing and any allowed tools.")
+    if logistics_checks:
+        lines.extend(f"- Logistics: {item}" for item in logistics_checks)
+    else:
+        lines.append("- Logistics: verify location, timing, materials and access.")
+
+    psychometric = prep.get("psychometric", {})
+    if assessment_kind == "psychometric" or (isinstance(psychometric, dict) and psychometric):
+        lines.extend([
+            "",
+            "## Psychometric guidance",
+        ])
+        if isinstance(psychometric, dict) and psychometric:
+            fmt = str(psychometric.get("format", "")).strip()
+            conditions = _as_text_list(psychometric.get("conditions", []))
+            guidance = _as_text_list(psychometric.get("guidance", []))
+            if fmt:
+                lines.append(f"- Format: {fmt}")
+            if conditions:
+                lines.extend(f"- Condition: {item}" for item in conditions)
+            if guidance:
+                lines.extend(f"- Guidance: {item}" for item in guidance)
+            if not fmt and not conditions and not guidance:
+                lines.append("- No psychometric details were supplied.")
+        else:
+            lines.append("- No psychometric details were supplied.")
+        lines.append("- Explain the format, timing, allowed aids and accommodation request path; never coach falsification, hidden identity or condition masking.")
+
+    constraints = prep.get("candidate_declared_job_constraints", {})
+    if isinstance(constraints, dict) and constraints:
+        lines.extend([
+            "",
+            "## Declared accommodations and constraints",
+        ])
+        eligibility = constraints.get("eligibility", constraints.get("job_eligibility", {}))
+        accommodations = _as_text_list(constraints.get("accommodations", []))
+        if isinstance(eligibility, dict) and eligibility:
+            for key in sorted(eligibility):
+                value = eligibility[key]
+                if isinstance(value, list):
+                    rendered = ", ".join(str(item) for item in value if str(item).strip()) or "unknown"
+                else:
+                    rendered = str(value).strip() or "unknown"
+                lines.append(f"- Eligibility {key}: {rendered}")
+        if accommodations:
+            lines.extend(f"- Accommodation: {item}" for item in accommodations)
+        else:
+            lines.append("- No accommodations were supplied.")
+        lines.append("- These declarations are not scored or inferred; they only inform logistics and candid planning.")
+
+    risks = _as_text_list(prep.get("risks", []))
+    next_steps = _as_text_list(prep.get("next_steps", []))
+    lines.extend([
+        "",
+        "## Risks",
+    ])
+    if risks:
+        lines.extend(f"- {item}" for item in risks)
+    else:
+        lines.append("- No explicit risks were supplied.")
+    lines.extend([
+        "",
+        "## Next steps",
+    ])
+    if next_steps:
+        lines.extend(f"- {item}" for item in next_steps)
+    else:
+        lines.append("- No next steps were supplied.")
+    lines.extend([
+        "",
+        "## Guardrails",
+        "- Keep known instructions separate from assumptions and open questions.",
+        "- Do not invent outcomes, metrics, validity claims or hiring statistics without a source.",
+        "- Protected attributes and accommodations stay separate from scoring and never become inference targets.",
+        "- Use only synthetic fixtures or candidate-approved private notes; do not externalize this prep artifact.",
+    ])
+    return "\n".join(lines) + "\n"
+
+
 def interview_debrief(debrief: dict[str, Any]) -> str:
     if not isinstance(debrief, dict):
         raise ValueError("interview debrief artifact must be a mapping")
@@ -1156,26 +1333,30 @@ def main() -> int:
     parser.add_argument("--relationship-prep", help="JSON/YAML file with an informational meeting prep artifact")
     parser.add_argument("--meeting", help="optional separate JSON/YAML meeting objectives, questions and outcome")
     parser.add_argument("--relationship-prep-md", help="write the informational meeting prep markdown to this path")
+    parser.add_argument("--assessment-prep", help="JSON/YAML file with a private presentation, case or assessment prep artifact")
+    parser.add_argument("--assessment-prep-md", help="write the assessment prep markdown to this path")
     parser.add_argument("--interview-debrief", help="JSON/YAML file with a post-interview debrief artifact")
     parser.add_argument("--interview-debrief-md", help="write the interview debrief markdown to this path")
     args = parser.parse_args()
     try:
-        special_modes = [name for name, enabled in (("relationship-prep", args.relationship_prep), ("interview-debrief", args.interview_debrief)) if enabled]
+        special_modes = [name for name, enabled in (("relationship-prep", args.relationship_prep), ("assessment-prep", args.assessment_prep), ("interview-debrief", args.interview_debrief)) if enabled]
         if args.relationship_prep_md and not args.relationship_prep:
             raise ValueError("--relationship-prep-md requires --relationship-prep")
+        if args.assessment_prep_md and not args.assessment_prep:
+            raise ValueError("--assessment-prep-md requires --assessment-prep")
         if args.meeting and not args.relationship_prep:
             raise ValueError("--meeting requires --relationship-prep")
         if args.interview_debrief_md and not args.interview_debrief:
             raise ValueError("--interview-debrief-md requires --interview-debrief")
         if special_modes:
             if len(special_modes) > 1:
-                raise ValueError("relationship prep and interview debrief modes are separate")
+                raise ValueError("relationship prep, assessment prep and interview debrief modes are separate")
             evaluation_options = (
                 args.profile, args.rules, args.vacancy, args.tracker, args.review_tracker, args.brief,
                 args.human_path, args.interviewer_research, args.requirement_matrix,
             )
             if any(evaluation_options):
-                raise ValueError("relationship or debrief modes cannot be combined with evaluation or tracker options")
+                raise ValueError("relationship, assessment or debrief modes cannot be combined with evaluation or tracker options")
             if args.relationship_prep:
                 relationship_artifact = load_document(Path(args.relationship_prep))
                 meeting = load_document(Path(args.meeting)) if args.meeting else relationship_artifact.get("meeting", {})
@@ -1184,6 +1365,15 @@ def main() -> int:
                 if args.relationship_prep_md:
                     prep_path = write_private_markdown(args.relationship_prep_md, markdown)
                     payload["relationship_prep_markdown"] = str(prep_path)
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                return 0
+            if args.assessment_prep:
+                assessment_artifact = load_document(Path(args.assessment_prep))
+                markdown = assessment_prep(assessment_artifact)
+                payload = {"assessment_prep": assessment_artifact, "markdown": markdown}
+                if args.assessment_prep_md:
+                    prep_path = write_private_markdown(args.assessment_prep_md, markdown)
+                    payload["assessment_prep_markdown"] = str(prep_path)
                 print(json.dumps(payload, indent=2, ensure_ascii=False))
                 return 0
             debrief_artifact = load_document(Path(args.interview_debrief))
