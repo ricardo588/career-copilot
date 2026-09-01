@@ -46,6 +46,16 @@
 6. Prepare pitch, stories, likely questions, one mini-case, risks and candidate questions.
 7. Separate confirmed company/interviewer facts from positioning recommendations.
 
+## Assessment preparation
+
+1. Read the exact prompt or instructions before planning content.
+2. Separate known instructions from assumptions and open questions.
+3. Build the answer around problem, evidence, options, recommendation, risks and next steps as appropriate.
+4. Timebox rehearsal, including technical and logistics checks before the assessment.
+5. For psychometric assessments, explain format, conditions, timing and allowed aids; never coach falsification or hidden identity.
+6. Keep candidate-declared accommodations separate from scoring and never infer protected attributes.
+7. Write a private read-only brief only; do not send or externalize the artifact.
+
 ## Status summary
 
 Return active priorities, blockers with owners, and the next one to three concrete actions. Do not turn passive waiting into an artificial task.

@@ -1,0 +1,88 @@
+{
+  "company": "Synthetic Co",
+  "role": "Program Director assessment",
+  "assessment_type": "case",
+  "known_instructions": [
+    "A 20-minute case prompt was supplied.",
+    "The panel asked for a short recommendation and tradeoff summary.",
+    "No external research may be used during the exercise."
+  ],
+  "assumptions": [
+    "The audience wants concise bullets rather than a long narrative.",
+    "The decision criteria will stay within the prompt."
+  ],
+  "open_questions": [
+    "Will a calculator be available?",
+    "Is a single slide acceptable?"
+  ],
+  "suggested_structure": {
+    "problem": [
+      "Restate the prompt and define the decision in one sentence."
+    ],
+    "evidence": [
+      "Use only verified facts from the private profile and the prompt."
+    ],
+    "options": [
+      "Compare two or three feasible options with clear tradeoffs."
+    ],
+    "recommendation": [
+      "Pick the best option and say why it wins."
+    ],
+    "risks": [
+      "State the main assumptions and where the answer could break."
+    ],
+    "next_steps": [
+      "Close with the next check or action you would take."
+    ]
+  },
+  "evidence": [
+    "Led a 14-month Oracle cloud migration for 1,000 critical workloads.",
+    "Managed cross-functional stakeholders across a complex program."
+  ],
+  "rehearsal": {
+    "timebox_minutes": 45,
+    "segments": [
+      "5 minutes: restate the prompt and success criteria.",
+      "20 minutes: outline the answer and pressure-test assumptions.",
+      "20 minutes: time a full rehearsal and tighten the close."
+    ]
+  },
+  "technical_checks": [
+    "Check camera, microphone and screen sharing.",
+    "Open any allowed materials before the start time.",
+    "Confirm the timer and note-taking setup."
+  ],
+  "logistics_checks": [
+    "Confirm the start time and time zone.",
+    "Use a quiet room and a stable connection."
+  ],
+  "psychometric": {
+    "format": "Timed numerical reasoning assessment",
+    "conditions": [
+      "20 minutes total",
+      "One attempt",
+      "No calculator unless the instructions explicitly allow it"
+    ],
+    "guidance": [
+      "Read every instruction before answering.",
+      "Manage pace and skip only if the instructions permit it.",
+      "Request accommodations before the assessment starts."
+    ]
+  },
+  "candidate_declared_job_constraints": {
+    "eligibility": {
+      "travel": "up to 25 percent"
+    },
+    "accommodations": [
+      "extra time"
+    ]
+  },
+  "risks": [
+    "Over-explaining could crowd out the recommendation.",
+    "A missing logistics check could waste timed minutes."
+  ],
+  "next_steps": [
+    "Rehearse the 20-minute case twice.",
+    "Verify the assessment platform and any accommodation request path."
+  ]
+}
