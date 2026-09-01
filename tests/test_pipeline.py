@@ -33,6 +33,18 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(len(result["matched_requirements"]), 3)
         self.assertNotIn("Vendor commercial management", result["matched_requirements"])
 
+    def test_gmail_evidence_reference_is_opaque_and_preserved_on_refresh(self):
+        result = PIPELINE.evaluate(self.profile, self.rules, self.vacancy, self.as_of)
+        reference = "evidence/gmail-evidence.jsonl#123e4567-e89b-12d3-a456-426614174000"
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = Path(tmp) / "tracker.csv"
+            PIPELINE.track(tracker, self.vacancy, result, self.as_of, evidence_ref=reference)
+            self.assertEqual(PIPELINE.read_tracker(tracker)[0]["evidence_ref"], reference)
+            PIPELINE.track(tracker, self.vacancy, result, self.as_of)
+            self.assertEqual(PIPELINE.read_tracker(tracker)[0]["evidence_ref"], reference)
+            with self.assertRaisesRegex(ValueError, "opaque Gmail"):
+                PIPELINE.track(tracker, self.vacancy, result, self.as_of, evidence_ref="message-id: private-content")
+
     def test_tracker_deduplicates_and_verifies(self):
         result = PIPELINE.evaluate(self.profile, self.rules, self.vacancy, self.as_of)
         human_path = {
