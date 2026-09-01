@@ -84,13 +84,14 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 4. Apply `references/evaluation.md` and local rules.
    Exclude protected or non-job-relevant attributes and proxies from fit scoring; missing demographic information is never a gap or research task. Keep candidate-declared eligibility/accommodation in the structured `candidate_declared_job_constraints` route, separate from evidence-based fit scoring.
    Read `references/story-bank-and-career-direction.md` when selecting evidence: reuse stable story IDs, retain provenance/unknowns, and treat career values as candidate preferences rather than objective employer facts.
-5. Deduplicate and update using `references/tracker-schema.md`.
-6. For every viable vacancy, run the Human Path workflow in `references/human-path-and-interviewer-research.md`: check current trusted contacts, the exact recruiter/poster and the confirmed or likely hiring manager.
-7. Apply `references/privacy-and-actions.md` before any external action. Human Path research is never authorization to contact.
+5. For each viable opportunity, build or refresh the private cited matrix in `references/requirement-matrix-and-cv-review.md`. It distinguishes direct evidence, transferable analysis, gaps and unknowns; use it for explanations, briefs and an explicit opt-in CV review only.
+6. Deduplicate and update using `references/tracker-schema.md`.
+7. For every viable vacancy, run the Human Path workflow in `references/human-path-and-interviewer-research.md`: check current trusted contacts, the exact recruiter/poster and the confirmed or likely hiring manager.
+8. Apply `references/privacy-and-actions.md` before any external action. Human Path research is never authorization to contact.
 
 For relationship artifacts, informational-meeting preparation and post-interview reflection, apply `references/relationships-and-debriefs.md`. Keep role, influence, strength, current company/role, evidence/freshness and authorization independent. Probable and confirmed decision makers must never be collapsed.
-8. Verify every state write by reading it back.
-9. Separate confirmed facts, interpretation, unknowns, changes and next action.
+9. Verify every state write by reading it back.
+10. Separate confirmed facts, interpretation, unknowns, changes and next action.
 
 For deterministic local evaluation/tracking/brief generation, use:
 
@@ -163,6 +164,7 @@ See `references/demo.md` for pass criteria.
 - `references/cv-first-onboarding.md` — local CV extraction, proposal and confirmation workflow.
 - `references/workflow.md` — end-to-end operating flows.
 - `references/evaluation.md` — qualitative fit decision.
+- `references/requirement-matrix-and-cv-review.md` — cited matrix and opt-in local CV review.
 - `references/tracker-schema.md` — local tracker and state rules.
 - `references/privacy-and-actions.md` — privacy and authorization model.
 - `references/adapters.md` — optional integration safety contract.

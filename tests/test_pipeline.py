@@ -475,6 +475,21 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("Interview hypothesis: May focus on value realization", brief)
         self.assertIn("https://example.test/alex", brief)
 
+    def test_requirement_matrix_is_rendered_as_cited_brief_context(self):
+        evaluation = PIPELINE.evaluate(self.profile, self.rules, self.vacancy, self.as_of)
+        matrix = {
+            "requirements": [{
+                "requirement": "Cloud delivery", "assessment": "direct",
+                "direct_evidence": [{"ref": "profile.verified_evidence[0]"}],
+            }, {
+                "requirement": "Payment rails", "assessment": "transferable", "direct_evidence": [],
+            }]
+        }
+        brief = PIPELINE.interview_brief(self.profile, self.vacancy, evaluation, requirement_matrix=matrix)
+        self.assertIn("## Requirement evidence matrix", brief)
+        self.assertIn("Cloud delivery: direct; evidence refs: profile.verified_evidence[0]", brief)
+        self.assertIn("Transferability is analysis, not direct experience", brief)
+
     def test_stale_or_ineligible_vacancy_is_discarded(self):
         stale = dict(self.vacancy)
         stale["date_posted"] = "2026-07-01"
