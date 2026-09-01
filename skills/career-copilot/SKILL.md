@@ -94,6 +94,8 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 
 For relationship artifacts, informational-meeting preparation, assessment briefs and post-interview reflection, apply `references/relationships-and-debriefs.md` and `references/assessment-prep.md`. Keep role, influence, strength, current company/role, evidence/freshness and authorization independent. Probable and confirmed decision makers must never be collapsed.
 For private offer records and negotiation drafts, apply `references/offers-and-negotiation.md`. Preserve source/date/currency/geography/employment type, compare total package components against candidate priorities and keep market notes source- and date-attributed.
+
+For encrypted private-workspace backup, verification and non-destructive recovery, apply `references/encrypted-backups.md`. Use `age`, preserve key/passphrase boundaries and never upload or overwrite by default.
 10. For a weekly campaign review, read `references/weekly-campaign.md`. Keep drafts, approval, attempts, verified outcomes and learning distinct; do not force activity, mutate state or send messages.
 11. Verify every state write by reading it back.
 12. Separate confirmed facts, interpretation, unknowns, changes and next action.
