@@ -839,6 +839,7 @@ def interview_brief(
     evaluation: dict[str, Any],
     human_path: Optional[dict[str, Any]] = None,
     interviewer_research: Optional[dict[str, Any]] = None,
+    requirement_matrix: Optional[dict[str, Any]] = None,
 ) -> str:
     evidence = profile.get("profile", {}).get("verified_evidence", [])
     human_summary = summarize_human_path(vacancy, human_path) if human_path is not None else _not_supplied_human_summary()
@@ -903,6 +904,24 @@ def interview_brief(
             lines.append(f"  - Interview hypothesis: {hypothesis}")
     lines.extend([
         "- Do not infer personality, preferences or decision power from a title or credential.",
+    ])
+    if requirement_matrix is not None:
+        if not isinstance(requirement_matrix, dict):
+            raise ValueError("requirement matrix must be a mapping")
+        lines.extend(["", "## Requirement evidence matrix"])
+        matrix_items = requirement_matrix.get("requirements", [])
+        if not isinstance(matrix_items, list):
+            raise ValueError("requirement matrix requirements must be a list")
+        for item in matrix_items:
+            if not isinstance(item, dict):
+                continue
+            requirement = str(item.get("requirement", "unknown")).strip() or "unknown"
+            assessment = str(item.get("assessment", "unknown")).strip() or "unknown"
+            refs = [str(evidence.get("ref", "")).strip() for evidence in item.get("direct_evidence", []) if isinstance(evidence, dict) and str(evidence.get("ref", "")).strip()]
+            reference_note = f"; evidence refs: {', '.join(refs)}" if refs else ""
+            lines.append(f"- {requirement}: {assessment}{reference_note}")
+        lines.append("- Transferability is analysis, not direct experience; gaps and unknowns require truthful follow-up.")
+    lines.extend([
         "",
         "## Candidate evidence to use",
     ])
@@ -1133,6 +1152,7 @@ def main() -> int:
     parser.add_argument("--human-path", help="JSON/YAML file with sourced contacts, recruiter/poster and hiring-manager evidence")
     parser.add_argument("--interviewer-research", help="JSON/YAML file with sourced interviewer facts and labeled hypotheses")
     parser.add_argument("--evidence-ref", help="Opaque private Gmail evidence reference for this tracker update")
+    parser.add_argument("--requirement-matrix", help="Private requirement-to-evidence matrix JSON for explanations and brief")
     parser.add_argument("--relationship-prep", help="JSON/YAML file with an informational meeting prep artifact")
     parser.add_argument("--meeting", help="optional separate JSON/YAML meeting objectives, questions and outcome")
     parser.add_argument("--relationship-prep-md", help="write the informational meeting prep markdown to this path")
@@ -1152,7 +1172,7 @@ def main() -> int:
                 raise ValueError("relationship prep and interview debrief modes are separate")
             evaluation_options = (
                 args.profile, args.rules, args.vacancy, args.tracker, args.review_tracker, args.brief,
-                args.human_path, args.interviewer_research,
+                args.human_path, args.interviewer_research, args.requirement_matrix,
             )
             if any(evaluation_options):
                 raise ValueError("relationship or debrief modes cannot be combined with evaluation or tracker options")
@@ -1180,7 +1200,7 @@ def main() -> int:
         if args.review_tracker:
             evaluation_options = (
                 args.profile, args.rules, args.vacancy, args.tracker, args.brief,
-                args.human_path, args.interviewer_research,
+                args.human_path, args.interviewer_research, args.requirement_matrix,
             )
             if any(evaluation_options):
                 raise ValueError("--review-tracker cannot be combined with evaluation or write options")
@@ -1198,11 +1218,19 @@ def main() -> int:
         vacancy = load_document(Path(args.vacancy))
         human_path = load_document(Path(args.human_path)) if args.human_path else None
         interviewer_research = load_document(Path(args.interviewer_research)) if args.interviewer_research else None
+        requirement_matrix = load_document(Path(args.requirement_matrix)) if args.requirement_matrix else None
+        if requirement_matrix is not None:
+            matrix_url = str(requirement_matrix.get("vacancy", {}).get("canonical_url", "")).strip()
+            vacancy_url = str(vacancy.get("canonical_url", "")).strip()
+            if not matrix_url or matrix_url != vacancy_url:
+                raise ValueError("requirement matrix must cite the same canonical vacancy URL")
         result = evaluate(profile, rules, vacancy, as_of)
         if human_path is not None:
             _validated_human_path_retrieved_at(human_path, as_of)
         human_summary = summarize_human_path(vacancy, human_path) if human_path is not None else _not_supplied_human_summary()
         payload: dict[str, Any] = {"evaluation": result, "human_path": human_summary}
+        if requirement_matrix is not None:
+            payload["requirement_matrix"] = requirement_matrix
         if args.tracker:
             payload["tracker"] = track(
                 Path(args.tracker), vacancy, result, as_of, human_path, interviewer_research, args.evidence_ref,
@@ -1211,7 +1239,7 @@ def main() -> int:
             brief_path = Path(args.brief)
             brief_path.parent.mkdir(parents=True, exist_ok=True)
             brief_path.write_text(
-                interview_brief(profile, vacancy, result, human_path, interviewer_research),
+                interview_brief(profile, vacancy, result, human_path, interviewer_research, requirement_matrix),
                 encoding="utf-8",
             )
             os.chmod(brief_path, 0o600)

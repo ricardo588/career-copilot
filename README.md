@@ -7,6 +7,7 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 - Resumable conversational onboarding with private checkpoints
 - CV-first onboarding that locally extracts supported facts and asks the user to confirm or correct them
 - Candidate-specific vacancy evaluation using verified evidence
+- Per-opportunity cited requirement-to-evidence matrices plus opt-in local CV review
 - Private structured story bank with provenance, explicit unknowns and reusable evaluation/interview/CV views
 - Optional career criteria and candidate-approved departure narrative with facts, interpretations and preferences kept separate
 - Human Path research for current contacts, recruiter/poster and hiring manager
