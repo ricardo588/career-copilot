@@ -1,0 +1,181 @@
+{
+  "company": "Acme Cloud Services",
+  "role": "Transformation Program Director",
+  "record": {
+    "source": {
+      "value": "https://example.test/offers/acme-cloud-services/2026-08-26",
+      "status": "confirmed"
+    },
+    "date_received": {
+      "value": "2026-08-26",
+      "status": "confirmed"
+    },
+    "currency": {
+      "value": "USD",
+      "status": "confirmed"
+    },
+    "geography": {
+      "value": "Toronto, Canada",
+      "status": "confirmed"
+    },
+    "employment_type": {
+      "value": "full-time",
+      "status": "confirmed"
+    }
+  },
+  "package": {
+    "base": {
+      "offer": {
+        "value": "$180,000",
+        "status": "confirmed"
+      },
+      "candidate_priority": {
+        "value": "$190,000 minimum or a clearly stronger total package",
+        "status": "confirmed"
+      },
+      "notes": ["Base salary is lower than the target floor."]
+    },
+    "variable": {
+      "offer": {
+        "value": "15% annual bonus",
+        "status": "confirmed"
+      },
+      "candidate_priority": {
+        "value": "20%+ variable compensation or equivalent base uplift",
+        "status": "confirmed"
+      },
+      "notes": ["Bonus should be tied to measurable targets."]
+    },
+    "equity": {
+      "offer": {
+        "value": "500 RSUs over 4 years",
+        "status": "confirmed"
+      },
+      "candidate_priority": {
+        "value": "More upside if base stays below floor",
+        "status": "confirmed"
+      },
+      "notes": ["Ask for vesting details and refresh policy."]
+    },
+    "benefits": {
+      "offer": {
+        "value": "Standard benefits plus learning budget",
+        "status": "confirmed"
+      },
+      "candidate_priority": {
+        "value": "Executive health coverage and meaningful learning support",
+        "status": "confirmed"
+      },
+      "notes": ["Confirm family coverage and effective dates."]
+    },
+    "location": {
+      "offer": {
+        "value": "Hybrid in Toronto two days per week",
+        "status": "confirmed"
+      },
+      "candidate_priority": {
+        "value": "Hybrid is acceptable if travel remains bounded",
+        "status": "confirmed"
+      },
+      "notes": ["Clarify travel expectations." ]
+    },
+    "flexibility": {
+      "offer": {
+        "value": "Flexible schedule with manager approval",
+        "status": "confirmed"
+      },
+      "candidate_priority": {
+        "value": "Autonomy over schedule and occasional remote weeks",
+        "status": "confirmed"
+      },
+      "notes": ["Flexibility matters more than perks." ]
+    },
+    "scope": {
+      "offer": {
+        "value": "Transformation program ownership across three regions",
+        "status": "confirmed"
+      },
+      "candidate_priority": {
+        "value": "Clear mandate, decision rights and measurable outcomes",
+        "status": "confirmed"
+      },
+      "notes": ["Confirm decision authority and budget ownership." ]
+    },
+    "risk": {
+      "offer": {
+        "value": "90-day review and rapid delivery timeline",
+        "status": "confirmed"
+      },
+      "candidate_priority": {
+        "value": "Avoid hidden scope creep and ambiguous success criteria",
+        "status": "confirmed"
+      },
+      "notes": ["Risk is mostly scope ambiguity rather than title." ]
+    },
+    "candidate_tradeoffs": {
+      "offer": {
+        "value": "Lower base can be offset by equity and scope",
+        "status": "confirmed"
+      },
+      "candidate_priority": {
+        "value": "Trade base for upside only if scope and control are real",
+        "status": "confirmed"
+      },
+      "notes": ["Keep the tradeoff explicit in the draft." ]
+    }
+  },
+  "market_research": [
+    {
+      "summary": "Synthetic 2026 compensation guide places program directors in Toronto above the current base offer.",
+      "source_url": "https://example.test/research/toronto-program-director-guide-2026",
+      "source_date": "2026-08-20",
+      "retrieved_at": "2026-08-26"
+    },
+    {
+      "summary": "Synthetic market note shows stronger packages often pair modest base with higher equity or guaranteed bonus.",
+      "source_url": "https://example.test/research/total-package-balance-2026",
+      "source_date": "2026-08-18",
+      "retrieved_at": "2026-08-26"
+    }
+  ],
+  "candidate_priorities": [
+    "Base salary should be near the floor unless the upside is materially better.",
+    "Scope and decision rights must be concrete, not implied.",
+    "Hybrid expectations and travel should stay predictable."
+  ],
+  "questions": [
+    "Can you confirm the equity vesting schedule and any refresh policy?",
+    "How is 90-day success measured, and who approves scope changes?",
+    "What travel is expected in a typical month?"
+  ],
+  "drafts": [
+    {
+      "kind": "acknowledgement",
+      "text": "Thank you for the offer and for the clarity on scope."
+    },
+    {
+      "kind": "clarification",
+      "text": "Before I respond, can you confirm the bonus metric, equity vesting and travel expectations?"
+    },
+    {
+      "kind": "counterproposal",
+      "text": "If the base remains at $180,000, I would want a stronger equity grant or a guaranteed bonus path."
+    },
+    {
+      "kind": "accept",
+      "text": "I am prepared to accept once the package, scope and authorization details are confirmed."
+    },
+    {
+      "kind": "decline",
+      "text": "If we cannot align on the total package, I would decline respectfully and keep the door open."
+    }
+  ],
+  "authorization": {
+    "exact": false,
+    "readback_verified": false,
+    "send": false,
+    "sign": false,
+    "accept": false,
+    "decline": false
+  }
+}

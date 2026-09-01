@@ -26,6 +26,7 @@ REQUIRED = [
     "skills/career-copilot/references/privacy-and-actions.md",
     "skills/career-copilot/references/adapters.md",
     "skills/career-copilot/references/demo.md",
+    "skills/career-copilot/references/offers-and-negotiation.md",
     "skills/career-copilot/templates/candidate-profile.template.yaml",
     "skills/career-copilot/templates/rules.template.yaml",
     "skills/career-copilot/templates/tracker.template.csv",

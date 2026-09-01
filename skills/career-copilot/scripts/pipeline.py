@@ -125,6 +125,8 @@ RELATIONSHIP_ROLES = {
     "reference",
 }
 DEBRIEF_OUTCOMES = {"positive", "ambiguous", "rejected", "no_response", "failed_interview"}
+OFFER_DRAFT_KINDS = {"acknowledgement", "clarification", "counterproposal", "accept", "decline"}
+OFFER_FINAL_ACTIONS = {"accept", "decline", "reject", "sign", "send"}
 
 
 def load_document(path: Path) -> dict[str, Any]:
@@ -554,6 +556,171 @@ def _validated_human_path_retrieved_at(research: dict[str, Any], as_of: date) ->
     if retrieved_at > as_of:
         raise ValueError("Human Path artifact retrieved_at cannot be in the future")
     return retrieved_at.isoformat()
+
+
+def _field_value_status(value: Any) -> tuple[str, str]:
+    raw = value
+    status = "unknown"
+    if isinstance(value, dict):
+        raw = value.get("value", value.get("text", value.get("label", "")))
+        status = str(value.get("status", value.get("certainty", value.get("confidence", "")))).strip().casefold()
+    text = str(raw).strip() if raw is not None else ""
+    if not text:
+        return "unknown", "unknown"
+    if status not in {"confirmed", "unknown"}:
+        status = "unknown" if status else "confirmed"
+    return text, status or "confirmed"
+
+
+def _validate_offer_artifact(offer: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(offer, dict):
+        raise ValueError("offer artifact must be a mapping")
+    record = offer.get("record", offer)
+    if not isinstance(record, dict):
+        raise ValueError("offer record must be a mapping")
+    market_research = offer.get("market_research", [])
+    if not isinstance(market_research, list) or any(not isinstance(item, dict) for item in market_research):
+        raise ValueError("offer market_research must be a list of mappings")
+    drafts = offer.get("drafts", [])
+    if not isinstance(drafts, list) or any(not isinstance(item, dict) for item in drafts):
+        raise ValueError("offer drafts must be a list of mappings")
+    requested_action = str(offer.get("requested_action", "")).strip().casefold()
+    if requested_action in OFFER_FINAL_ACTIONS:
+        authorization = offer.get("authorization", {})
+        if not isinstance(authorization, dict):
+            raise ValueError("offer authorization must be a mapping")
+        exact = bool(authorization.get("exact", authorization.get("exact_authorization", authorization.get("approved", False))))
+        readback = bool(authorization.get("readback_verified", authorization.get("verified_readback", False)))
+        if not (exact and readback):
+            raise ValueError("offer accept/reject/sign/send require exact authorization and verified readback")
+    for item in drafts:
+        kind = str(item.get("kind", "")).strip().casefold()
+        if kind not in OFFER_DRAFT_KINDS:
+            raise ValueError("offer draft kind must be acknowledgement, clarification, counterproposal, accept or decline")
+    return record
+
+
+def offer_negotiation_brief(offer: dict[str, Any]) -> str:
+    record = _validate_offer_artifact(offer)
+    company = str(offer.get("company", record.get("company", "unknown"))).strip() or "unknown"
+    role = str(offer.get("role", record.get("role", "unknown"))).strip() or "unknown"
+    lines = [
+        f"# Offer negotiation — {company} / {role}",
+        "",
+        "## Offer record",
+    ]
+    for key in ("source", "date_received", "currency", "geography", "employment_type"):
+        value, status = _field_value_status(record.get(key, offer.get(key)))
+        lines.append(f"- {key}: {status} — {value}")
+    lines.extend([
+        "",
+        "## Total package comparison",
+    ])
+    package = offer.get("package", {})
+    if not isinstance(package, dict):
+        raise ValueError("offer package must be a mapping")
+    comparison_order = [
+        ("base", "Base"),
+        ("variable", "Variable"),
+        ("equity", "Equity"),
+        ("benefits", "Benefits"),
+        ("location", "Location"),
+        ("flexibility", "Flexibility"),
+        ("scope", "Scope"),
+        ("risk", "Risk"),
+        ("candidate_tradeoffs", "Candidate tradeoffs"),
+    ]
+    if package:
+        for key, label in comparison_order:
+            entry = package.get(key, {})
+            if isinstance(entry, list):
+                entry = {"notes": entry}
+            if not isinstance(entry, dict):
+                entry = {"offer": entry}
+            offer_value, offer_status = _field_value_status({"value": entry.get("offer", entry.get("value", entry.get("text", ""))), "status": entry.get("status", entry.get("certainty", entry.get("confidence", "")))})
+            candidate_priority, priority_status = _field_value_status(entry.get("candidate_priority", entry.get("priority", "")))
+            notes = _as_text_list(entry.get("notes", []))
+            summary = f"- {label}: offer {offer_value} ({offer_status}); candidate priority {candidate_priority} ({priority_status})"
+            lines.append(summary)
+            for note in notes:
+                lines.append(f"  - {note}")
+    else:
+        lines.append("- No package comparison was supplied.")
+    lines.extend([
+        "",
+        "## Market research",
+    ])
+    market_research = offer.get("market_research", [])
+    if market_research:
+        for item in market_research:
+            source_url = str(item.get("source_url", "")).strip()
+            retrieved_at = str(item.get("retrieved_at", "")).strip()
+            source_date = str(item.get("source_date", "")).strip()
+            summary = str(item.get("summary", "")).strip()
+            if not source_url or not retrieved_at:
+                raise ValueError("offer market research requires source_url and retrieved_at")
+            if not summary:
+                raise ValueError("offer market research requires a summary")
+            lines.append(f"- {summary}")
+            lines.append(f"  - source: {source_url}")
+            lines.append(f"  - source date: {source_date or 'unknown'}")
+            lines.append(f"  - retrieved: {retrieved_at}")
+    else:
+        lines.append("- No market research was supplied.")
+    lines.extend([
+        "",
+        "## Candidate priorities and questions",
+    ])
+    priorities = _as_text_list(offer.get("candidate_priorities", []))
+    questions = _as_text_list(offer.get("questions", []))
+    if priorities:
+        lines.append("### Priorities")
+        lines.extend(f"- {item}" for item in priorities)
+    else:
+        lines.append("- No candidate priorities were supplied.")
+    if questions:
+        lines.append("### Questions")
+        lines.extend(f"- {item}" for item in questions)
+    else:
+        lines.append("- No candidate questions were supplied.")
+    lines.extend([
+        "",
+        "## Negotiation drafts",
+    ])
+    draft_labels = {
+        "acknowledgement": "Acknowledgement",
+        "clarification": "Clarification",
+        "counterproposal": "Counterproposal",
+        "accept": "Accept",
+        "decline": "Decline",
+    }
+    drafts = offer.get("drafts", [])
+    if drafts:
+        for item in drafts:
+            kind = str(item.get("kind", "")).strip().casefold()
+            draft_text = str(item.get("text", "")).strip()
+            lines.append(f"- {draft_labels[kind]}: {draft_text or 'No draft text supplied.'}")
+    else:
+        lines.append("- No negotiation drafts were supplied.")
+    authorization = offer.get("authorization", {})
+    if authorization and not isinstance(authorization, dict):
+        raise ValueError("offer authorization must be a mapping")
+    requested_action = str(offer.get("requested_action", "")).strip().casefold()
+    exact = bool(authorization.get("exact", authorization.get("exact_authorization", authorization.get("approved", False)))) if isinstance(authorization, dict) else False
+    readback = bool(authorization.get("readback_verified", authorization.get("verified_readback", False))) if isinstance(authorization, dict) else False
+    lines.extend([
+        "",
+        "## Authorization boundaries",
+        f"- requested action: {requested_action or 'draft only'}",
+        "- exact authorization: " + ("confirmed" if exact else "unknown"),
+        "- readback verified: " + ("confirmed" if readback else "unknown"),
+        "",
+        "## Guardrails",
+        "- Accept, decline, sign and send stay blocked until exact authorization and verified readback exist.",
+        "- This is not legal, tax or financial advice.",
+        "- Market research facts stay source- and date-attributed; no uncited market claim is added.",
+    ])
+    return "\n".join(lines) + "\n"
 
 
 def stable_id(vacancy: dict[str, Any]) -> str:
@@ -1337,9 +1504,11 @@ def main() -> int:
     parser.add_argument("--assessment-prep-md", help="write the assessment prep markdown to this path")
     parser.add_argument("--interview-debrief", help="JSON/YAML file with a post-interview debrief artifact")
     parser.add_argument("--interview-debrief-md", help="write the interview debrief markdown to this path")
+    parser.add_argument("--offer-negotiation", help="JSON/YAML file with a private offer negotiation artifact")
+    parser.add_argument("--offer-negotiation-md", help="write the offer negotiation markdown to this path")
     args = parser.parse_args()
     try:
-        special_modes = [name for name, enabled in (("relationship-prep", args.relationship_prep), ("assessment-prep", args.assessment_prep), ("interview-debrief", args.interview_debrief)) if enabled]
+        special_modes = [name for name, enabled in (("relationship-prep", args.relationship_prep), ("assessment-prep", args.assessment_prep), ("interview-debrief", args.interview_debrief), ("offer-negotiation", args.offer_negotiation)) if enabled]
         if args.relationship_prep_md and not args.relationship_prep:
             raise ValueError("--relationship-prep-md requires --relationship-prep")
         if args.assessment_prep_md and not args.assessment_prep:
@@ -1348,15 +1517,17 @@ def main() -> int:
             raise ValueError("--meeting requires --relationship-prep")
         if args.interview_debrief_md and not args.interview_debrief:
             raise ValueError("--interview-debrief-md requires --interview-debrief")
+        if args.offer_negotiation_md and not args.offer_negotiation:
+            raise ValueError("--offer-negotiation-md requires --offer-negotiation")
         if special_modes:
             if len(special_modes) > 1:
-                raise ValueError("relationship prep, assessment prep and interview debrief modes are separate")
+                raise ValueError("relationship prep, assessment prep, interview debrief and offer negotiation modes are separate")
             evaluation_options = (
                 args.profile, args.rules, args.vacancy, args.tracker, args.review_tracker, args.brief,
                 args.human_path, args.interviewer_research, args.requirement_matrix,
             )
             if any(evaluation_options):
-                raise ValueError("relationship, assessment or debrief modes cannot be combined with evaluation or tracker options")
+                raise ValueError("relationship, assessment, debrief or offer modes cannot be combined with evaluation or tracker options")
             if args.relationship_prep:
                 relationship_artifact = load_document(Path(args.relationship_prep))
                 meeting = load_document(Path(args.meeting)) if args.meeting else relationship_artifact.get("meeting", {})
@@ -1374,14 +1545,20 @@ def main() -> int:
                 if args.assessment_prep_md:
                     prep_path = write_private_markdown(args.assessment_prep_md, markdown)
                     payload["assessment_prep_markdown"] = str(prep_path)
-                print(json.dumps(payload, indent=2, ensure_ascii=False))
-                return 0
-            debrief_artifact = load_document(Path(args.interview_debrief))
-            markdown = interview_debrief(debrief_artifact)
-            payload = {"interview_debrief": debrief_artifact, "markdown": markdown}
-            if args.interview_debrief_md:
-                debrief_path = write_private_markdown(args.interview_debrief_md, markdown)
-                payload["interview_debrief_markdown"] = str(debrief_path)
+            elif args.interview_debrief:
+                debrief_artifact = load_document(Path(args.interview_debrief))
+                markdown = interview_debrief(debrief_artifact)
+                payload = {"interview_debrief": debrief_artifact, "markdown": markdown}
+                if args.interview_debrief_md:
+                    debrief_path = write_private_markdown(args.interview_debrief_md, markdown)
+                    payload["interview_debrief_markdown"] = str(debrief_path)
+            else:
+                offer_artifact = load_document(Path(args.offer_negotiation))
+                markdown = offer_negotiation_brief(offer_artifact)
+                payload = {"offer_negotiation": offer_artifact, "markdown": markdown}
+                if args.offer_negotiation_md:
+                    offer_path = write_private_markdown(args.offer_negotiation_md, markdown)
+                    payload["offer_negotiation_markdown"] = str(offer_path)
             print(json.dumps(payload, indent=2, ensure_ascii=False))
             return 0
         if not args.as_of:

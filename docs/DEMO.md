@@ -13,7 +13,8 @@ The bundled scenario proves the local workflow without using a real candidate, e
 7. Load sourced interviewer facts plus explicitly labeled hypotheses.
 8. Generate an interview brief using only declared evidence.
 9. Add a synthetic next action and derive one read-only `follow_up_overdue` signal without changing tracker status during review.
-10. Record that zero external actions occurred.
+10. Render a synthetic offer negotiation brief with source-dated package comparison and draft-only language.
+11. Record that zero external actions occurred.
 
 ## Run
 
@@ -38,6 +39,7 @@ Generated artifacts:
 - `tracker.csv`
 - `tracker-review.json`
 - `interview-brief.md`
+- `offer-negotiation.md`
 
 Exercise the read-only relationship and debrief modes separately (their outputs must be outside the repository):
 
