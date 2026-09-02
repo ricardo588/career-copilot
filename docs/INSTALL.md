@@ -1,5 +1,7 @@
 # Installation for third parties
 
+Versión en español: [docs/es/INSTALL.md](es/INSTALL.md).
+
 Career Copilot installs as an isolated Hermes profile. Each person gets a separate private workspace; the repository contains no candidate data.
 
 ## Quick links for end users

@@ -1,5 +1,7 @@
 # Quickstart — for non-technical users
 
+Spanish version: [QUICKSTART_NONTECH.es.md](QUICKSTART_NONTECH.es.md).
+
 ## 🖱️ Option A: Double-click (macOS, easiest)
 
 1. Download this file: **[Install_Career_Copilot.command](Install_Career_Copilot.command)** (right-click → "Save link as…")

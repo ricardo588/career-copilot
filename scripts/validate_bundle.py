@@ -16,6 +16,9 @@ REQUIRED = [
     "config.yaml",
     ".gitignore",
     "README.md",
+    "README.es.md",
+    "QUICKSTART_NONTECH.md",
+    "QUICKSTART_NONTECH.es.md",
     "skills/career-copilot/SKILL.md",
     "skills/career-copilot/references/onboarding.md",
     "skills/career-copilot/references/workflow.md",
@@ -45,13 +48,33 @@ REQUIRED = [
     "skills/career-copilot/examples/synthetic/rules.json",
     "skills/career-copilot/examples/synthetic/vacancy.json",
     "docs/INSTALL.md",
+    "docs/es/INSTALL.md",
     "docs/QUICKSTART.md",
+    "docs/es/QUICKSTART.md",
     "docs/DEMO.md",
+    "docs/es/DEMO.md",
     "docs/ADAPTERS.md",
+    "docs/es/ADAPTERS.md",
     "docs/PRIVACY.md",
+    "docs/es/PRIVACY.md",
     "docs/TROUBLESHOOTING.md",
+    "docs/es/TROUBLESHOOTING.md",
+    "cron/README.md",
+    "cron/README.es.md",
 ]
 FORBIDDEN = [".env", "auth.json", "memories", "sessions", "state.db", "local"]
+
+DOC_LINK_PAIRS = [
+    ("README.md", "README.es.md", "README.es.md"),
+    ("QUICKSTART_NONTECH.md", "QUICKSTART_NONTECH.es.md", "QUICKSTART_NONTECH.es.md"),
+    ("docs/INSTALL.md", "docs/es/INSTALL.md", "es/INSTALL.md"),
+    ("docs/QUICKSTART.md", "docs/es/QUICKSTART.md", "es/QUICKSTART.md"),
+    ("docs/DEMO.md", "docs/es/DEMO.md", "es/DEMO.md"),
+    ("docs/ADAPTERS.md", "docs/es/ADAPTERS.md", "es/ADAPTERS.md"),
+    ("docs/PRIVACY.md", "docs/es/PRIVACY.md", "es/PRIVACY.md"),
+    ("docs/TROUBLESHOOTING.md", "docs/es/TROUBLESHOOTING.md", "es/TROUBLESHOOTING.md"),
+    ("cron/README.md", "cron/README.es.md", "README.es.md"),
+]
 
 
 def load_privacy_module():
@@ -96,6 +119,26 @@ def main() -> int:
             errors.append(f"distribution.yaml missing {key}")
 
     errors.extend(validate_frontmatter(ROOT / "skills/career-copilot/SKILL.md"))
+
+    for source_rel, spanish_rel, spanish_link in DOC_LINK_PAIRS:
+        source = (ROOT / source_rel).read_text(encoding="utf-8")
+        spanish = (ROOT / spanish_rel).read_text(encoding="utf-8")
+        if spanish_link not in source:
+            errors.append(f"missing Spanish link in {source_rel}: {spanish_link}")
+        if source_rel == "README.md":
+            expected_back_link = "README.md"
+        elif source_rel == "QUICKSTART_NONTECH.md":
+            expected_back_link = "QUICKSTART_NONTECH.md"
+        elif source_rel.startswith("docs/"):
+            expected_back_link = source_rel.split("docs/", 1)[1]
+            if not expected_back_link.startswith("README"):
+                expected_back_link = f"../{expected_back_link}"
+        else:
+            expected_back_link = source_rel
+        if source_rel == "cron/README.md":
+            expected_back_link = "README.md"
+        if expected_back_link not in spanish:
+            errors.append(f"missing English link in {spanish_rel}: {expected_back_link}")
 
     privacy = load_privacy_module()
     for finding in privacy.scan(ROOT):

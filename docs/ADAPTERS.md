@@ -1,5 +1,7 @@
 # Optional adapters
 
+Versión en español: [docs/es/ADAPTERS.md](es/ADAPTERS.md).
+
 All adapters are optional, disabled in the template, and dry-run-first. Credentials, IDs and vault paths remain local.
 
 Set the installed adapter path once:
