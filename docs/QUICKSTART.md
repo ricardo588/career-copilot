@@ -1,5 +1,7 @@
 # Quickstart
 
+Versión en español: [docs/es/QUICKSTART.md](es/QUICKSTART.md).
+
 ## Install
 
 ```bash

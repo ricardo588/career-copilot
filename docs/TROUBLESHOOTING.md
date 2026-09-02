@@ -1,5 +1,7 @@
 # Troubleshooting
 
+Versión en español: [docs/es/TROUBLESHOOTING.md](es/TROUBLESHOOTING.md).
+
 ## Skill does not appear
 
 ```bash

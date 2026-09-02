@@ -1,5 +1,7 @@
 # Career Copilot for Hermes
 
+Versión en español: [README.es.md](README.es.md).
+
 Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-agent.nousresearch.com/docs).
 
 ## Capabilities
@@ -40,6 +42,16 @@ Do not export a personal Hermes profile to distribute this project. Install the 
 - [Optional adapters](docs/ADAPTERS.md)
 - [Privacy and threat model](docs/PRIVACY.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+
+### En español
+
+- [Instalación](docs/es/INSTALL.md)
+- [Guía rápida para no técnicos](QUICKSTART_NONTECH.es.md)
+- [Inicio rápido](docs/es/QUICKSTART.md)
+- [Demo sintética](docs/es/DEMO.md)
+- [Adaptadores opcionales](docs/es/ADAPTERS.md)
+- [Privacidad y modelo de amenazas](docs/es/PRIVACY.md)
+- [Solución de problemas](docs/es/TROUBLESHOOTING.md)
 
 ## Installers (for end users)
 

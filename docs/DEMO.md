@@ -1,5 +1,7 @@
 # Synthetic end-to-end demo
 
+Versión en español: [docs/es/DEMO.md](es/DEMO.md).
+
 The bundled scenario proves the local workflow without using a real candidate, employer, account or vacancy.
 
 ## Flow

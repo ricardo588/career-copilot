@@ -1,5 +1,7 @@
 # Privacy and threat model
 
+Versión en español: [docs/es/PRIVACY.md](es/PRIVACY.md).
+
 ## Public/distributable
 
 - Skill instructions and methodology
