@@ -16,6 +16,8 @@ Operaciones reutilizables y centradas en la privacidad para la búsqueda de empl
 - Criterios de carrera opcionales y narrativa de salida aprobada por el candidato, manteniendo separados hechos, interpretaciones y preferencias
 - Investigación Human Path para contactos actuales, reclutador/publicador y responsable de contratación
 - Inteligencia relacional estructurada con rol, influencia, fortaleza, frescura de la evidencia y autorización independiente
+- Reconexión selectiva con lazos débiles, tope privado por ciclo, contexto relacional y sin pedir empleo/referido en el primer borrador
+- Posicionamiento basado en evidencia: alcance, acción de liderazgo y resultado confirmado
 - Registros de preparación y resultado de reuniones informativas, y debriefs posteriores a entrevistas con separación de hechos y solo borrador para seguimiento
 - Registros privados de ofertas, comparación de paquete total con fecha de origen y borradores de negociación con límites exactos de autorización
 - Inteligencia sobre entrevistadores a partir de hechos obtenidos, manteniendo separadas las hipótesis
@@ -82,6 +84,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Estado actual
 
-La versión 0.5.0 es una versión piloto. Agrega historias de evidencia privada, criterios opcionales de dirección profesional, inteligencia relacional estructurada y debriefs de entrevista de solo lectura, manteniendo las guardrails de acciones externas en modo draft-only. Los adaptadores de Google requieren un CLI `gws` compatible, instalado y autenticado por separado. El adaptador de Gmail no envía mensajes de forma intencional. Las mutaciones de Google requieren un perfil privado en modo `confirm_each_external`.
+La versión 0.6.0 es una versión piloto. Agrega reconexión selectiva con lazos débiles y posicionamiento basado en evidencia a la inteligencia relacional privada, manteniendo las guardrails de acciones externas en modo draft-only. Los adaptadores de Google requieren un CLI `gws` compatible, instalado y autenticado por separado. El adaptador de Gmail no envía mensajes de forma intencional. Las mutaciones de Google requieren un perfil privado en modo `confirm_each_external`.
 
 Con licencia Apache-2.0; consulta [LICENSE](LICENSE).

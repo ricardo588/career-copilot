@@ -21,6 +21,14 @@ communications:
   first_contact_style: concise
   external_action_mode: draft_only
   external_action_mode_locked: false
+relationship_networking:
+  enabled: true
+  max_candidates_per_cycle: 3
+  initial_contact:
+    allow_job_request: false
+    allow_vacancy_request: false
+    allow_referral_request: false
+    allow_introduction_request: false
 human_path:
   enabled: true
   search_contacts: true
