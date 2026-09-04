@@ -1,5 +1,7 @@
 # Career Copilot 0.7 — Diseño de Operational Tracker
 
+English version: [docs/ROADMAP-0.7.md](../ROADMAP-0.7.md).
+
 ## Estado
 
 **Alcance aprobado:** reconciliación de tracker y política de compensación.

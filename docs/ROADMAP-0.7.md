@@ -1,5 +1,7 @@
 # Career Copilot 0.7 — Operational Tracker design brief
 
+Spanish version: [docs/es/ROADMAP-0.7.md](es/ROADMAP-0.7.md).
+
 ## Status
 
 **Approved scope:** tracker reconciliation and compensation policy.
