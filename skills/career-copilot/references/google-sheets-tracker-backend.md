@@ -5,9 +5,9 @@ Version 0.7 introduces a **pure planning core** at
 or credentials. It turns a supplied tabular snapshot into a safe, deterministic
 reconciliation decision.
 
-The Google Sheets execution adapter is a later milestone. Until that exists,
-this core must be used only to inspect a snapshot and produce a plan; it cannot
-write a candidate tracker itself.
+`scripts/adapters.py sheets-reconcile` is the read-only B1 integration. It
+reads one explicit A1 range, turns it into a snapshot, and returns the core plan.
+It has no `--apply` option and cannot write a candidate tracker itself.
 
 ## Private configuration
 
@@ -84,7 +84,7 @@ The planner deliberately refuses to guess an append position. A caller must
 supply `create_physical_row` after determining an exact safe target. When a
 business-ID field is mapped, an explicit intended business ID is also required.
 
-## Future Sheets adapter contract
+## B2 Sheets write contract (not implemented)
 
 The future Google adapter must:
 

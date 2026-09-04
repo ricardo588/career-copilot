@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import uuid
@@ -17,6 +19,7 @@ from typing import Any, Callable, Optional
 
 Runner = Callable[[list[str]], dict[str, Any]]
 AUDIT_RESULTS = {"attempted", "blocked", "failed", "applied", "verified"}
+_TRACKER_RECONCILIATION: Any = None
 
 
 def _utc_now() -> str:
@@ -215,6 +218,101 @@ def sheets_read(runner: Runner, sheet_id: str, range_name: str) -> dict[str, Any
     return runner(["gws", "sheets", "spreadsheets", "values", "get", "--params", params])
 
 
+def _tracker_reconciliation_module() -> Any:
+    """Load the pure planner next to this adapter without changing sys.path."""
+    global _TRACKER_RECONCILIATION
+    if _TRACKER_RECONCILIATION is not None:
+        return _TRACKER_RECONCILIATION
+    path = Path(__file__).with_name("tracker_reconciliation.py")
+    spec = importlib.util.spec_from_file_location("career_tracker_reconciliation", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("unable to load tracker reconciliation planner")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    _TRACKER_RECONCILIATION = module
+    return module
+
+
+def _range_start_row(range_name: str) -> int:
+    """Extract the explicit A1 start row; named ranges are unsafe for row planning."""
+    match = re.search(r"(?:!|^)\$?[A-Z]+\$?([1-9][0-9]*)", range_name)
+    if match is None:
+        raise ValueError("Sheets reconciliation requires an A1 range with an explicit start row")
+    return int(match.group(1))
+
+
+def _sheet_snapshot(response: dict[str, Any], range_name: str, header_row: int) -> dict[str, Any]:
+    """Convert a Sheets values response into a pure-planner snapshot.
+
+    The requested A1 range must begin at its header row. Fully blank rows are
+    formatting/empty rows and are intentionally not tracker records; any
+    non-blank row with a missing business ID remains visible to the planner and
+    fails closed under its configured integrity policy.
+    """
+    if _range_start_row(range_name) != header_row:
+        raise ValueError("Sheets reconciliation range must start at --header-row")
+    values = response.get("values")
+    if not isinstance(values, list) or not values or not isinstance(values[0], list):
+        raise ValueError("Sheets reconciliation response must include a header row")
+    headers = values[0]
+    if not headers:
+        raise ValueError("Sheets reconciliation header row is empty")
+    rows: list[dict[str, Any]] = []
+    for offset, raw_row in enumerate(values[1:], start=1):
+        if not isinstance(raw_row, list):
+            raise ValueError("Sheets reconciliation response contains a non-row value")
+        if len(raw_row) > len(headers):
+            raise ValueError("Sheets reconciliation row has more values than its header row")
+        if not any(str(value).strip() for value in raw_row):
+            continue
+        row_values = {
+            str(header): raw_row[index] if index < len(raw_row) else ""
+            for index, header in enumerate(headers)
+        }
+        rows.append({"physical_row": header_row + offset, "values": row_values})
+    return {"headers": headers, "rows": rows}
+
+
+def sheets_reconcile(
+    runner: Runner,
+    sheet_id: str,
+    range_name: str,
+    header_row: int,
+    fields: dict[str, Any],
+    intended_record: dict[str, Any],
+    *,
+    operation: str = "upsert",
+    create_physical_row: Optional[int] = None,
+    require_contiguous_business_ids: bool = True,
+    reject_duplicate_business_ids: bool = True,
+) -> dict[str, Any]:
+    """Read once and produce a non-mutating reconciliation plan.
+
+    This B1 command has no apply mode by design. It cannot call a Sheets write
+    endpoint; B2 will add a separately reviewed, gated write path.
+    """
+    response = sheets_read(runner, sheet_id, range_name)
+    snapshot = _sheet_snapshot(response, range_name, header_row)
+    planner = _tracker_reconciliation_module()
+    plan = planner.reconcile(
+        snapshot,
+        fields,
+        intended_record,
+        operation=operation,
+        create_physical_row=create_physical_row,
+        require_contiguous_business_ids=require_contiguous_business_ids,
+        reject_duplicate_business_ids=reject_duplicate_business_ids,
+    )
+    return {
+        "status": "dry_run",
+        "adapter": "google_sheets",
+        "operation": "reconcile",
+        "target": {"sheet": sheet_hint(sheet_id), "range": range_name, "header_row": header_row},
+        "plan": plan,
+    }
+
+
 def sheets_update(
     runner: Runner,
     sheet_id: str,
@@ -329,6 +427,15 @@ def parser() -> argparse.ArgumentParser:
     sheets_get.add_argument("--sheet-id", required=True)
     sheets_get.add_argument("--range", required=True)
 
+    sheets_reconcile_parser = commands.add_parser("sheets-reconcile")
+    sheets_reconcile_parser.add_argument("--sheet-id", required=True)
+    sheets_reconcile_parser.add_argument("--range", required=True, help="A1 range beginning at --header-row")
+    sheets_reconcile_parser.add_argument("--header-row", required=True, type=int)
+    sheets_reconcile_parser.add_argument("--fields-json", required=True, help="Logical field-to-header JSON mapping")
+    sheets_reconcile_parser.add_argument("--record-json", required=True, help="Intended logical record JSON")
+    sheets_reconcile_parser.add_argument("--operation", choices=("upsert", "create", "update"), default="upsert")
+    sheets_reconcile_parser.add_argument("--create-physical-row", type=int)
+
     sheets_set = commands.add_parser("sheets-update")
     sheets_set.add_argument("--sheet-id", required=True)
     sheets_set.add_argument("--range", required=True)
@@ -366,6 +473,18 @@ def main() -> int:
     try:
         if args.command == "sheets-read":
             result = sheets_read(run_json_command, args.sheet_id, args.range)
+        elif args.command == "sheets-reconcile":
+            fields = json.loads(args.fields_json)
+            record = json.loads(args.record_json)
+            if not isinstance(fields, dict) or not isinstance(record, dict):
+                raise ValueError("fields-json and record-json must both be JSON objects")
+            result = sheets_reconcile(
+                run_json_command, args.sheet_id, args.range, args.header_row, fields, record,
+                operation=args.operation,
+                create_physical_row=args.create_physical_row,
+                require_contiguous_business_ids=True,
+                reject_duplicate_business_ids=True,
+            )
         elif args.command == "sheets-update":
             values = json.loads(args.values_json)
             if not isinstance(values, list) or any(not isinstance(row, list) for row in values):

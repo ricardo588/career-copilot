@@ -25,6 +25,17 @@ class FakeRunner:
 class AdapterTests(unittest.TestCase):
     draft_only = {"permissions": {"external_action_mode": "draft_only", "external_action_mode_locked": True}}
     confirm_each = {"permissions": {"external_action_mode": "confirm_each_external", "external_action_mode_locked": False}}
+    tracker_headers = ["No", "Company", "Role", "Location", "Canonical URL", "External Job ID", "Status", "Priority", "Notes"]
+    tracker_fields = {
+        "business_id": "No", "company": "Company", "role": "Role", "location": "Location",
+        "canonical_url": "Canonical URL", "external_job_id": "External Job ID", "status": "Status",
+        "priority": "Priority", "notes": "Notes",
+    }
+    tracker_record = {
+        "business_id": "1", "company": "Synthetic Co", "role": "Program Director", "location": "Remote",
+        "canonical_url": "https://jobs.example.test/synthetic/1", "external_job_id": "SYN-1",
+        "status": "identified", "priority": "medium", "notes": "Updated synthetic note.",
+    }
 
     def test_sheets_update_is_dry_run_by_default(self):
         fake = FakeRunner([])
@@ -32,6 +43,52 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["status"], "dry_run")
         self.assertEqual(fake.calls, [])
         self.assertNotIn("sheet-example-1234", str(result))
+
+    def test_sheets_reconcile_is_read_only_and_preserves_physical_rows(self):
+        fake = FakeRunner([{"values": [
+            self.tracker_headers,
+            ["1", "Synthetic Co", "Program Director", "Remote", "https://jobs.example.test/synthetic/1?utm_source=mail", "SYN-1", "identified", "medium", "Old synthetic note."],
+        ]}])
+        result = ADAPTERS.sheets_reconcile(
+            fake, "sheet-example-1234", "Applications!A4:I100", 4,
+            self.tracker_fields, self.tracker_record,
+        )
+        self.assertEqual(result["status"], "dry_run")
+        self.assertEqual(result["target"]["sheet"], "…1234")
+        self.assertNotIn("sheet-example-1234", str(result))
+        self.assertEqual(result["plan"]["decision"], "update_plan")
+        self.assertEqual(result["plan"]["physical_row"], 5)
+        self.assertEqual(result["plan"]["changes"], [{
+            "logical_field": "notes", "header": "Notes", "old_value": "Old synthetic note.", "new_value": "Updated synthetic note.",
+        }])
+        self.assertEqual(len(fake.calls), 1)
+        self.assertIn("get", fake.calls[0])
+        self.assertNotIn("update", fake.calls[0])
+
+    def test_sheets_reconcile_skips_fully_blank_rows_but_blocks_blank_business_ids(self):
+        fake = FakeRunner([{"values": [
+            self.tracker_headers,
+            [],
+            ["", "Synthetic Co", "Program Director", "Remote", "", "SYN-1", "identified", "medium", ""],
+        ]}])
+        result = ADAPTERS.sheets_reconcile(
+            fake, "sheet-example-1234", "Applications!A10:I100", 10,
+            self.tracker_fields, self.tracker_record,
+        )
+        self.assertEqual(result["plan"]["decision"], "integrity_failure")
+        self.assertEqual(result["plan"]["audit"]["invalid_ids"], [{"physical_row": 12, "value": "", "reason": "blank"}])
+        self.assertEqual(len(fake.calls), 1)
+
+    def test_sheets_reconcile_rejects_unsafe_range_and_never_writes(self):
+        fake = FakeRunner([{"values": [self.tracker_headers]}])
+        with self.assertRaisesRegex(ValueError, "must start at --header-row"):
+            ADAPTERS.sheets_reconcile(
+                fake, "sheet-example-1234", "Applications!A2:I100", 3,
+                self.tracker_fields, self.tracker_record,
+            )
+        self.assertEqual(len(fake.calls), 1)
+        self.assertIn("get", fake.calls[0])
+        self.assertNotIn("update", fake.calls[0])
 
     def test_sheets_apply_requires_matching_readback(self):
         fake = FakeRunner([{"updatedRows": 1}, {"values": [["Acme", "Role"]]}])

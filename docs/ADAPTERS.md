@@ -40,6 +40,23 @@ python3 "$ADAPTER" sheets-read \
   --range 'Applications!A1:P10'
 ```
 
+Reconcile a tracker record (read-only; **no `--apply` option exists**):
+
+```bash
+python3 "$ADAPTER" sheets-reconcile \
+  --sheet-id "$CAREER_COPILOT_SHEET_ID" \
+  --range 'Applications!A1:I500' \
+  --header-row 1 \
+  --fields-json '{"business_id":"No","company":"Company","role":"Role","location":"Location","canonical_url":"Canonical URL","external_job_id":"External Job ID","status":"Status","priority":"Priority","notes":"Notes"}' \
+  --record-json '{"business_id":"1","company":"Example Company","role":"Program Director","location":"Mexico City","canonical_url":"https://jobs.example.test/1","external_job_id":"SYN-1","status":"identified","priority":"medium","notes":""}'
+```
+
+The range must begin exactly at the header row. The command reads once, derives
+physical row positions from that explicit range, and returns a deterministic
+`create_plan`, `update_plan`, `no_change`, or blocking decision. It never calls
+a Sheets write endpoint. See the skill reference for the private mapping and
+integrity contract.
+
 Preview an update:
 
 ```bash

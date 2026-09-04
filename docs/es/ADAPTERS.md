@@ -40,6 +40,24 @@ python3 "$ADAPTER" sheets-read \
   --range 'Applications!A1:P10'
 ```
 
+Reconciliar un registro del tracker (sólo lectura; **no existe la opción
+`--apply`**):
+
+```bash
+python3 "$ADAPTER" sheets-reconcile \
+  --sheet-id "$CAREER_COPILOT_SHEET_ID" \
+  --range 'Applications!A1:I500' \
+  --header-row 1 \
+  --fields-json '{"business_id":"No","company":"Company","role":"Role","location":"Location","canonical_url":"Canonical URL","external_job_id":"External Job ID","status":"Status","priority":"Priority","notes":"Notes"}' \
+  --record-json '{"business_id":"1","company":"Example Company","role":"Program Director","location":"Mexico City","canonical_url":"https://jobs.example.test/1","external_job_id":"SYN-1","status":"identified","priority":"medium","notes":""}'
+```
+
+El rango debe iniciar exactamente en la fila del encabezado. El comando lee una
+vez, deriva las filas físicas desde ese rango explícito y devuelve un
+`create_plan`, `update_plan`, `no_change` o una decisión de bloqueo. Nunca llama
+a un endpoint de escritura de Sheets. Consulta la referencia del skill para el
+mapeo privado y el contrato de integridad.
+
 Vista previa de una actualización:
 
 ```bash
