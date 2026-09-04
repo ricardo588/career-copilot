@@ -89,6 +89,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Estado actual
 
-La versión 0.6.0 es una versión piloto. Agrega reconexión selectiva con lazos débiles y posicionamiento basado en evidencia a la inteligencia relacional privada, manteniendo las guardrails de acciones externas en modo draft-only. Los adaptadores de Google requieren un CLI `gws` compatible, instalado y autenticado por separado. El adaptador de Gmail no envía mensajes de forma intencional. Las mutaciones de Google requieren un perfil privado en modo `confirm_each_external`.
+La versión 0.7.0 es una versión piloto. Agrega reconciliación opcional de tracker con un planificador de Google Sheets de sólo lectura y una ruta apply separada, limitada y aprobada por hash; también agrega evaluación privada de política de compensación. Sheets nunca envía aplicaciones ni contacto externo, y para escribir exige `confirm_each_external`, hash del plan actual revisado, lectura posterior por celda y workspace privado de auditoría. La compensación es determinista, no convierte monedas, trata cifras no divulgadas como desconocidas y no modifica el tracker. Los adaptadores de Google requieren un CLI `gws` compatible, instalado y autenticado por separado; Gmail no puede enviar mensajes intencionalmente.
 
 Con licencia Apache-2.0; consulta [LICENSE](LICENSE).

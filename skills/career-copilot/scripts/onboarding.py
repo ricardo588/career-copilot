@@ -75,7 +75,12 @@ DEFAULT_ANSWERS: dict[str, Any] = {
         "excluded_roles": [],
         "excluded_industries": [],
     },
-    "compensation": {"enabled": False, "currency": "", "target": None, "floor": None},
+    "compensation": {
+        "enabled": False,
+        "policies": [],
+        "below_floor_terminal_status": "withdrawn",
+        "below_floor_reason": "budget_below_floor",
+    },
     "permissions": {
         "tracker_updates": "ask",
         "draft_messages": "allow",
@@ -128,8 +133,9 @@ CHOICE_FIELDS = {
     "permissions.tracker_updates": {"ask", "allow", "deny"},
     "permissions.draft_messages": {"ask", "allow", "deny"},
     "permissions.external_action_mode": {"draft_only", "confirm_each_external"},
+    "compensation.below_floor_terminal_status": {"withdrawn", "discarded"},
 }
-NUMBER_OR_NULL_FIELDS = {"compensation.target", "compensation.floor"}
+NUMBER_OR_NULL_FIELDS: set[str] = set()
 
 CV_PROPOSABLE_FIELDS = {
     "profile.display_name", "profile.target_roles",
@@ -205,10 +211,29 @@ def validate_answer(field: str, value: Any) -> None:
         if not isinstance(value, bool):
             raise ValueError(f"{field} must be a JSON boolean")
         return
+    if field == "compensation.policies":
+        if not isinstance(value, list):
+            raise ValueError("compensation.policies must be a JSON array")
+        allowed = {"employment_type", "currency", "periodicity", "target_base", "floor_base"}
+        for index, policy in enumerate(value):
+            if not isinstance(policy, dict) or set(policy) - allowed:
+                raise ValueError(f"compensation policy {index} has an invalid shape")
+            for key in ("employment_type", "currency", "periodicity"):
+                if not isinstance(policy.get(key), str) or not policy[key].strip():
+                    raise ValueError(f"compensation policy {index}.{key} must be a non-empty string")
+            for key in ("target_base", "floor_base"):
+                item = policy.get(key)
+                if item is not None and (isinstance(item, bool) or not isinstance(item, (int, float)) or item < 0):
+                    raise ValueError(f"compensation policy {index}.{key} must be null or a non-negative number")
+        return
     if field in CHOICE_FIELDS:
         if value not in CHOICE_FIELDS[field]:
             allowed = ", ".join(sorted(CHOICE_FIELDS[field]))
             raise ValueError(f"{field} must be one of: {allowed}")
+        return
+    if field == "compensation.below_floor_reason":
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("compensation.below_floor_reason must be a non-empty string")
         return
     if field == "search.freshness_days":
         if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 365:
@@ -264,7 +289,7 @@ def new_state(lock_draft_only: bool = False) -> dict[str, Any]:
         answers["permissions"]["external_action_mode"] = "draft_only"
         answers["permissions"]["external_action_mode_locked"] = True
     return {
-        "schema_version": 4,
+        "schema_version": 5,
         "status": "in_progress",
         "created_at": now,
         "updated_at": now,
@@ -299,9 +324,24 @@ def load_state(workspace: Path) -> dict[str, Any]:
             continue
         for category, category_default in default.items():
             career_direction[field].setdefault(category, copy.deepcopy(category_default))
+    compensation = state["answers"].setdefault("compensation", {})
+    if not isinstance(compensation.get("policies"), list):
+        legacy_currency = compensation.get("currency", "")
+        legacy_target = compensation.get("target")
+        legacy_floor = compensation.get("floor")
+        compensation["policies"] = [] if not any((legacy_currency, legacy_target is not None, legacy_floor is not None)) else [{
+            "employment_type": "unspecified", "currency": legacy_currency or "unspecified", "periodicity": "unspecified",
+            "target_base": legacy_target, "floor_base": legacy_floor,
+        }]
+    compensation.setdefault("enabled", False)
+    compensation.setdefault("below_floor_terminal_status", "withdrawn")
+    compensation.setdefault("below_floor_reason", "budget_below_floor")
+    compensation.pop("currency", None)
+    compensation.pop("target", None)
+    compensation.pop("floor", None)
     if not isinstance(state.get("cv_import"), dict):
         state["cv_import"] = {"status": documents["cv_import_status"], "proposals": {}}
-    state["schema_version"] = 4
+    state["schema_version"] = 5
     if state != original_state:
         atomic_write_json(path, state)
     return state
@@ -553,7 +593,7 @@ def finalize(workspace: Path, state: dict[str, Any]) -> dict[str, Any]:
 
     answers = state["answers"]
     profile_document = {
-        "schema_version": 4,
+        "schema_version": 5,
         "profile": answers["profile"],
         "constraints": answers["constraints"],
         "compensation": answers["compensation"],

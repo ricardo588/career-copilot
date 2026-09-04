@@ -48,7 +48,7 @@ class OnboardingTests(unittest.TestCase):
             final = self.run_command("--workspace", str(workspace), "finalize")
             self.assertEqual(final["status"], "complete")
             profile = json.loads((workspace / "profile.yaml").read_text(encoding="utf-8"))
-            self.assertEqual(profile["schema_version"], 4)
+            self.assertEqual(profile["schema_version"], 5)
             self.assertEqual(profile["profile"]["target_roles"], ["Program Director"])
             self.assertEqual(profile["permissions"]["external_action_mode"], "draft_only")
             self.assertEqual(profile["documents"]["cv_import_status"], "not_applicable")
@@ -297,13 +297,20 @@ class OnboardingTests(unittest.TestCase):
             state.pop("cv_import")
             state["answers"]["documents"].pop("has_cv")
             state["answers"]["documents"].pop("cv_import_status")
+            state["answers"]["compensation"] = {
+                "enabled": True, "currency": "MXN", "target": 150000, "floor": 120000,
+            }
             checkpoint.write_text(json.dumps(state), encoding="utf-8")
 
             migrated = self.run_command("--workspace", str(workspace), "status")
             self.assertEqual(migrated["next_question"]["field"], "documents.has_cv")
             self.assertEqual(migrated["external_action_policy"], {"mode": "draft_only", "locked": True})
             resumed = json.loads(checkpoint.read_text(encoding="utf-8"))
-            self.assertEqual(resumed["schema_version"], 4)
+            self.assertEqual(resumed["schema_version"], 5)
+            self.assertEqual(resumed["answers"]["compensation"]["policies"], [{
+                "employment_type": "unspecified", "currency": "MXN", "periodicity": "unspecified",
+                "target_base": 150000, "floor_base": 120000,
+            }])
 
     def test_confirm_each_external_requires_explicit_opt_in(self):
         with tempfile.TemporaryDirectory() as tmp:

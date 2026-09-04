@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "profile": {
     "display_name": "Demo Candidate",
     "language": "English",
@@ -62,9 +62,9 @@
   },
   "compensation": {
     "enabled": false,
-    "currency": "",
-    "target": null,
-    "floor": null
+    "policies": [],
+    "below_floor_terminal_status": "withdrawn",
+    "below_floor_reason": "budget_below_floor"
   },
   "permissions": {
     "tracker_updates": "allow",

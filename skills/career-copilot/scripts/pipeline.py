@@ -159,6 +159,127 @@ def canonicalize_url(url: str) -> str:
     return urlunsplit((parts.scheme.casefold(), parts.netloc.casefold(), parts.path.rstrip("/"), urlencode(query), ""))
 
 
+def _compensation_text(value: Any, field: str) -> str:
+    text = str(value if value is not None else "").strip()
+    if not text:
+        raise ValueError(f"compensation policy {field} must be a non-empty string")
+    return text
+
+
+def _compensation_amount(value: Any, field: str) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+        raise ValueError(f"compensation policy {field} must be null or a non-negative number")
+    return float(value)
+
+
+def compensation_policies(profile: dict[str, Any]) -> list[dict[str, Any]]:
+    """Load a private, explicit compensation policy without guessing conversions."""
+    compensation = profile.get("compensation", {})
+    if not isinstance(compensation, dict) or not compensation.get("enabled", False):
+        return []
+    raw_policies = compensation.get("policies", [])
+    if not isinstance(raw_policies, list):
+        raise ValueError("compensation.policies must be an array")
+    policies: list[dict[str, Any]] = []
+    for index, raw in enumerate(raw_policies):
+        if not isinstance(raw, dict):
+            raise ValueError(f"compensation policy {index} must be an object")
+        policies.append({
+            "employment_type": _compensation_text(raw.get("employment_type"), "employment_type").casefold(),
+            "currency": _compensation_text(raw.get("currency"), "currency").upper(),
+            "periodicity": _compensation_text(raw.get("periodicity"), "periodicity").casefold(),
+            "target_base": _compensation_amount(raw.get("target_base"), "target_base"),
+            "floor_base": _compensation_amount(raw.get("floor_base"), "floor_base"),
+        })
+    return policies
+
+
+def evaluate_compensation(profile: dict[str, Any], vacancy: dict[str, Any]) -> dict[str, Any]:
+    """Evaluate disclosed base pay only; never infer currency conversion or package equivalence."""
+    policies = compensation_policies(profile)
+    if not policies:
+        return {"state": "not_configured", "conversion_used": False, "action_proposal": None}
+
+    compensation = vacancy.get("compensation")
+    if not isinstance(compensation, dict):
+        return {"state": "unknown", "reason": "no disclosed compensation", "conversion_used": False, "action_proposal": None}
+    try:
+        employment_type = _compensation_text(compensation.get("employment_type"), "offer employment_type").casefold()
+        currency = _compensation_text(compensation.get("currency"), "offer currency").upper()
+        periodicity = _compensation_text(compensation.get("periodicity"), "offer periodicity").casefold()
+    except ValueError:
+        return {"state": "unknown", "reason": "incomplete compensation basis", "conversion_used": False, "action_proposal": None}
+
+    matching = [policy for policy in policies if (
+        policy["employment_type"] == employment_type
+        and policy["currency"] == currency
+        and policy["periodicity"] == periodicity
+    )]
+    if len(matching) != 1:
+        return {
+            "state": "unknown", "reason": "no unique compatible compensation policy",
+            "offered_basis": {"employment_type": employment_type, "currency": currency, "periodicity": periodicity},
+            "conversion_used": False, "action_proposal": None,
+        }
+    policy = matching[0]
+    raw_base = compensation.get("base")
+    if raw_base is None or raw_base == "":
+        return {
+            "state": "unknown", "reason": "base compensation is undisclosed",
+            "policy": policy, "offered_total": compensation.get("total"),
+            "conversion_used": False, "action_proposal": None,
+        }
+    if isinstance(raw_base, bool) or not isinstance(raw_base, (int, float)) or raw_base < 0:
+        return {
+            "state": "unknown", "reason": "base compensation is not a non-negative number",
+            "policy": policy, "conversion_used": False, "action_proposal": None,
+        }
+
+    base = float(raw_base)
+    total = compensation.get("total")
+    target_base = policy["target_base"]
+    floor_base = policy["floor_base"]
+    comparison = {
+        "base": base,
+        "total": total,
+        "target_base": target_base,
+        "floor_base": floor_base,
+        "base_vs_target": "unknown" if target_base is None else "below" if base < target_base else "meets_or_exceeds",
+        "base_vs_floor": "unknown" if floor_base is None else "below" if base < floor_base else "meets_or_exceeds",
+    }
+    if floor_base is not None and base < floor_base:
+        exception = compensation.get("candidate_approved_exception") is True
+        if exception:
+            return {
+                "state": "exception_required", "reason": "below floor with candidate-approved exception",
+                "policy": policy, "comparison": comparison, "conversion_used": False,
+                "action_proposal": {"kind": "manual_exception_review"},
+            }
+        policy_config = profile.get("compensation", {})
+        terminal_status = policy_config.get("below_floor_terminal_status", "withdrawn")
+        terminal_reason = policy_config.get("below_floor_reason", "budget_below_floor")
+        if terminal_status not in {"withdrawn", "discarded"}:
+            raise ValueError("compensation below_floor_terminal_status must be withdrawn or discarded")
+        if not isinstance(terminal_reason, str) or not terminal_reason.strip():
+            raise ValueError("compensation below_floor_reason must be a non-empty string")
+        return {
+            "state": "below_floor", "reason": "disclosed base is below configured floor",
+            "policy": policy, "comparison": comparison, "conversion_used": False,
+            "action_proposal": {
+                "kind": "proposed_terminal_action",
+                "status": terminal_status,
+                "reason": terminal_reason,
+                "requires_tracker_permission": True,
+            },
+        }
+    return {
+        "state": "compatible", "policy": policy, "comparison": comparison,
+        "conversion_used": False, "action_proposal": None,
+    }
+
+
 def parse_iso_day(value: str) -> date:
     return datetime.strptime(value, "%Y-%m-%d").date()
 
@@ -254,6 +375,7 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
     reasons: list[str] = []
     risks: list[str] = []
     unknowns: list[str] = []
+    compensation = evaluate_compensation(profile, vacancy)
     raw_requirements_value = vacancy.get("requirements", [])
     raw_requirements = raw_requirements_value if isinstance(raw_requirements_value, list) else [raw_requirements_value]
     nonempty_requirements = [item for item in raw_requirements if requirement_text(item)]
@@ -270,6 +392,7 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
             "unknowns": [], "next_action": "none",
             "ignored_non_job_relevant_requirements": ignored_requirements,
             "candidate_declared_job_constraints": declared_job_constraints,
+            "compensation": compensation,
         }
 
     posted = vacancy.get("date_posted")
@@ -285,6 +408,7 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
                 "unknowns": [], "next_action": "none",
                 "ignored_non_job_relevant_requirements": ignored_requirements,
                 "candidate_declared_job_constraints": declared_job_constraints,
+                "compensation": compensation,
             }
     else:
         unknowns.append("posting date")
@@ -328,6 +452,7 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
             "risks": ["location is outside configured eligibility"], "unknowns": unknowns,
             "next_action": "none", "ignored_non_job_relevant_requirements": ignored_requirements,
             "candidate_declared_job_constraints": declared_job_constraints,
+            "compensation": compensation,
         }
 
     raw_exclusions = list(constraints.get("excluded_roles", [])) + list(rules.get("evaluation", {}).get("hard_exclusions", []))
@@ -345,6 +470,7 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
             "unknowns": unknowns, "next_action": "none",
             "ignored_non_job_relevant_requirements": ignored_requirements,
             "candidate_declared_job_constraints": declared_job_constraints,
+            "compensation": compensation,
         }
 
     evidence_tokens = tokens(candidate.get("strengths", [])) | tokens(candidate.get("verified_evidence", []))
@@ -379,6 +505,7 @@ def evaluate(profile: dict[str, Any], rules: dict[str, Any], vacancy: dict[str, 
         "next_action": next_action,
         "ignored_non_job_relevant_requirements": ignored_requirements,
         "candidate_declared_job_constraints": declared_job_constraints,
+        "compensation": compensation,
     }
 
 

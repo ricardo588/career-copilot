@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.6.0
+version: 0.7.0
 author: Career Copilot contributors
 metadata:
   hermes:
@@ -88,6 +88,7 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
    Read `references/story-bank-and-career-direction.md` when selecting evidence: reuse stable story IDs, retain provenance/unknowns, and treat career values as candidate preferences rather than objective employer facts.
 5. For each viable opportunity, build or refresh the private cited matrix in `references/requirement-matrix-and-cv-review.md`. It distinguishes direct evidence, transferable analysis, gaps and unknowns; use it for explanations, briefs and an explicit opt-in CV review only.
 6. Deduplicate and update using `references/tracker-schema.md`. For an optional Google Sheets backend, read `references/google-sheets-tracker-backend.md`: the pure reconciliation planner may inspect and plan, but never writes a Sheet itself.
+   When compensation is relevant, read `references/compensation-policy.md`; it is a private, deterministic evaluation only and never mutates the tracker itself.
 7. For every viable vacancy, run the Human Path workflow in `references/human-path-and-interviewer-research.md`: check current trusted contacts, the exact recruiter/poster and the confirmed or likely hiring manager.
 8. Apply `references/privacy-and-actions.md` before any external action. Human Path research is never authorization to contact.
 9. For target-company research, read `references/target-companies.md`. Preserve candidate preferences separately from sourced market signals, use separate company/Human Path clocks, and never infer contact authorization.
@@ -178,6 +179,7 @@ See `references/demo.md` for pass criteria.
 - `references/weekly-campaign.md` — configurable, read-only weekly campaign review.
 - `references/tracker-schema.md` — local tracker and state rules.
 - `references/google-sheets-tracker-backend.md` — pure reconciliation planning and future gated Sheets contract.
+- `references/compensation-policy.md` — private policy matching, explicit unknowns and non-mutating proposals.
 - `references/privacy-and-actions.md` — privacy and authorization model.
 - `references/adapters.md` — optional integration safety contract.
 - `references/demo.md` — synthetic end-to-end verification.

@@ -33,6 +33,73 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(len(result["matched_requirements"]), 3)
         self.assertNotIn("Vendor commercial management", result["matched_requirements"])
 
+    def compensation_profile(self):
+        profile = json.loads(json.dumps(self.profile))
+        profile["compensation"] = {
+            "enabled": True,
+            "policies": [
+                {"employment_type": "payroll", "currency": "MXN", "periodicity": "monthly", "target_base": 150000, "floor_base": 120000},
+                {"employment_type": "contractor", "currency": "USD", "periodicity": "hourly", "target_base": 70, "floor_base": 60},
+            ],
+            "below_floor_terminal_status": "withdrawn",
+            "below_floor_reason": "budget_below_floor",
+        }
+        return profile
+
+    def test_compensation_payroll_compares_base_not_total_package(self):
+        vacancy = dict(self.vacancy, compensation={
+            "employment_type": "payroll", "currency": "MXN", "periodicity": "monthly", "base": 130000, "total": 180000,
+        })
+        result = PIPELINE.evaluate_compensation(self.compensation_profile(), vacancy)
+        self.assertEqual(result["state"], "compatible")
+        self.assertEqual(result["comparison"]["base_vs_floor"], "meets_or_exceeds")
+        self.assertEqual(result["comparison"]["base_vs_target"], "below")
+        self.assertEqual(result["comparison"]["total"], 180000)
+        self.assertFalse(result["conversion_used"])
+
+    def test_compensation_contractor_below_floor_only_proposes_withdrawal(self):
+        vacancy = dict(self.vacancy, compensation={
+            "employment_type": "contractor", "currency": "USD", "periodicity": "hourly", "base": 55,
+        })
+        result = PIPELINE.evaluate_compensation(self.compensation_profile(), vacancy)
+        self.assertEqual(result["state"], "below_floor")
+        self.assertEqual(result["action_proposal"], {
+            "kind": "proposed_terminal_action", "status": "withdrawn", "reason": "budget_below_floor",
+            "requires_tracker_permission": True,
+        })
+
+    def test_compensation_undisclosed_or_currency_mismatch_is_unknown(self):
+        undisclosed = dict(self.vacancy, compensation={
+            "employment_type": "payroll", "currency": "MXN", "periodicity": "monthly", "total": 180000,
+        })
+        mismatch = dict(self.vacancy, compensation={
+            "employment_type": "payroll", "currency": "USD", "periodicity": "monthly", "base": 9000,
+        })
+        self.assertEqual(PIPELINE.evaluate_compensation(self.compensation_profile(), undisclosed)["state"], "unknown")
+        self.assertEqual(PIPELINE.evaluate_compensation(self.compensation_profile(), mismatch)["state"], "unknown")
+
+    def test_compensation_candidate_approved_exception_requires_manual_review(self):
+        vacancy = dict(self.vacancy, compensation={
+            "employment_type": "payroll", "currency": "MXN", "periodicity": "monthly", "base": 110000,
+            "candidate_approved_exception": True,
+        })
+        result = PIPELINE.evaluate_compensation(self.compensation_profile(), vacancy)
+        self.assertEqual(result["state"], "exception_required")
+        self.assertEqual(result["action_proposal"], {"kind": "manual_exception_review"})
+
+    def test_compensation_cannot_propose_employer_rejection_for_candidate_budget(self):
+        profile = self.compensation_profile()
+        profile["compensation"]["below_floor_terminal_status"] = "rejected"
+        vacancy = dict(self.vacancy, compensation={
+            "employment_type": "payroll", "currency": "MXN", "periodicity": "monthly", "base": 110000,
+        })
+        with self.assertRaisesRegex(ValueError, "withdrawn or discarded"):
+            PIPELINE.evaluate_compensation(profile, vacancy)
+
+    def test_compensation_disabled_is_not_configured_and_is_reported_in_evaluation(self):
+        result = PIPELINE.evaluate(self.profile, self.rules, self.vacancy, self.as_of)
+        self.assertEqual(result["compensation"]["state"], "not_configured")
+
     def test_gmail_evidence_reference_is_opaque_and_preserved_on_refresh(self):
         result = PIPELINE.evaluate(self.profile, self.rules, self.vacancy, self.as_of)
         reference = "evidence/gmail-evidence.jsonl#123e4567-e89b-12d3-a456-426614174000"
