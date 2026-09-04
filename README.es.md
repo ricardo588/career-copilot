@@ -58,6 +58,7 @@ No exportes un perfil personal de Hermes para distribuir este proyecto. Instala 
 - [Adaptadores opcionales](docs/es/ADAPTERS.md)
 - [Privacidad y modelo de amenazas](docs/es/PRIVACY.md)
 - [Solución de problemas](docs/es/TROUBLESHOOTING.md)
+- [Diseño de Operational Tracker 0.7](docs/es/ROADMAP-0.7.md)
 
 ## Instaladores (para usuarios finales)
 
