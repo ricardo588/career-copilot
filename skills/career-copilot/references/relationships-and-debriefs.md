@@ -14,6 +14,30 @@ Identity, influence and authorization are independent. Discovering or confirming
 
 Probable and confirmed decision makers remain distinct. A probable identity without direct confirmation stays in `unverified_paths`.
 
+## Selective weak-tie reconnection
+
+This route is for building or renewing a professional relationship, **not** for outreach about a specific vacancy. Read the candidate's private `rules.yaml` `relationship_networking` settings before proposing work. If enabled, propose at most `max_candidates_per_cycle` candidates (default: 3; fewer or zero is valid).
+
+Each candidate must have a real, candidate-owned relationship context such as a former colleague, client, industry contact or indirect connection with an explicit shared context. For every proposed reconnection, keep private:
+
+- the verified relationship context and its freshness;
+- the distinct perspective, industry or non-redundant network bridge it could provide; and
+- an optional short, personal draft.
+
+The first-contact draft must not ask for a job, a specific vacancy, a referral or an introduction. It may renew the connection, share a truthful relevant update, or invite a low-pressure exchange. The configured prohibitions in `initial_contact` are hard limits. A draft remains a draft; exact contact authorization and the configured external-action mode still govern any sending.
+
+For a specific vacancy, do **not** relabel this route as relationship building to bypass the Human Path workflow. Follow the normal vacancy workflow, preserve the distinction between discovery and authorization, and use vacancy-specific outreach only with the required current evidence and exact approval.
+
+## Evidence-led positioning
+
+For a pitch, introduction or letter, select two or three private, verified proof points. Each proof point should make clear:
+
+1. the problem or scope (scale, complexity, region, portfolio or relevant stakeholder);
+2. the candidate's leadership action; and
+3. a concrete outcome, only when supported by the candidate profile, approved CV or a confirmed story record.
+
+Prefer evidence relevant to the opportunity. Do not invent numbers, certifications, technical depth, outcomes or relationship claims. The process may prepare candidate-review-only wording, but it never modifies a source CV without explicit, fresh candidate approval.
+
 ## Informational meeting preparation
 
 Generate a private read-only brief:

@@ -16,6 +16,8 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 - Optional career criteria and candidate-approved departure narrative with facts, interpretations and preferences kept separate
 - Human Path research for current contacts, recruiter/poster and hiring manager
 - Structured relationship intelligence with role, influence, strength, evidence freshness and independent authorization
+- Selective weak-tie reconnection with a private per-cycle cap, relationship context and no job/referral request in the first draft
+- Evidence-led positioning from confirmed scope, leadership action and outcome proof points
 - Informational-meeting prep/outcome records and fact-separated post-interview debriefs with draft-only follow-up
 - Private offer records, source-dated total-package comparison and negotiation drafts with exact authorization boundaries
 - Interviewer intelligence from sourced facts with hypotheses kept separate
@@ -82,6 +84,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.5.0 is a pilot release. It adds private evidence stories, optional career-direction criteria, structured relationship intelligence and read-only interview debriefs while preserving draft-only external-action guardrails. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
+Version 0.6.0 is a pilot release. It adds selective weak-tie reconnection and evidence-led positioning to private relationship intelligence while preserving draft-only external-action guardrails. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
 
 Licensed under Apache-2.0; see [LICENSE](LICENSE).

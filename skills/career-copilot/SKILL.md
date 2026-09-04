@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.5.0
+version: 0.6.0
 author: Career Copilot contributors
 metadata:
   hermes:
@@ -92,7 +92,7 @@ Full field order, resume behavior and edge cases are in `references/onboarding.m
 8. Apply `references/privacy-and-actions.md` before any external action. Human Path research is never authorization to contact.
 9. For target-company research, read `references/target-companies.md`. Preserve candidate preferences separately from sourced market signals, use separate company/Human Path clocks, and never infer contact authorization.
 
-For relationship artifacts, informational-meeting preparation, assessment briefs and post-interview reflection, apply `references/relationships-and-debriefs.md` and `references/assessment-prep.md`. Keep role, influence, strength, current company/role, evidence/freshness and authorization independent. Probable and confirmed decision makers must never be collapsed.
+For relationship artifacts, selective weak-tie reconnection, informational-meeting preparation, assessment briefs and post-interview reflection, apply `references/relationships-and-debriefs.md` and `references/assessment-prep.md`. Keep role, influence, strength, current company/role, evidence/freshness and authorization independent. Probable and confirmed decision makers must never be collapsed.
 For private offer records and negotiation drafts, apply `references/offers-and-negotiation.md`. Preserve source/date/currency/geography/employment type, compare total package components against candidate priorities and keep market notes source- and date-attributed.
 
 For encrypted private-workspace backup, verification and non-destructive recovery, apply `references/encrypted-backups.md`. Use `age`, preserve key/passphrase boundaries and never upload or overwrite by default.
@@ -142,6 +142,8 @@ Read `references/adapters.md` before use.
 - Never infer a metric or outcome in a story. Keep explicit unknowns and source every confirmed metric.
 - Unknown career preferences do not filter roles. Departure wording stays private and draft-only unless separately authorized for an exact use.
 - Never infer contact, reference, referral, introduction or follow-up authorization from relationship discovery alone.
+- Evidence-led positioning uses only confirmed candidate proof: scope/problem, leadership action and concrete outcome. It never turns a responsibility, inference or unknown into an achievement.
+- Relationship-only networking is selective and follows the candidate's private reconnection limit. An initial reconnection is never a job, vacancy, referral or introduction request.
 - Interview sentiment and candidate interpretation never change tracker state. Debrief learning may inform future briefs but cannot rewrite history.
 - Never infer or score age, gender, sex, race, ethnicity, religion, disability, family status, pregnancy or other protected attributes.
 - Never use name, photo or date proxies. Candidate-declared job eligibility or accommodation constraints remain allowed only as structured explicit constraints, never as protected inference or positive/negative evidence points.

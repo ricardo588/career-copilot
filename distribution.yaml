@@ -1,5 +1,5 @@
 name: career-copilot
-version: 0.5.0
+version: 0.6.0
 description: "Privacy-first, profile-driven job-search copilot for Hermes Agent"
 hermes_requires: ">=0.20.0"
 author: "Career Copilot contributors"
