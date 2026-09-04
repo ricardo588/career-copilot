@@ -58,6 +58,48 @@ vez, deriva las filas físicas desde ese rango explícito y devuelve un
 a un endpoint de escritura de Sheets. Consulta la referencia del skill para el
 mapeo privado y el contrato de integridad.
 
+### Reconciliar, revisar y aplicar un plan aprobado
+
+`sheets-reconcile-apply` primero funciona como dry run. Devuelve los rangos de
+celdas exactos, valores anteriores/nuevos de la reconciliación, auditoría de
+integridad y un `approval_sha256`. Revisa esos valores antes de cualquier acción.
+
+```bash
+python3 "$ADAPTER" sheets-reconcile-apply \
+  --sheet-id "$CAREER_COPILOT_SHEET_ID" \
+  --range 'Applications!A1:I500' \
+  --header-row 1 \
+  --fields-json "$FIELDS_JSON" \
+  --record-json "$RECORD_JSON"
+```
+
+Para escribir, repite exactamente los argumentos revisados y agrega `--apply`,
+el hash devuelto, un workspace privado y un perfil con modo
+`confirm_each_external`:
+
+```bash
+python3 "$ADAPTER" sheets-reconcile-apply \
+  --sheet-id "$CAREER_COPILOT_SHEET_ID" \
+  --range 'Applications!A1:I500' \
+  --header-row 1 \
+  --fields-json "$FIELDS_JSON" \
+  --record-json "$RECORD_JSON" \
+  --approved-plan-sha256 '<HASH_DEL_DRY_RUN_REVISADO>' \
+  --profile "$HOME/Documents/CareerCopilot/profile.yaml" \
+  --workspace "$HOME/Documents/CareerCopilot" \
+  --apply
+```
+
+La llamada con apply vuelve a leer el rango vivo y recalcula el plan. Se bloquea
+antes de escribir si el hash del plan actual difiere del hash revisado. Sólo
+acepta un rectángulo A1 cerrado con nombre de pestaña, escribe únicamente las
+celdas modificadas, vuelve a leer cada celda modificada y agrega eventos mínimos
+de auditoría privada. Nunca envía una aplicación ni contacto externo.
+
+El hash de aprobación queda ligado al ID exacto del spreadsheet sin revelar ese
+ID en la salida. Un plan coincidente sin cambios devuelve `no_change` y no hace
+ninguna mutación externa ni escribe auditoría.
+
 Vista previa de una actualización:
 
 ```bash

@@ -84,18 +84,39 @@ The planner deliberately refuses to guess an append position. A caller must
 supply `create_physical_row` after determining an exact safe target. When a
 business-ID field is mapped, an explicit intended business ID is also required.
 
-## B2 Sheets write contract (not implemented)
+## B2 Sheets write contract
 
-The future Google adapter must:
+`scripts/adapters.py sheets-reconcile-apply` is the gated B2 path. Its default
+is still a dry run: it reads the explicit closed A1 snapshot range, runs the
+planner, renders target cells with the underlying old/new changes, and returns
+an `approval_sha256`.
 
-1. read header and data snapshot;
-2. run the planner in dry-run mode;
-3. present exact target rows plus old/new values;
-4. require `confirm_each_external` and explicit apply intent;
-5. write only the approved ranges;
-6. read back each changed range;
-7. fail if readback differs;
-8. record only a minimal private audit event.
+An actual write requires all of the following:
 
-`draft_only` must block the write even when an apply flag is present. Sending,
-recruiter outreach, and applications are outside this backend's scope.
+1. exact repeat of the reviewed request plus `--apply`;
+2. the dry-run `--approved-plan-sha256` in lowercase SHA-256 form;
+3. a private profile whose `external_action_mode` is
+   `confirm_each_external`;
+4. a private non-repository workspace for audit logging;
+5. a closed A1 rectangle with a worksheet name, beginning at the header row.
+
+The apply invocation reads live data again and computes a fresh plan. It blocks
+before a mutation if that plan's hash differs from the reviewed hash. For an
+accepted current plan it writes only the changed individual cells, reads back
+every written cell, and fails on a mismatch. It records append-only minimal
+private audit lifecycle events (`attempted`, `applied`, `verified`, or
+`blocked`/`failed`) using a plan hash rather than tracker content.
+
+The approval hash is domain-separated and binds the private exact spreadsheet
+ID plus the redacted write plan; the ID is never returned in output or placed in
+the plan. A matching `no_change` plan returns a verified no-op before policy or
+audit work because it performs no external mutation.
+
+The minimal Sheets endpoint used here has no cross-cell transaction. If a later
+narrow write fails, earlier completed cells can remain changed; each completed
+cell is therefore audited as `applied` before the command reports failure. Do
+not treat a failed invocation as an automatic rollback.
+
+The B2 path cannot append speculatively, rewrite an entire row/sheet, renumber
+business IDs, submit applications, or send outreach. `draft_only` blocks the
+write even when an apply flag is present.
