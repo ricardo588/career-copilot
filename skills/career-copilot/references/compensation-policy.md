@@ -61,6 +61,15 @@ A `below_floor` proposal keeps candidate withdrawal distinct from an employer
 rejection. Any future tracker write must separately satisfy tracker permission,
 an explicit reviewed plan, and readback verification.
 
+## Upgrading a legacy profile
+
+Profiles created before v0.7 may contain only `currency`, `target`, and `floor`.
+Onboarding preserves those amounts in one `unspecified` policy, but deliberately
+does **not** guess employment type or periodicity. Evaluating such a policy
+returns `unknown` with `migration_required: true` until it is replaced with one
+or more explicit policies. This avoids comparing a monthly payroll floor to an
+hourly or daily offer merely because the currency matches.
+
 ## Privacy and retention
 
 Keep policy values, offer figures, and exception decisions in the private

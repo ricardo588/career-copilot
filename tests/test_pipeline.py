@@ -78,6 +78,20 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(PIPELINE.evaluate_compensation(self.compensation_profile(), undisclosed)["state"], "unknown")
         self.assertEqual(PIPELINE.evaluate_compensation(self.compensation_profile(), mismatch)["state"], "unknown")
 
+    def test_legacy_compensation_migration_requires_explicit_basis_without_guessing(self):
+        profile = self.compensation_profile()
+        profile["compensation"]["policies"] = [{
+            "employment_type": "unspecified", "currency": "MXN", "periodicity": "unspecified",
+            "target_base": 150000, "floor_base": 120000,
+        }]
+        vacancy = dict(self.vacancy, compensation={
+            "employment_type": "payroll", "currency": "MXN", "periodicity": "monthly", "base": 130000,
+        })
+        result = PIPELINE.evaluate_compensation(profile, vacancy)
+        self.assertEqual(result["state"], "unknown")
+        self.assertTrue(result["migration_required"])
+        self.assertEqual(result["reason"], "legacy compensation policy needs employment type and periodicity")
+
     def test_compensation_candidate_approved_exception_requires_manual_review(self):
         vacancy = dict(self.vacancy, compensation={
             "employment_type": "payroll", "currency": "MXN", "periodicity": "monthly", "base": 110000,

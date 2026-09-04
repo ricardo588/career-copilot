@@ -218,6 +218,18 @@ def evaluate_compensation(profile: dict[str, Any], vacancy: dict[str, Any]) -> d
         and policy["periodicity"] == periodicity
     )]
     if len(matching) != 1:
+        legacy_matches = [policy for policy in policies if (
+            policy["currency"] == currency
+            and policy["employment_type"] == "unspecified"
+            and policy["periodicity"] == "unspecified"
+        )]
+        if len(legacy_matches) == 1:
+            return {
+                "state": "unknown", "reason": "legacy compensation policy needs employment type and periodicity",
+                "offered_basis": {"employment_type": employment_type, "currency": currency, "periodicity": periodicity},
+                "migration_required": True, "policy": legacy_matches[0],
+                "conversion_used": False, "action_proposal": None,
+            }
         return {
             "state": "unknown", "reason": "no unique compatible compensation policy",
             "offered_basis": {"employment_type": employment_type, "currency": currency, "periodicity": periodicity},

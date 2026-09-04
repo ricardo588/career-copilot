@@ -230,6 +230,28 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["status"], "no_change")
         self.assertTrue(result["verified"])
 
+    def test_reconcile_apply_never_treats_integrity_failure_as_no_change(self):
+        snapshot = {"values": [
+            self.tracker_headers,
+            ["1", "Synthetic Co", "Program Director", "Remote", "https://jobs.example.test/synthetic/1", "SYN-1", "identified", "medium", "Old note."],
+            ["1", "Duplicate Co", "Other Role", "Remote", "https://jobs.example.test/duplicate/1", "SYN-DUP", "identified", "medium", ""],
+        ]}
+        preview = ADAPTERS.sheets_reconcile_apply(
+            FakeRunner([snapshot]), "sheet-example-1234", "Applications!A4:I100", 4,
+            self.tracker_fields, self.tracker_record,
+        )
+        self.assertEqual(preview["plan"]["decision"], "integrity_failure")
+        fake = FakeRunner([snapshot])
+        with self.assertRaisesRegex(ValueError, "not applicable: integrity_failure"):
+            ADAPTERS.sheets_reconcile_apply(
+                fake, "sheet-example-1234", "Applications!A4:I100", 4,
+                self.tracker_fields, self.tracker_record, apply=True,
+                approved_plan_sha256=preview["approval_sha256"],
+            )
+        self.assertEqual(len(fake.calls), 1)
+        self.assertIn("get", fake.calls[0])
+        self.assertNotIn("update", fake.calls[0])
+
     def test_reconcile_apply_fails_when_cell_readback_differs(self):
         snapshot = {"values": [
             self.tracker_headers,

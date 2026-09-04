@@ -447,6 +447,11 @@ def sheets_reconcile_apply(
     result = {"status": "dry_run", "plan": write_plan, "approval_sha256": approval_sha256}
     if not apply:
         return result
+    if write_plan["decision"] not in {"update_plan", "create_plan", "no_change"}:
+        raise ValueError(
+            "reconciliation decision is not applicable: "
+            f"{write_plan['decision'] or 'missing decision'}"
+        )
     if not re.fullmatch(r"[0-9a-f]{64}", approved_plan_sha256):
         raise ValueError("--approved-plan-sha256 must be a lowercase SHA-256 hash from a dry run")
     if approved_plan_sha256 != approval_sha256:
