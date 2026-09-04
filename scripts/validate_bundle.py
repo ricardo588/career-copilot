@@ -17,6 +17,7 @@ REQUIRED = [
     ".gitignore",
     "README.md",
     "README.es.md",
+    "assets/career-copilot-wordmark.png",
     "QUICKSTART_NONTECH.md",
     "QUICKSTART_NONTECH.es.md",
     "skills/career-copilot/SKILL.md",

@@ -1,5 +1,9 @@
 # Career Copilot for Hermes
 
+<p align="center">
+  <img src="assets/career-copilot-wordmark.png" alt="Career Copilot" width="800">
+</p>
+
 Versión en español: [README.es.md](README.es.md).
 
 Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-agent.nousresearch.com/docs).
