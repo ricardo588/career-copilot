@@ -590,6 +590,9 @@ def gmail_triage(
     workspace: Path,
     account_ref: str,
     user_id: str = "me",
+    supported_fact: str = "",
+    excerpt: str = "",
+    content_sha256: str = "",
 ) -> dict[str, Any]:
     """Read one Gmail message and create a private, non-mutating review proposal."""
     if not message_id.strip() or not account_ref.strip():
@@ -606,6 +609,12 @@ def gmail_triage(
             "message_ref": f"gmail:{message_id}",
             "proposal": {"kind": "gmail_evidence_review", "message_fingerprint": fingerprint},
         }
+    evidence_ref = ""
+    if supported_fact.strip():
+        evidence_ref = record_gmail_evidence(
+            root, account_ref=account_ref, message_id=message_id, thread_id=str(message.get("threadId", "")),
+            supported_fact=supported_fact, excerpt=excerpt, content_sha256=content_sha256,
+        )
     _append_jsonl(_private_append_path(root, "triage/gmail-triage.jsonl"), {
         "triage_id": event_id,
         "retrieved_at": _utc_now(),
@@ -613,6 +622,7 @@ def gmail_triage(
         "message_id": message_id,
         "thread_id": str(message.get("threadId", "")),
         "message_fingerprint": fingerprint,
+        "evidence_ref": evidence_ref,
         "outcome": "proposed",
     })
     return {
@@ -622,6 +632,7 @@ def gmail_triage(
             "kind": "gmail_evidence_review",
             "triage_ref": f"triage/gmail-triage.jsonl#{event_id}",
             "message_fingerprint": fingerprint,
+            "evidence_ref": evidence_ref,
         },
     }
 
@@ -771,6 +782,9 @@ def parser() -> argparse.ArgumentParser:
     gmail_triage_parser.add_argument("--message-id", required=True)
     gmail_triage_parser.add_argument("--account-ref", required=True)
     gmail_triage_parser.add_argument("--workspace", required=True)
+    gmail_triage_parser.add_argument("--supported-fact", default="", help="Directly supported fact; optional")
+    gmail_triage_parser.add_argument("--excerpt", default="", help="Minimal excerpt (500 chars max); required with --supported-fact unless --content-sha256 is used")
+    gmail_triage_parser.add_argument("--content-sha256", default="", help="Content hash; alternative to --excerpt for --supported-fact")
     gmail_triage_parser.add_argument("--user-id", default="me")
 
     gmail_modify = commands.add_parser("gmail-mark-read")
@@ -835,7 +849,8 @@ def main() -> int:
         elif args.command == "gmail-triage":
             result = gmail_triage(
                 run_json_command, args.message_id, workspace=Path(args.workspace),
-                account_ref=args.account_ref, user_id=args.user_id,
+                account_ref=args.account_ref, user_id=args.user_id, supported_fact=args.supported_fact,
+                excerpt=args.excerpt, content_sha256=args.content_sha256,
             )
         elif args.command == "gmail-mark-read":
             result = gmail_mark_read(

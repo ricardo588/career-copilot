@@ -343,6 +343,19 @@ class AdapterTests(unittest.TestCase):
         self.assertIn("get", fake.calls[0])
         self.assertNotIn("modify", fake.calls[0])
 
+    def test_gmail_triage_records_only_explicit_direct_evidence(self):
+        message = {"id": "synthetic-message", "threadId": "synthetic-thread"}
+        fake = FakeRunner([message])
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "private"
+            result = ADAPTERS.gmail_triage(
+                fake, "synthetic-message", workspace=workspace, account_ref="me",
+                supported_fact="Recruiter explicitly scheduled a screen", excerpt="I would like to schedule a screen.",
+            )
+            evidence = (workspace / "evidence" / "gmail-evidence.jsonl").read_text(encoding="utf-8")
+        self.assertTrue(result["proposal"]["evidence_ref"].startswith("evidence/gmail-evidence.jsonl#"))
+        self.assertIn('"supported_fact":"Recruiter explicitly scheduled a screen"', evidence)
+
     def test_gmail_triage_reprocessing_is_a_private_idempotent_no_op(self):
         message = {"id": "synthetic-message", "threadId": "synthetic-thread"}
         fake = FakeRunner([message, message])

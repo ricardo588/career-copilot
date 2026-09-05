@@ -156,7 +156,7 @@ python3 "$ADAPTER" gmail-triage \
   --workspace "$HOME/Documents/CareerCopilot"
 ```
 
-Triage writes only a minimal private ledger and returns a review proposal; a repeated message is an idempotent `already_processed` no-op.
+Triage writes only a minimal private ledger and returns a review proposal; a repeated message is an idempotent `already_processed` no-op. It never infers a tracker fact from message text. To record a fact, pass an explicitly reviewed `--supported-fact` plus exactly one minimal `--excerpt` or `--content-sha256`.
 
 Sending, replying, forwarding and creating drafts are intentionally unsupported in this adapter version. Career Copilot can prepare local draft text, but a separate approved workflow must handle transmission.
 
@@ -171,7 +171,18 @@ python3 "$ADAPTER" obsidian-write \
   --content-file '/path/to/local/interview-brief.md'
 ```
 
-Apply by adding `--apply`. The adapter writes atomically and reads the exact note back.
+The preview returns an `approval_sha256`. Applying requires that exact reviewed hash, a private profile and a private workspace; the adapter writes atomically, reads the exact note back and preserves a minimal audit trail:
+
+```bash
+python3 "$ADAPTER" obsidian-write \
+  --vault "$OBSIDIAN_VAULT_PATH" \
+  --relative-path 'CareerCopilot/Interview Brief.md' \
+  --content-file '/path/to/local/interview-brief.md' \
+  --profile "$HOME/Documents/CareerCopilot/profile.yaml" \
+  --workspace "$HOME/Documents/CareerCopilot" \
+  --approved-plan-sha256 '<HASH_FROM_REVIEWED_DRY_RUN>' \
+  --apply
+```
 
 ## Testing without accounts
 

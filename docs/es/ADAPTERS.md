@@ -127,7 +127,7 @@ python3 "$ADAPTER" gmail-search --query 'newer_than:7d (recruiter OR application
 python3 "$ADAPTER" gmail-get --message-id '<MESSAGE_ID>'
 ```
 
-Vista previa de marcar un mensaje ya atendido como leído:
+Vista previa de marcar un mensaje ya atendido como leído. La respuesta incluye un `approval_sha256` ligado a ese mensaje y usuario:
 
 ```bash
 python3 "$ADAPTER" gmail-mark-read \
@@ -135,7 +135,29 @@ python3 "$ADAPTER" gmail-mark-read \
   --profile "$HOME/Documents/CareerCopilot/profile.yaml"
 ```
 
-En `confirm_each_external`, aplica agregando `--apply` después de la confirmación exacta. En `draft_only`, el adaptador bloquea la mutación. Cuando se aplica, confirma que la etiqueta `UNREAD` no está presente.
+En `confirm_each_external`, aplica sólo con el hash exacto revisado, un workspace privado y una relectura actual que confirme que el mensaje continúa sin leer:
+
+```bash
+python3 "$ADAPTER" gmail-mark-read \
+  --message-id '<MESSAGE_ID>' \
+  --profile "$HOME/Documents/CareerCopilot/profile.yaml" \
+  --workspace "$HOME/Documents/CareerCopilot" \
+  --approved-plan-sha256 '<HASH_DEL_DRY_RUN_REVISADO>' \
+  --apply
+```
+
+En `draft_only`, el adaptador bloquea la mutación antes de cualquier solicitud a Gmail. Una aplicación exitosa confirma que la etiqueta `UNREAD` ya no está presente.
+
+Clasifica un solo mensaje explícito sin mutar Gmail:
+
+```bash
+python3 "$ADAPTER" gmail-triage \
+  --message-id '<MESSAGE_ID>' \
+  --account-ref me \
+  --workspace "$HOME/Documents/CareerCopilot"
+```
+
+El triage escribe únicamente un ledger privado mínimo y devuelve una propuesta revisable; repetir el mensaje devuelve el no-op idempotente `already_processed`. Nunca infiere un hecho para el tracker desde el texto. Para registrar un hecho, proporciona un `--supported-fact` revisado explícitamente y exactamente uno entre `--excerpt` mínimo o `--content-sha256`.
 
 Enviar, responder, reenviar y crear borradores están intencionalmente no soportados en esta versión del adaptador. Career Copilot puede preparar texto local de borrador, pero un flujo de trabajo aprobado separado debe encargarse de la transmisión.
 
@@ -150,7 +172,18 @@ python3 "$ADAPTER" obsidian-write \
   --content-file '/path/to/local/interview-brief.md'
 ```
 
-Aplica agregando `--apply`. El adaptador escribe de forma atómica y lee de vuelta la nota exacta.
+La vista previa devuelve un `approval_sha256`. Para aplicar se requieren el hash exacto revisado, perfil privado y workspace privado; el adaptador escribe de forma atómica, hace readback y conserva una auditoría mínima:
+
+```bash
+python3 "$ADAPTER" obsidian-write \
+  --vault "$OBSIDIAN_VAULT_PATH" \
+  --relative-path 'CareerCopilot/Interview Brief.md' \
+  --content-file '/path/to/local/interview-brief.md' \
+  --profile "$HOME/Documents/CareerCopilot/profile.yaml" \
+  --workspace "$HOME/Documents/CareerCopilot" \
+  --approved-plan-sha256 '<HASH_DEL_DRY_RUN_REVISADO>' \
+  --apply
+```
 
 ## Pruebas sin cuentas
 
