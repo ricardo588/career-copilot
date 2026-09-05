@@ -4,9 +4,9 @@ Spanish version: [docs/es/ROADMAP-0.7.md](es/ROADMAP-0.7.md).
 
 ## Status
 
-**Approved scope:** tracker reconciliation and compensation policy.
+**Delivered:** v0.7.0 was released on 2026-09-05 in [PR #35](https://github.com/ricardo588/career-copilot/pull/35). It includes tracker reconciliation and compensation policy.
 
-This is a design and delivery plan, not an implementation promise. Version 0.7 must preserve Career Copilot's privacy-first boundary and its default `draft_only` external-action policy.
+The release was validated with bundle validation, 136 unit tests, a synthetic end-to-end demo with zero external actions, and an isolated-profile check. This document remains the record of the design and delivery decisions; it is not an implementation promise for future versions.
 
 ## Goal
 
@@ -229,7 +229,9 @@ No fixture may use actual candidate, company, contact, tracker, compensation, Gm
 
 ## Deferred roadmap
 
-### v0.8 candidates
+### v0.8 planned
+
+Tracked in [milestone v0.8 — Transactional Gmail Triage](https://github.com/ricardo588/career-copilot/milestone/1).
 
 - Transactional Gmail inbox triage: evidence → identity resolution → reconciliation → verified mark-read.
 - Optional Obsidian/Kanban projection after a proven tracker update contract.

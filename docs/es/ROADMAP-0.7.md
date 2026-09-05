@@ -4,9 +4,9 @@ English version: [docs/ROADMAP-0.7.md](../ROADMAP-0.7.md).
 
 ## Estado
 
-**Alcance aprobado:** reconciliación de tracker y política de compensación.
+**Entregado:** v0.7.0 fue liberada el 2026-09-05 en el [PR #35](https://github.com/ricardo588/career-copilot/pull/35). Incluye reconciliación de tracker y política de compensación.
 
-Este documento es un plan de diseño y entrega, no una promesa de implementación automática. La versión 0.7 debe preservar el límite privacy-first de Career Copilot y su política predeterminada `draft_only`.
+La liberación se validó con bundle validation, 136 pruebas unitarias, demo sintética end-to-end con cero acciones externas y verificación en perfil aislado. Este documento conserva las decisiones de diseño y entrega; no es promesa de implementación para versiones futuras.
 
 ## Objetivo
 
@@ -164,7 +164,9 @@ Todos deben ser sintéticos.
 
 ## Diferido
 
-### v0.8
+### v0.8 planeada
+
+Seguimiento en el [milestone v0.8 — Transactional Gmail Triage](https://github.com/ricardo588/career-copilot/milestone/1).
 
 - Triage Gmail transaccional: evidencia → identidad → reconciliación → marcar leído verificado.
 - Proyección opt-in hacia Obsidian/Kanban.
