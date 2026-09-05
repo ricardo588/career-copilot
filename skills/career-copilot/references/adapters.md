@@ -19,8 +19,10 @@ Never place spreadsheet IDs or credential paths in the skill/repository.
 
 - `gmail-search` lists message IDs from a narrow query.
 - `gmail-get` reads one full message before classification.
-- `gmail-mark-read` previews by default.
-- `gmail-mark-read --apply --profile <profile.yaml> --workspace <workspace>` removes `UNREAD`, records attempt/applied/verified audit events, and confirms the label is absent when permitted.
+- `gmail-triage --message-id <id> --account-ref <ref> --workspace <workspace>` reads one explicitly named message, creates a private idempotency ledger entry and returns a review proposal without calling any Gmail mutation endpoint.
+- A tracker fact is never inferred from Gmail text. A reviewed caller may pass `--supported-fact` with exactly one minimal `--excerpt` or `--content-sha256`; this creates the opaque private evidence reference required by the tracker.
+- `gmail-mark-read` previews by default and returns an approval hash.
+- `gmail-mark-read --apply --approved-plan-sha256 <hash> --profile <profile.yaml> --workspace <workspace>` first checks `confirm_each_external`, re-reads the exact message to ensure it remains unread, removes only `UNREAD`, records lifecycle audit events, and confirms the label is absent.
 - For any tracker fact or process update derived from a Gmail message, first write a private evidence event with `record_gmail_evidence`. It stores account reference, message ID, optional thread ID, retrieval time, the directly supported fact, and one minimal excerpt **or** content hash. Pass its opaque `evidence_ref` to `pipeline.py --tracker`; never copy message bodies or message IDs to `tracker.csv`.
 - Ambiguous or contradictory wording remains unknown. It cannot advance process state; in particular, `applied` still requires candidate confirmation or authoritative submission evidence.
 - Sending, replying, forwarding and draft creation are not implemented.
