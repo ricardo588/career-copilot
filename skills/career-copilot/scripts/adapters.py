@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import uuid
@@ -17,6 +19,7 @@ from typing import Any, Callable, Optional
 
 Runner = Callable[[list[str]], dict[str, Any]]
 AUDIT_RESULTS = {"attempted", "blocked", "failed", "applied", "verified"}
+_TRACKER_RECONCILIATION: Any = None
 
 
 def _utc_now() -> str:
@@ -71,6 +74,15 @@ def _append_jsonl(path: Path, event: dict[str, Any]) -> None:
 
 def _plan_hash(plan: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def _reconciliation_approval_hash(write_plan: dict[str, Any], sheet_id: str) -> str:
+    """Bind a review token to one private spreadsheet without exposing its ID."""
+    return _plan_hash({
+        "domain": "career-copilot/sheets-reconcile-apply/v1",
+        "spreadsheet_id": sheet_id,
+        "write_plan": write_plan,
+    })
 
 
 def append_external_audit(
@@ -215,6 +227,297 @@ def sheets_read(runner: Runner, sheet_id: str, range_name: str) -> dict[str, Any
     return runner(["gws", "sheets", "spreadsheets", "values", "get", "--params", params])
 
 
+def _tracker_reconciliation_module() -> Any:
+    """Load the pure planner next to this adapter without changing sys.path."""
+    global _TRACKER_RECONCILIATION
+    if _TRACKER_RECONCILIATION is not None:
+        return _TRACKER_RECONCILIATION
+    path = Path(__file__).with_name("tracker_reconciliation.py")
+    spec = importlib.util.spec_from_file_location("career_tracker_reconciliation", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("unable to load tracker reconciliation planner")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    _TRACKER_RECONCILIATION = module
+    return module
+
+
+def _range_start_row(range_name: str) -> int:
+    """Extract the explicit A1 start row; named ranges are unsafe for row planning."""
+    match = re.search(r"(?:!|^)\$?[A-Z]+\$?([1-9][0-9]*)", range_name)
+    if match is None:
+        raise ValueError("Sheets reconciliation requires an A1 range with an explicit start row")
+    return int(match.group(1))
+
+
+def _sheet_snapshot(response: dict[str, Any], range_name: str, header_row: int) -> dict[str, Any]:
+    """Convert a Sheets values response into a pure-planner snapshot.
+
+    The requested A1 range must begin at its header row. Fully blank rows are
+    formatting/empty rows and are intentionally not tracker records; any
+    non-blank row with a missing business ID remains visible to the planner and
+    fails closed under its configured integrity policy.
+    """
+    if _range_start_row(range_name) != header_row:
+        raise ValueError("Sheets reconciliation range must start at --header-row")
+    values = response.get("values")
+    if not isinstance(values, list) or not values or not isinstance(values[0], list):
+        raise ValueError("Sheets reconciliation response must include a header row")
+    headers = values[0]
+    if not headers:
+        raise ValueError("Sheets reconciliation header row is empty")
+    rows: list[dict[str, Any]] = []
+    for offset, raw_row in enumerate(values[1:], start=1):
+        if not isinstance(raw_row, list):
+            raise ValueError("Sheets reconciliation response contains a non-row value")
+        if len(raw_row) > len(headers):
+            raise ValueError("Sheets reconciliation row has more values than its header row")
+        if not any(str(value).strip() for value in raw_row):
+            continue
+        row_values = {
+            str(header): raw_row[index] if index < len(raw_row) else ""
+            for index, header in enumerate(headers)
+        }
+        rows.append({"physical_row": header_row + offset, "values": row_values})
+    return {"headers": headers, "rows": rows}
+
+
+def sheets_reconcile(
+    runner: Runner,
+    sheet_id: str,
+    range_name: str,
+    header_row: int,
+    fields: dict[str, Any],
+    intended_record: dict[str, Any],
+    *,
+    operation: str = "upsert",
+    create_physical_row: Optional[int] = None,
+    require_contiguous_business_ids: bool = True,
+    reject_duplicate_business_ids: bool = True,
+) -> dict[str, Any]:
+    """Read once and produce a non-mutating reconciliation plan.
+
+    This B1 command has no apply mode by design. It cannot call a Sheets write
+    endpoint; B2 will add a separately reviewed, gated write path.
+    """
+    response = sheets_read(runner, sheet_id, range_name)
+    snapshot = _sheet_snapshot(response, range_name, header_row)
+    planner = _tracker_reconciliation_module()
+    plan = planner.reconcile(
+        snapshot,
+        fields,
+        intended_record,
+        operation=operation,
+        create_physical_row=create_physical_row,
+        require_contiguous_business_ids=require_contiguous_business_ids,
+        reject_duplicate_business_ids=reject_duplicate_business_ids,
+    )
+    return {
+        "status": "dry_run",
+        "adapter": "google_sheets",
+        "operation": "reconcile",
+        "target": {"sheet": sheet_hint(sheet_id), "range": range_name, "header_row": header_row},
+        "plan": plan,
+    }
+
+
+def _column_number(label: str) -> int:
+    result = 0
+    for character in label.upper():
+        if character < "A" or character > "Z":
+            raise ValueError("A1 column labels must contain letters only")
+        result = result * 26 + (ord(character) - ord("A") + 1)
+    return result
+
+
+def _column_label(number: int) -> str:
+    if number < 1:
+        raise ValueError("A1 column number must be positive")
+    result = ""
+    while number:
+        number, remainder = divmod(number - 1, 26)
+        result = chr(ord("A") + remainder) + result
+    return result
+
+
+def _explicit_a1_bounds(range_name: str) -> tuple[str, int, int, int, int]:
+    """Parse a closed A1 rectangle; B2 execution never guesses its bounds."""
+    match = re.fullmatch(
+        r"((?:'[^']+'|[^!]+)!)?\$?([A-Za-z]+)\$?([1-9][0-9]*):\$?([A-Za-z]+)\$?([1-9][0-9]*)",
+        range_name,
+    )
+    if match is None or not match.group(1):
+        raise ValueError("Sheets reconciliation apply requires a closed A1 range with a sheet name")
+    sheet_prefix = match.group(1)
+    first_column, first_row = _column_number(match.group(2)), int(match.group(3))
+    last_column, last_row = _column_number(match.group(4)), int(match.group(5))
+    if last_column < first_column or last_row < first_row:
+        raise ValueError("Sheets reconciliation A1 range must have increasing bounds")
+    return sheet_prefix, first_column, first_row, last_column, last_row
+
+
+def _reconciliation_write_plan(
+    sheet_id: str,
+    range_name: str,
+    header_row: int,
+    fields: dict[str, Any],
+    reconciliation: dict[str, Any],
+) -> dict[str, Any]:
+    """Convert one safe planner decision into exact single-cell write requests."""
+    sheet_prefix, first_column, first_row, last_column, last_row = _explicit_a1_bounds(range_name)
+    if first_row != header_row:
+        raise ValueError("Sheets reconciliation range must start at --header-row")
+    decision = reconciliation["plan"]
+    outcome = decision.get("decision")
+    write_plan = {
+        "adapter": "google_sheets",
+        "operation": "reconcile_apply",
+        "target": {"sheet": sheet_hint(sheet_id), "range": range_name, "header_row": header_row},
+        "decision": outcome,
+        "reconciliation": decision,
+        "writes": [],
+    }
+    if outcome not in {"update_plan", "create_plan"}:
+        return write_plan
+    physical_row = decision.get("physical_row")
+    if not isinstance(physical_row, int) or not first_row < physical_row <= last_row:
+        raise ValueError("planned physical row must be inside the explicit snapshot range below its header")
+    headers = reconciliation.get("snapshot_headers")
+    if not isinstance(headers, list) or any(not isinstance(item, str) for item in headers):
+        raise ValueError("reconciliation did not retain valid snapshot headers")
+    header_positions = {header: index for index, header in enumerate(headers)}
+    if len(header_positions) != len(headers):
+        raise ValueError("reconciliation snapshot headers must be unique")
+    for change in decision.get("changes", []):
+        if not isinstance(change, dict):
+            raise ValueError("planner changes must be mappings")
+        header = change.get("header")
+        new_value = change.get("new_value")
+        if not isinstance(header, str) or header not in header_positions or not isinstance(new_value, str):
+            raise ValueError("planner change is malformed")
+        column = first_column + header_positions[header]
+        if column > last_column:
+            raise ValueError("planned header falls outside the explicit snapshot range")
+        write_plan["writes"].append({
+            "range": f"{sheet_prefix}{_column_label(column)}{physical_row}",
+            "values": [[new_value]],
+        })
+    if not write_plan["writes"]:
+        raise ValueError("writable reconciliation decision did not contain any changes")
+    return write_plan
+
+
+def sheets_reconcile_apply(
+    runner: Runner,
+    sheet_id: str,
+    range_name: str,
+    header_row: int,
+    fields: dict[str, Any],
+    intended_record: dict[str, Any],
+    *,
+    operation: str = "upsert",
+    create_physical_row: Optional[int] = None,
+    apply: bool = False,
+    approved_plan_sha256: str = "",
+    profile: Optional[dict[str, Any]] = None,
+    workspace: Optional[Path] = None,
+) -> dict[str, Any]:
+    """Re-plan from live data, then optionally apply a hash-approved cell plan.
+
+    Every call reads the current explicit snapshot. Apply calls require the hash
+    produced by a prior dry run, enforce confirm_each_external, write only the
+    planned cells, and verify every written cell by exact readback.
+    """
+    response = sheets_read(runner, sheet_id, range_name)
+    snapshot = _sheet_snapshot(response, range_name, header_row)
+    planner = _tracker_reconciliation_module()
+    decision = planner.reconcile(
+        snapshot, fields, intended_record, operation=operation,
+        create_physical_row=create_physical_row,
+        require_contiguous_business_ids=True, reject_duplicate_business_ids=True,
+    )
+    reconciliation = {
+        "status": "dry_run", "adapter": "google_sheets", "operation": "reconcile",
+        "target": {"sheet": sheet_hint(sheet_id), "range": range_name, "header_row": header_row},
+        "plan": decision, "snapshot_headers": snapshot["headers"],
+    }
+    write_plan = _reconciliation_write_plan(sheet_id, range_name, header_row, fields, reconciliation)
+    approval_sha256 = _reconciliation_approval_hash(write_plan, sheet_id)
+    result = {"status": "dry_run", "plan": write_plan, "approval_sha256": approval_sha256}
+    if not apply:
+        return result
+    if write_plan["decision"] not in {"update_plan", "create_plan", "no_change"}:
+        raise ValueError(
+            "reconciliation decision is not applicable: "
+            f"{write_plan['decision'] or 'missing decision'}"
+        )
+    if not re.fullmatch(r"[0-9a-f]{64}", approved_plan_sha256):
+        raise ValueError("--approved-plan-sha256 must be a lowercase SHA-256 hash from a dry run")
+    if approved_plan_sha256 != approval_sha256:
+        if workspace is None:
+            raise ValueError("approved plan hash does not match the current live reconciliation plan")
+        root = _private_workspace(workspace)
+        target_ref = f"{sheet_hint(sheet_id)}:{range_name}"
+        try:
+            authorization_mode = require_external_permission(profile)
+        except ValueError:
+            authorization_mode = "draft_only"
+        append_external_audit(root, adapter="google_sheets", operation="reconcile_apply", target_ref=target_ref,
+                              plan=write_plan, authorization_mode=authorization_mode, result="blocked",
+                              detail="approved plan hash does not match current live reconciliation plan")
+        raise ValueError("approved plan hash does not match the current live reconciliation plan")
+    if not write_plan["writes"]:
+        return {"status": "no_change", "verified": True, "plan": write_plan, "approval_sha256": approval_sha256}
+    target_ref = f"{sheet_hint(sheet_id)}:{range_name}"
+    if workspace is None:
+        raise ValueError("external mutations require --workspace for private audit logging")
+    root = _private_workspace(workspace)
+    try:
+        authorization_mode = require_external_permission(profile)
+    except ValueError as exc:
+        append_external_audit(root, adapter="google_sheets", operation="reconcile_apply", target_ref=target_ref,
+                              plan=write_plan, authorization_mode="draft_only", result="blocked", detail=str(exc))
+        raise
+    attempt_ref = append_external_audit(root, adapter="google_sheets", operation="reconcile_apply", target_ref=target_ref,
+                                        plan=write_plan, authorization_mode=authorization_mode, result="attempted")
+    applied_refs: list[str] = []
+    try:
+        for write in write_plan["writes"]:
+            params = json.dumps({"spreadsheetId": sheet_id, "range": write["range"], "valueInputOption": "RAW"}, separators=(",", ":"))
+            body = json.dumps({"values": write["values"]}, separators=(",", ":"))
+            runner(["gws", "sheets", "spreadsheets", "values", "update", "--params", params, "--json", body])
+            # Sheets has no multi-cell transaction through this minimal API. Record
+            # each completed narrow write so a later provider failure is not
+            # misrepresented as an all-or-nothing non-event.
+            applied_refs.append(append_external_audit(
+                root, adapter="google_sheets", operation="reconcile_apply", target_ref=target_ref,
+                plan=write_plan, authorization_mode=authorization_mode, result="applied",
+            ))
+    except Exception as exc:
+        append_external_audit(root, adapter="google_sheets", operation="reconcile_apply", target_ref=target_ref,
+                              plan=write_plan, authorization_mode=authorization_mode, result="failed",
+                              detail=f"{len(applied_refs)} cell write(s) completed before failure: {exc}")
+        raise
+    try:
+        for write in write_plan["writes"]:
+            readback = sheets_read(runner, sheet_id, write["range"])
+            values = readback.get("values", [])
+            actual = ""
+            if values and isinstance(values[0], list) and values[0]:
+                actual = str(values[0][0])
+            if actual != write["values"][0][0]:
+                raise RuntimeError(f"Sheets readback did not match requested value for {write['range']}")
+    except Exception as exc:
+        append_external_audit(root, adapter="google_sheets", operation="reconcile_apply", target_ref=target_ref,
+                              plan=write_plan, authorization_mode=authorization_mode, result="failed", detail=str(exc))
+        raise
+    verified_ref = append_external_audit(root, adapter="google_sheets", operation="reconcile_apply", target_ref=target_ref,
+                                         plan=write_plan, authorization_mode=authorization_mode, result="verified", readback_ref=applied_refs[-1])
+    return {"status": "applied", "verified": True, "plan": write_plan, "approval_sha256": approval_sha256,
+            "audit_refs": [attempt_ref, *applied_refs, verified_ref]}
+
+
 def sheets_update(
     runner: Runner,
     sheet_id: str,
@@ -329,6 +632,28 @@ def parser() -> argparse.ArgumentParser:
     sheets_get.add_argument("--sheet-id", required=True)
     sheets_get.add_argument("--range", required=True)
 
+    sheets_reconcile_parser = commands.add_parser("sheets-reconcile")
+    sheets_reconcile_parser.add_argument("--sheet-id", required=True)
+    sheets_reconcile_parser.add_argument("--range", required=True, help="A1 range beginning at --header-row")
+    sheets_reconcile_parser.add_argument("--header-row", required=True, type=int)
+    sheets_reconcile_parser.add_argument("--fields-json", required=True, help="Logical field-to-header JSON mapping")
+    sheets_reconcile_parser.add_argument("--record-json", required=True, help="Intended logical record JSON")
+    sheets_reconcile_parser.add_argument("--operation", choices=("upsert", "create", "update"), default="upsert")
+    sheets_reconcile_parser.add_argument("--create-physical-row", type=int)
+
+    sheets_reconcile_apply_parser = commands.add_parser("sheets-reconcile-apply")
+    sheets_reconcile_apply_parser.add_argument("--sheet-id", required=True)
+    sheets_reconcile_apply_parser.add_argument("--range", required=True, help="Closed A1 range beginning at --header-row")
+    sheets_reconcile_apply_parser.add_argument("--header-row", required=True, type=int)
+    sheets_reconcile_apply_parser.add_argument("--fields-json", required=True, help="Logical field-to-header JSON mapping")
+    sheets_reconcile_apply_parser.add_argument("--record-json", required=True, help="Intended logical record JSON")
+    sheets_reconcile_apply_parser.add_argument("--operation", choices=("upsert", "create", "update"), default="upsert")
+    sheets_reconcile_apply_parser.add_argument("--create-physical-row", type=int)
+    sheets_reconcile_apply_parser.add_argument("--approved-plan-sha256", default="", help="Required with --apply; from the reviewed dry run")
+    sheets_reconcile_apply_parser.add_argument("--profile", help="Private profile.yaml; required with --apply")
+    sheets_reconcile_apply_parser.add_argument("--workspace", help="Private workspace for required audit events; required with --apply")
+    sheets_reconcile_apply_parser.add_argument("--apply", action="store_true", help="Execute only the hash-approved, current plan")
+
     sheets_set = commands.add_parser("sheets-update")
     sheets_set.add_argument("--sheet-id", required=True)
     sheets_set.add_argument("--range", required=True)
@@ -366,6 +691,29 @@ def main() -> int:
     try:
         if args.command == "sheets-read":
             result = sheets_read(run_json_command, args.sheet_id, args.range)
+        elif args.command == "sheets-reconcile":
+            fields = json.loads(args.fields_json)
+            record = json.loads(args.record_json)
+            if not isinstance(fields, dict) or not isinstance(record, dict):
+                raise ValueError("fields-json and record-json must both be JSON objects")
+            result = sheets_reconcile(
+                run_json_command, args.sheet_id, args.range, args.header_row, fields, record,
+                operation=args.operation,
+                create_physical_row=args.create_physical_row,
+                require_contiguous_business_ids=True,
+                reject_duplicate_business_ids=True,
+            )
+        elif args.command == "sheets-reconcile-apply":
+            fields = json.loads(args.fields_json)
+            record = json.loads(args.record_json)
+            if not isinstance(fields, dict) or not isinstance(record, dict):
+                raise ValueError("fields-json and record-json must both be JSON objects")
+            result = sheets_reconcile_apply(
+                run_json_command, args.sheet_id, args.range, args.header_row, fields, record,
+                operation=args.operation, create_physical_row=args.create_physical_row,
+                apply=args.apply, approved_plan_sha256=args.approved_plan_sha256,
+                profile=load_profile(args.profile), workspace=Path(args.workspace) if args.workspace else None,
+            )
         elif args.command == "sheets-update":
             values = json.loads(args.values_json)
             if not isinstance(values, list) or any(not isinstance(row, list) for row in values):

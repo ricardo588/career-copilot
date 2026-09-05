@@ -27,6 +27,7 @@ REQUIRED = [
     "skills/career-copilot/references/encrypted-backups.md",
     "skills/career-copilot/references/requirement-matrix-and-cv-review.md",
     "skills/career-copilot/references/tracker-schema.md",
+    "skills/career-copilot/references/google-sheets-tracker-backend.md",
     "skills/career-copilot/references/assessment-prep.md",
     "skills/career-copilot/references/privacy-and-actions.md",
     "skills/career-copilot/references/adapters.md",
@@ -35,10 +36,12 @@ REQUIRED = [
     "skills/career-copilot/templates/candidate-profile.template.yaml",
     "skills/career-copilot/templates/rules.template.yaml",
     "skills/career-copilot/templates/tracker.template.csv",
+    "skills/career-copilot/templates/tracker-backend.template.yaml",
     "skills/career-copilot/scripts/bootstrap_workspace.py",
     "skills/career-copilot/scripts/workspace_backup.py",
     "skills/career-copilot/scripts/onboarding.py",
     "skills/career-copilot/scripts/pipeline.py",
+    "skills/career-copilot/scripts/tracker_reconciliation.py",
     "skills/career-copilot/scripts/run_synthetic_demo.py",
     "skills/career-copilot/scripts/adapters.py",
     "skills/career-copilot/scripts/requirement_matrix.py",
@@ -60,6 +63,8 @@ REQUIRED = [
     "docs/es/PRIVACY.md",
     "docs/TROUBLESHOOTING.md",
     "docs/es/TROUBLESHOOTING.md",
+    "docs/ROADMAP-0.7.md",
+    "docs/es/ROADMAP-0.7.md",
     "cron/README.md",
     "cron/README.es.md",
 ]
@@ -74,6 +79,7 @@ DOC_LINK_PAIRS = [
     ("docs/ADAPTERS.md", "docs/es/ADAPTERS.md", "es/ADAPTERS.md"),
     ("docs/PRIVACY.md", "docs/es/PRIVACY.md", "es/PRIVACY.md"),
     ("docs/TROUBLESHOOTING.md", "docs/es/TROUBLESHOOTING.md", "es/TROUBLESHOOTING.md"),
+    ("docs/ROADMAP-0.7.md", "docs/es/ROADMAP-0.7.md", "es/ROADMAP-0.7.md"),
     ("cron/README.md", "cron/README.es.md", "README.es.md"),
 ]
 

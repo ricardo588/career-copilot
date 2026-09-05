@@ -1,0 +1,24 @@
+# Private per-user configuration. Keep this outside the distribution repository.
+tracker:
+  backend: google_sheets
+  canonical_source: sheet
+  sheet:
+    spreadsheet_id_env: CAREER_COPILOT_SHEET_ID
+    worksheet: Applications
+    header_range: Applications!A1:Z1
+    data_range: Applications!A2:Z
+  fields:
+    # Logical field -> exact header in the candidate's private sheet.
+    business_id: No
+    company: Company
+    role: Role
+    location: Location
+    canonical_url: Canonical URL
+    external_job_id: External Job ID
+    status: Status
+    priority: Priority
+    notes: Notes
+  integrity:
+    # Enable only for trackers whose business IDs must be consecutive.
+    require_contiguous_business_ids: false
+    reject_duplicate_business_ids: true

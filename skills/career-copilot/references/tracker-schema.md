@@ -81,3 +81,9 @@ A repost is not automatically a new opportunity. Compare source ID, scope, locat
 - Write atomically where possible.
 - Read back and verify identity, status, next action and every field intended to change.
 - Never report a write as successful solely because a command exited without error.
+
+## Compensation migration gate
+
+The 0.3 tracker schema has no compensation columns. Do not add or populate them
+ad hoc. Follow `tracker-compensation-migration.md` for the proposed 0.4
+append-only migration and its backup, permission, and readback requirements.

@@ -40,6 +40,65 @@ python3 "$ADAPTER" sheets-read \
   --range 'Applications!A1:P10'
 ```
 
+Reconcile a tracker record (read-only; **no `--apply` option exists**):
+
+```bash
+python3 "$ADAPTER" sheets-reconcile \
+  --sheet-id "$CAREER_COPILOT_SHEET_ID" \
+  --range 'Applications!A1:I500' \
+  --header-row 1 \
+  --fields-json '{"business_id":"No","company":"Company","role":"Role","location":"Location","canonical_url":"Canonical URL","external_job_id":"External Job ID","status":"Status","priority":"Priority","notes":"Notes"}' \
+  --record-json '{"business_id":"1","company":"Example Company","role":"Program Director","location":"Mexico City","canonical_url":"https://jobs.example.test/1","external_job_id":"SYN-1","status":"identified","priority":"medium","notes":""}'
+```
+
+The range must begin exactly at the header row. The command reads once, derives
+physical row positions from that explicit range, and returns a deterministic
+`create_plan`, `update_plan`, `no_change`, or blocking decision. It never calls
+a Sheets write endpoint. See the skill reference for the private mapping and
+integrity contract.
+
+### Reconcile, review, and apply one approved plan
+
+`sheets-reconcile-apply` first behaves as a dry run. It returns the exact cell
+ranges, old/new reconciliation values, integrity audit, and an
+`approval_sha256`. Review those values before doing anything else.
+
+```bash
+python3 "$ADAPTER" sheets-reconcile-apply \
+  --sheet-id "$CAREER_COPILOT_SHEET_ID" \
+  --range 'Applications!A1:I500' \
+  --header-row 1 \
+  --fields-json "$FIELDS_JSON" \
+  --record-json "$RECORD_JSON"
+```
+
+To write, repeat exactly the reviewed arguments and add `--apply`, the returned
+hash, a private workspace, and a profile whose mode is
+`confirm_each_external`:
+
+```bash
+python3 "$ADAPTER" sheets-reconcile-apply \
+  --sheet-id "$CAREER_COPILOT_SHEET_ID" \
+  --range 'Applications!A1:I500' \
+  --header-row 1 \
+  --fields-json "$FIELDS_JSON" \
+  --record-json "$RECORD_JSON" \
+  --approved-plan-sha256 '<HASH_FROM_REVIEWED_DRY_RUN>' \
+  --profile "$HOME/Documents/CareerCopilot/profile.yaml" \
+  --workspace "$HOME/Documents/CareerCopilot" \
+  --apply
+```
+
+The apply call re-reads the live range and recomputes the plan. It blocks before
+any write if that current plan hash differs from the reviewed hash. It accepts
+only a closed A1 rectangle with a worksheet name, writes only changed cells,
+reads back each changed cell, and appends minimal private audit events. It never
+submits an application or sends outreach.
+
+The approval hash is bound to the exact spreadsheet ID without disclosing that
+ID in command output. A matching no-change plan returns `no_change` and performs
+no external mutation or audit write.
+
 Preview an update:
 
 ```bash

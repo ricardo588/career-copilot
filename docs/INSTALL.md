@@ -104,4 +104,12 @@ hermes profile install . --name career-copilot-upgrade-test
 hermes -p career-copilot-upgrade-test skills list
 ```
 
+For 0.7.0, run onboarding `status` once in the private workspace before
+finalizing or editing a profile: it upgrades the private checkpoint to schema 5
+and preserves legacy compensation target/floor values as an `unspecified`
+policy. That policy intentionally does not match payroll or contractor offers
+until the user explicitly supplies employment type and periodicity. The local
+CSV tracker remains at schema 0.3; do not add compensation columns manually—see
+`skills/career-copilot/references/tracker-compensation-migration.md`.
+
 Never use a personal profile export as an upgrade or distribution mechanism.

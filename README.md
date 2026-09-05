@@ -48,6 +48,7 @@ Do not export a personal Hermes profile to distribute this project. Install the 
 - [Optional adapters](docs/ADAPTERS.md)
 - [Privacy and threat model](docs/PRIVACY.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Operational Tracker 0.7 design brief](docs/ROADMAP-0.7.md)
 
 ### En español
 
@@ -88,6 +89,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.6.0 is a pilot release. It adds selective weak-tie reconnection and evidence-led positioning to private relationship intelligence while preserving draft-only external-action guardrails. Google adapters require a separately installed and authenticated compatible `gws` CLI. The Gmail adapter intentionally does not send messages. Google mutations require a private profile in `confirm_each_external` mode.
+Version 0.7.0 is a pilot release. It adds optional tracker reconciliation with a read-only Google Sheets planner and a separately hash-approved, narrowly scoped apply path; it also adds private compensation-policy evaluation. The Sheets path never submits applications or sends outreach, and requires `confirm_each_external`, a reviewed current-plan hash, per-cell readback and a private audit workspace for writes. Compensation is deterministic, never converts currencies, treats undisclosed figures as unknown, and does not mutate a tracker. Google adapters require a separately installed and authenticated compatible `gws` CLI; Gmail intentionally cannot send messages.
 
 Licensed under Apache-2.0; see [LICENSE](LICENSE).
