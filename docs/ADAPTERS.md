@@ -126,7 +126,7 @@ python3 "$ADAPTER" gmail-search --query 'newer_than:7d (recruiter OR application
 python3 "$ADAPTER" gmail-get --message-id '<MESSAGE_ID>'
 ```
 
-Preview marking a handled message as read:
+Preview marking a handled message as read. The response includes an `approval_sha256` bound to that message and user identity:
 
 ```bash
 python3 "$ADAPTER" gmail-mark-read \
@@ -134,7 +134,29 @@ python3 "$ADAPTER" gmail-mark-read \
   --profile "$HOME/Documents/CareerCopilot/profile.yaml"
 ```
 
-In `confirm_each_external`, apply by adding `--apply` after exact confirmation. In `draft_only`, the adapter blocks the mutation. When applied, it confirms that the `UNREAD` label is absent.
+In `confirm_each_external`, apply only with the exact reviewed hash, a private workspace and a current re-read showing the target remains unread:
+
+```bash
+python3 "$ADAPTER" gmail-mark-read \
+  --message-id '<MESSAGE_ID>' \
+  --profile "$HOME/Documents/CareerCopilot/profile.yaml" \
+  --workspace "$HOME/Documents/CareerCopilot" \
+  --approved-plan-sha256 '<HASH_FROM_REVIEWED_DRY_RUN>' \
+  --apply
+```
+
+In `draft_only`, the adapter blocks the mutation before any Gmail request. A successful apply confirms that the `UNREAD` label is absent.
+
+Triage one explicit message without any Gmail mutation:
+
+```bash
+python3 "$ADAPTER" gmail-triage \
+  --message-id '<MESSAGE_ID>' \
+  --account-ref me \
+  --workspace "$HOME/Documents/CareerCopilot"
+```
+
+Triage writes only a minimal private ledger and returns a review proposal; a repeated message is an idempotent `already_processed` no-op.
 
 Sending, replying, forwarding and creating drafts are intentionally unsupported in this adapter version. Career Copilot can prepare local draft text, but a separate approved workflow must handle transmission.
 
