@@ -565,7 +565,7 @@ def gmail_get(runner: Runner, message_id: str, user_id: str = "me") -> dict[str,
     return runner(["gws", "gmail", "users", "messages", "get", "--params", params])
 
 
-def _gmail_triage_already_processed(workspace: Path, fingerprint: str) -> bool:
+def _gmail_triage_already_processed(workspace: Path, fingerprint: str, message_id: str) -> bool:
     ledger = workspace / "triage" / "gmail-triage.jsonl"
     if not ledger.exists():
         return False
@@ -579,6 +579,8 @@ def _gmail_triage_already_processed(workspace: Path, fingerprint: str) -> bool:
         except json.JSONDecodeError as exc:
             raise ValueError("Gmail triage ledger is invalid") from exc
         if event.get("message_fingerprint") == fingerprint and event.get("outcome") == "proposed":
+            if event.get("message_id") != message_id:
+                raise ValueError("Gmail triage fingerprint collision requires human review")
             return True
     return False
 
@@ -603,7 +605,7 @@ def gmail_triage(
     root = _private_workspace(workspace)
     event_id = str(uuid.uuid4())
     fingerprint = _plan_hash({"account_ref": account_ref.strip(), "message_id": message_id, "thread_id": message.get("threadId", "")})
-    if _gmail_triage_already_processed(root, fingerprint):
+    if _gmail_triage_already_processed(root, fingerprint, message_id):
         return {
             "status": "already_processed",
             "message_ref": f"gmail:{message_id}",
@@ -711,6 +713,18 @@ def safe_obsidian_path(vault: Path, relative_path: str) -> Path:
     return target
 
 
+def _require_private_obsidian_vault(vault: Path) -> None:
+    root = vault.expanduser().resolve()
+    distribution_root = Path(__file__).resolve().parents[3]
+    if root == distribution_root or distribution_root in root.parents:
+        raise ValueError("Obsidian vault must be outside the Career Copilot distribution")
+    for ancestor in (root, *root.parents):
+        if ancestor.is_symlink():
+            raise ValueError("Obsidian vault cannot be beneath a symlink")
+        if (ancestor / ".git").exists():
+            raise ValueError("Obsidian vault must be outside a Git repository")
+
+
 def obsidian_write(
     vault: Path,
     relative_path: str,
@@ -734,6 +748,7 @@ def obsidian_write(
         raise ValueError("Obsidian write requires the current approved plan hash")
     root, mode, attempt_ref = _audit_before_mutation(workspace, plan, profile, f"note:{relative_path}")
     try:
+        _require_private_obsidian_vault(vault)
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.with_suffix(target.suffix + ".tmp")
         temporary.write_text(content, encoding="utf-8")

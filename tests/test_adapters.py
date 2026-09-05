@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -384,6 +385,18 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(ledger.count('"outcome":"proposed"'), 1)
         self.assertEqual(len(fake.calls), 2)
 
+    def test_gmail_triage_blocks_a_fingerprint_collision(self):
+        message = {"id": "synthetic-message", "threadId": "synthetic-thread"}
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "private"
+            ADAPTERS.gmail_triage(FakeRunner([message]), "synthetic-message", workspace=workspace, account_ref="me")
+            ledger_path = workspace / "triage" / "gmail-triage.jsonl"
+            event = json.loads(ledger_path.read_text(encoding="utf-8"))
+            event["message_id"] = "different-message"
+            ledger_path.write_text(json.dumps(event) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "fingerprint collision"):
+                ADAPTERS.gmail_triage(FakeRunner([message]), "synthetic-message", workspace=workspace, account_ref="me")
+
     def test_gmail_mark_read_rejects_apply_without_the_reviewed_plan_hash(self):
         fake = FakeRunner([])
         with tempfile.TemporaryDirectory() as tmp:
@@ -488,6 +501,17 @@ class AdapterTests(unittest.TestCase):
                 ADAPTERS.obsidian_write(
                     Path(tmp) / "vault", "CareerCopilot/Brief.md", "# Brief\n", apply=True,
                     profile=self.confirm_each, workspace=Path(tmp) / "private",
+                )
+
+    def test_obsidian_write_rejects_vault_inside_git_repository(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            (vault / ".git").mkdir(parents=True)
+            dry = ADAPTERS.obsidian_write(vault, "CareerCopilot/Brief.md", "# Brief\n")
+            with self.assertRaisesRegex(ValueError, "Git repository"):
+                ADAPTERS.obsidian_write(
+                    vault, "CareerCopilot/Brief.md", "# Brief\n", apply=True,
+                    profile=self.confirm_each, workspace=Path(tmp) / "private", approved_plan_sha256=dry["approval_sha256"],
                 )
 
     def test_obsidian_write_is_scoped_dry_run_first_and_read_back(self):
