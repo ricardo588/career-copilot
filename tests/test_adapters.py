@@ -356,6 +356,21 @@ class AdapterTests(unittest.TestCase):
         self.assertTrue(result["proposal"]["evidence_ref"].startswith("evidence/gmail-evidence.jsonl#"))
         self.assertIn('"supported_fact":"Recruiter explicitly scheduled a screen"', evidence)
 
+    def test_gmail_evidence_can_feed_a_read_only_tracker_reconciliation_proposal(self):
+        snapshot = {"headers": self.tracker_headers, "rows": [{
+            "physical_row": 5,
+            "values": dict(zip(self.tracker_headers, [
+                "1", "Synthetic Co", "Program Director", "Remote", "https://jobs.example.test/synthetic/1", "SYN-1", "identified", "medium", "Old note.",
+            ])),
+        }]}
+        result = ADAPTERS.gmail_reconciliation_proposal(
+            snapshot, self.tracker_fields, self.tracker_record,
+            "evidence/gmail-evidence.jsonl#00000000-0000-0000-0000-000000000000",
+        )
+        self.assertEqual(result["status"], "dry_run")
+        self.assertEqual(result["plan"]["decision"], "update_plan")
+        self.assertEqual(result["evidence_ref"], "evidence/gmail-evidence.jsonl#00000000-0000-0000-0000-000000000000")
+
     def test_gmail_triage_reprocessing_is_a_private_idempotent_no_op(self):
         message = {"id": "synthetic-message", "threadId": "synthetic-thread"}
         fake = FakeRunner([message, message])

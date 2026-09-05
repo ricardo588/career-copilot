@@ -637,6 +637,26 @@ def gmail_triage(
     }
 
 
+def gmail_reconciliation_proposal(
+    snapshot: dict[str, Any],
+    fields: dict[str, Any],
+    record: dict[str, Any],
+    evidence_ref: str,
+    *,
+    operation: str = "upsert",
+    create_physical_row: Optional[int] = None,
+) -> dict[str, Any]:
+    """Bind reviewed Gmail evidence to a pure, read-only tracker plan."""
+    if not re.fullmatch(r"evidence/gmail-evidence\.jsonl#[0-9a-fA-F-]{36}", evidence_ref):
+        raise ValueError("Gmail reconciliation requires an opaque Gmail evidence reference")
+    planner = _tracker_reconciliation_module()
+    plan = planner.reconcile(
+        snapshot, fields, record, operation=operation, create_physical_row=create_physical_row,
+        require_contiguous_business_ids=True, reject_duplicate_business_ids=True,
+    )
+    return {"status": "dry_run", "plan": plan, "evidence_ref": evidence_ref}
+
+
 def gmail_mark_read(
     runner: Runner,
     message_id: str,
@@ -787,6 +807,14 @@ def parser() -> argparse.ArgumentParser:
     gmail_triage_parser.add_argument("--content-sha256", default="", help="Content hash; alternative to --excerpt for --supported-fact")
     gmail_triage_parser.add_argument("--user-id", default="me")
 
+    gmail_reconcile_parser = commands.add_parser("gmail-reconcile")
+    gmail_reconcile_parser.add_argument("--snapshot-json", required=True, help="Validated tracker snapshot JSON")
+    gmail_reconcile_parser.add_argument("--fields-json", required=True, help="Logical field-to-header JSON mapping")
+    gmail_reconcile_parser.add_argument("--record-json", required=True, help="Intended tracker record JSON")
+    gmail_reconcile_parser.add_argument("--evidence-ref", required=True, help="Opaque private Gmail evidence reference")
+    gmail_reconcile_parser.add_argument("--operation", choices=("upsert", "create", "update"), default="upsert")
+    gmail_reconcile_parser.add_argument("--create-physical-row", type=int)
+
     gmail_modify = commands.add_parser("gmail-mark-read")
     gmail_modify.add_argument("--message-id", required=True)
     gmail_modify.add_argument("--user-id", default="me")
@@ -851,6 +879,16 @@ def main() -> int:
                 run_json_command, args.message_id, workspace=Path(args.workspace),
                 account_ref=args.account_ref, user_id=args.user_id, supported_fact=args.supported_fact,
                 excerpt=args.excerpt, content_sha256=args.content_sha256,
+            )
+        elif args.command == "gmail-reconcile":
+            snapshot = json.loads(args.snapshot_json)
+            fields = json.loads(args.fields_json)
+            record = json.loads(args.record_json)
+            if not isinstance(snapshot, dict) or not isinstance(fields, dict) or not isinstance(record, dict):
+                raise ValueError("snapshot-json, fields-json and record-json must all be JSON objects")
+            result = gmail_reconciliation_proposal(
+                snapshot, fields, record, args.evidence_ref, operation=args.operation,
+                create_physical_row=args.create_physical_row,
             )
         elif args.command == "gmail-mark-read":
             result = gmail_mark_read(
