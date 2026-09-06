@@ -794,7 +794,7 @@ def _new_kanban_board(lane: str, card_line: str) -> str:
     )
 
 
-def _append_kanban_card(existing: str, lane: str, card_line: str) -> str:
+def _append_kanban_card(existing: str, lane: str, card_line: str) -> tuple[str, str]:
     if not re.search(r"(?m)^kanban-plugin:\s*board\s*$", existing):
         raise ValueError("existing Kanban board must declare kanban-plugin: board")
     if "%% kanban:settings" not in existing:
@@ -806,11 +806,17 @@ def _append_kanban_card(existing: str, lane: str, card_line: str) -> str:
     start = matches[0].end()
     next_boundary = re.search(r"(?m)^(?:##\s+|\*\*\*\s*$|%% kanban:settings)", existing[start:])
     end = start + next_boundary.start() if next_boundary else len(existing)
-    region = existing[start:end]
-    if "^cc-" in region and card_line.rsplit("^", 1)[-1] in region:
-        raise ValueError("matching Kanban card already exists")
+    marker = card_line.rsplit("^", 1)[-1]
+    matching = [match for match in re.finditer(rf"(?m)^- \[[ xX]\] .*\^{re.escape(marker)}\s*$", existing)]
+    if len(matching) > 1:
+        raise ValueError("Kanban card marker is ambiguous")
+    if matching:
+        match = matching[0]
+        if match.group(0) == card_line:
+            return existing, "no_change"
+        return existing[:match.start()] + card_line + existing[match.end():], "update_card_plan"
     insertion = "\n\n" + card_line + "\n"
-    return existing[:end].rstrip("\n") + insertion + existing[end:]
+    return existing[:end].rstrip("\n") + insertion + existing[end:], "append_card_plan"
 
 
 def obsidian_kanban_project(
@@ -832,8 +838,7 @@ def obsidian_kanban_project(
     card_line = f"- [ ] {card_text} ^{marker}"
     existing = target.read_text(encoding="utf-8") if target.exists() else ""
     if target.exists():
-        markdown = _append_kanban_card(existing, lane.strip(), card_line)
-        decision = "append_card_plan"
+        markdown, decision = _append_kanban_card(existing, lane.strip(), card_line)
     else:
         markdown = _new_kanban_board(lane.strip(), card_line)
         decision = "create_board_plan"

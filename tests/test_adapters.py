@@ -628,6 +628,21 @@ class AdapterTests(unittest.TestCase):
             self.assertIn('"operation":"project_card"', audit)
             self.assertIn('"result":"verified"', audit)
 
+    def test_obsidian_kanban_preview_updates_its_own_marked_card_without_touching_other_cards(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            artifact = {"artifact_ref": "evidence/gmail-evidence.jsonl#00000000-0000-0000-0000-000000000004", "card_text": "Original synthetic card"}
+            created = ADAPTERS.obsidian_kanban_project(vault, "CareerCopilot/Board.md", "To do", artifact)
+            board = vault / "CareerCopilot" / "Board.md"
+            board.parent.mkdir(parents=True)
+            board.write_text(created["markdown"], encoding="utf-8")
+            updated = ADAPTERS.obsidian_kanban_project(
+                vault, "CareerCopilot/Board.md", "To do", {**artifact, "card_text": "Updated synthetic card"},
+            )
+            self.assertEqual(updated["plan"]["decision"], "update_card_plan")
+            self.assertIn("Updated synthetic card", updated["markdown"])
+            self.assertNotIn("Original synthetic card", updated["markdown"])
+
 
 if __name__ == "__main__":
     unittest.main()
