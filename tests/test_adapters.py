@@ -579,6 +579,55 @@ class AdapterTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ADAPTERS.obsidian_write(vault, "../outside.md", "blocked", apply=True)
 
+    def test_obsidian_kanban_dry_run_creates_a_markdown_backed_board_without_writing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            result = ADAPTERS.obsidian_kanban_project(
+                vault, "CareerCopilot/Board.md", "To do",
+                {"artifact_ref": "evidence/gmail-evidence.jsonl#00000000-0000-0000-0000-000000000001", "card_text": "Synthetic review card"},
+            )
+            self.assertEqual(result["status"], "dry_run")
+            self.assertEqual(result["plan"]["decision"], "create_board_plan")
+            self.assertIn("kanban-plugin: board", result["markdown"])
+            self.assertIn("## To do", result["markdown"])
+            self.assertIn("- [ ] Synthetic review card ^cc-", result["markdown"])
+            self.assertFalse((vault / "CareerCopilot" / "Board.md").exists())
+
+    def test_obsidian_kanban_dry_run_appends_only_to_the_explicit_existing_lane(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            board = vault / "CareerCopilot" / "Board.md"
+            board.parent.mkdir(parents=True)
+            original = (
+                "---\nkanban-plugin: board\n---\n\n## To do\n\n- [ ] Existing synthetic card\n\n"
+                "## Done\n\n- [x] Preserved synthetic completion\n\n%% kanban:settings\n```\n{\"kanban-plugin\":\"board\"}\n```\n%%\n"
+            )
+            board.write_text(original, encoding="utf-8")
+            result = ADAPTERS.obsidian_kanban_project(
+                vault, "CareerCopilot/Board.md", "To do",
+                {"artifact_ref": "evidence/gmail-evidence.jsonl#00000000-0000-0000-0000-000000000002", "card_text": "New synthetic review card"},
+            )
+            self.assertEqual(result["plan"]["decision"], "append_card_plan")
+            self.assertIn("- [ ] New synthetic review card ^cc-", result["markdown"])
+            self.assertIn("## Done\n\n- [x] Preserved synthetic completion", result["markdown"])
+            self.assertEqual(board.read_text(encoding="utf-8"), original)
+
+    def test_obsidian_kanban_apply_requires_current_hash_and_verifies_readback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            artifact = {"artifact_ref": "evidence/gmail-evidence.jsonl#00000000-0000-0000-0000-000000000003", "card_text": "Approved synthetic card"}
+            dry = ADAPTERS.obsidian_kanban_project(vault, "CareerCopilot/Board.md", "To do", artifact)
+            workspace = Path(tmp) / "private"
+            applied = ADAPTERS.obsidian_kanban_project(
+                vault, "CareerCopilot/Board.md", "To do", artifact, apply=True,
+                profile=self.confirm_each, workspace=workspace, approved_plan_sha256=dry["approval_sha256"],
+            )
+            self.assertTrue(applied["verified"])
+            self.assertIn("Approved synthetic card", (vault / "CareerCopilot" / "Board.md").read_text(encoding="utf-8"))
+            audit = (workspace / "audit" / "external-actions.jsonl").read_text(encoding="utf-8")
+            self.assertIn('"operation":"project_card"', audit)
+            self.assertIn('"result":"verified"', audit)
+
 
 if __name__ == "__main__":
     unittest.main()

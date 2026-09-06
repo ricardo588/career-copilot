@@ -770,6 +770,113 @@ def obsidian_write(
     return {"status": "applied", "verified": True, "plan": plan, "audit_refs": [attempt_ref, applied_ref, verified_ref]}
 
 
+def _kanban_artifact(artifact: dict[str, Any]) -> tuple[str, str]:
+    if not isinstance(artifact, dict):
+        raise ValueError("Kanban artifact must be an object")
+    artifact_ref = artifact.get("artifact_ref")
+    card_text = artifact.get("card_text")
+    if not isinstance(artifact_ref, str) or not artifact_ref.strip():
+        raise ValueError("Kanban artifact requires a non-empty opaque artifact_ref")
+    if not isinstance(card_text, str) or not card_text.strip() or "\n" in card_text:
+        raise ValueError("Kanban artifact requires one non-empty single-line card_text")
+    return artifact_ref.strip(), card_text.strip()
+
+
+def _kanban_card_marker(artifact_ref: str) -> str:
+    return "cc-" + hashlib.sha256(artifact_ref.encode("utf-8")).hexdigest()[:20]
+
+
+def _new_kanban_board(lane: str, card_line: str) -> str:
+    return (
+        "---\nkanban-plugin: board\n---\n\n"
+        f"## {lane}\n\n{card_line}\n\n"
+        "%% kanban:settings\n```\n{\"kanban-plugin\":\"board\"}\n```\n%%\n"
+    )
+
+
+def _append_kanban_card(existing: str, lane: str, card_line: str) -> str:
+    if not re.search(r"(?m)^kanban-plugin:\s*board\s*$", existing):
+        raise ValueError("existing Kanban board must declare kanban-plugin: board")
+    if "%% kanban:settings" not in existing:
+        raise ValueError("existing Kanban board must include a kanban:settings block")
+    lane_pattern = re.compile(rf"(?m)^##\s+{re.escape(lane)}\s*$")
+    matches = list(lane_pattern.finditer(existing))
+    if len(matches) != 1:
+        raise ValueError("configured Kanban lane must appear exactly once")
+    start = matches[0].end()
+    next_boundary = re.search(r"(?m)^(?:##\s+|\*\*\*\s*$|%% kanban:settings)", existing[start:])
+    end = start + next_boundary.start() if next_boundary else len(existing)
+    region = existing[start:end]
+    if "^cc-" in region and card_line.rsplit("^", 1)[-1] in region:
+        raise ValueError("matching Kanban card already exists")
+    insertion = "\n\n" + card_line + "\n"
+    return existing[:end].rstrip("\n") + insertion + existing[end:]
+
+
+def obsidian_kanban_project(
+    vault: Path,
+    relative_path: str,
+    lane: str,
+    artifact: dict[str, Any],
+    apply: bool = False,
+    profile: Optional[dict[str, Any]] = None,
+    workspace: Optional[Path] = None,
+    approved_plan_sha256: str = "",
+) -> dict[str, Any]:
+    """Preview one reviewed artifact as a card in a local Obsidian Kanban board."""
+    target = safe_obsidian_path(vault, relative_path)
+    if not isinstance(lane, str) or not lane.strip() or "\n" in lane or lane.strip().casefold() == "archive":
+        raise ValueError("Kanban lane must be one non-Archive line")
+    artifact_ref, card_text = _kanban_artifact(artifact)
+    marker = _kanban_card_marker(artifact_ref)
+    card_line = f"- [ ] {card_text} ^{marker}"
+    existing = target.read_text(encoding="utf-8") if target.exists() else ""
+    if target.exists():
+        markdown = _append_kanban_card(existing, lane.strip(), card_line)
+        decision = "append_card_plan"
+    else:
+        markdown = _new_kanban_board(lane.strip(), card_line)
+        decision = "create_board_plan"
+    plan = {
+        "adapter": "obsidian_kanban",
+        "operation": "project_card",
+        "decision": decision,
+        "relative_path": relative_path,
+        "vault_path_sha256": hashlib.sha256(str(vault.expanduser().resolve()).encode("utf-8")).hexdigest(),
+        "lane": lane.strip(),
+        "artifact_ref_sha256": hashlib.sha256(artifact_ref.encode("utf-8")).hexdigest(),
+        "card_marker": marker,
+        "current_content_sha256": hashlib.sha256(existing.encode("utf-8")).hexdigest(),
+        "content_sha256": hashlib.sha256(markdown.encode("utf-8")).hexdigest(),
+    }
+    approval_sha256 = _plan_hash({"domain": "career-copilot/obsidian-kanban-project/v1", "plan": plan})
+    if not apply:
+        return {"status": "dry_run", "plan": plan, "markdown": markdown, "approval_sha256": approval_sha256}
+    if approved_plan_sha256 != approval_sha256:
+        raise ValueError("Obsidian Kanban projection requires the current approved plan hash")
+    root, mode, attempt_ref = _audit_before_mutation(workspace, plan, profile, f"kanban:{relative_path}:{marker}")
+    try:
+        _require_private_obsidian_vault(vault)
+        current = target.read_text(encoding="utf-8") if target.exists() else ""
+        if hashlib.sha256(current.encode("utf-8")).hexdigest() != plan["current_content_sha256"]:
+            raise ValueError("Obsidian Kanban board changed after review")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_suffix(target.suffix + ".tmp")
+        temporary.write_text(markdown, encoding="utf-8")
+        os.replace(temporary, target)
+        if target.read_text(encoding="utf-8") != markdown:
+            raise RuntimeError("Obsidian Kanban readback verification failed")
+    except Exception as exc:
+        append_external_audit(root, adapter="obsidian_kanban", operation="project_card", target_ref=f"kanban:{relative_path}:{marker}",
+                              plan=plan, authorization_mode=mode, result="failed", detail=str(exc))
+        raise
+    applied_ref = append_external_audit(root, adapter="obsidian_kanban", operation="project_card", target_ref=f"kanban:{relative_path}:{marker}",
+                                        plan=plan, authorization_mode=mode, result="applied")
+    verified_ref = append_external_audit(root, adapter="obsidian_kanban", operation="project_card", target_ref=f"kanban:{relative_path}:{marker}",
+                                         plan=plan, authorization_mode=mode, result="verified", readback_ref=applied_ref)
+    return {"status": "applied", "verified": True, "plan": plan, "audit_refs": [attempt_ref, applied_ref, verified_ref]}
+
+
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description=__doc__)
     commands = root.add_subparsers(dest="command", required=True)
@@ -850,6 +957,16 @@ def parser() -> argparse.ArgumentParser:
     obsidian.add_argument("--workspace", help="Private workspace for required audit events; required with --apply")
     obsidian.add_argument("--approved-plan-sha256", default="", help="Required with --apply; from the reviewed dry run")
     obsidian.add_argument("--apply", action="store_true")
+
+    kanban = commands.add_parser("obsidian-kanban-project", help="Preview or apply one approved local Obsidian Kanban card projection")
+    kanban.add_argument("--vault", required=True)
+    kanban.add_argument("--relative-path", required=True)
+    kanban.add_argument("--lane", required=True, help="Explicit existing or initial Kanban lane heading")
+    kanban.add_argument("--artifact-json", required=True, help="Reviewed artifact JSON with opaque artifact_ref and single-line card_text")
+    kanban.add_argument("--profile", help="Private profile.yaml; required with --apply")
+    kanban.add_argument("--workspace", help="Private workspace for required audit events; required with --apply")
+    kanban.add_argument("--approved-plan-sha256", default="", help="Required with --apply; from the reviewed dry run")
+    kanban.add_argument("--apply", action="store_true", help="Execute only the hash-approved, current plan")
     return root
 
 
@@ -919,6 +1036,15 @@ def main() -> int:
             content = Path(args.content_file).read_text(encoding="utf-8")
             result = obsidian_write(
                 Path(args.vault), args.relative_path, content, args.apply,
+                load_profile(args.profile), Path(args.workspace) if args.workspace else None,
+                args.approved_plan_sha256,
+            )
+        elif args.command == "obsidian-kanban-project":
+            artifact = json.loads(args.artifact_json)
+            if not isinstance(artifact, dict):
+                raise ValueError("artifact-json must be a JSON object")
+            result = obsidian_kanban_project(
+                Path(args.vault), args.relative_path, args.lane, artifact, args.apply,
                 load_profile(args.profile), Path(args.workspace) if args.workspace else None,
                 args.approved_plan_sha256,
             )

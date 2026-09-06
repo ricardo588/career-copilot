@@ -196,6 +196,22 @@ python3 "$ADAPTER" obsidian-write \
   --apply
 ```
 
+### Optional Obsidian Kanban
+
+`obsidian-kanban-project` projects one reviewed artifact into one local board using the public Obsidian Kanban Markdown grammar (`kanban-plugin: board`, `##` lanes, Markdown task cards, and a settings block). It never scans a vault, imports board content, syncs, or treats a board as tracker authority.
+
+Preview first; this does not write:
+
+```bash
+python3 "$ADAPTER" obsidian-kanban-project \
+  --vault "$OBSIDIAN_VAULT_PATH" \
+  --relative-path 'CareerCopilot/Board.md' \
+  --lane 'To do' \
+  --artifact-json '{"artifact_ref":"evidence/gmail-evidence.jsonl#<UUID>","card_text":"Reviewed synthetic summary"}'
+```
+
+The plan binds the canonical vault, relative path, current board fingerprint, lane, opaque artifact reference, generated opaque card marker and exact Markdown payload. To write, repeat the exact reviewed arguments with `--profile`, `--workspace`, `--approved-plan-sha256`, and `--apply`. The vault must be private, non-symlinked, outside Git/distribution paths, and the current board must still match the reviewed plan. The adapter writes atomically and verifies exact readback.
+
 ## Testing without accounts
 
 `tests/test_adapters.py` uses fake command runners for Google and a temporary local vault for Obsidian. CI never needs account credentials.
