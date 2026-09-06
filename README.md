@@ -48,6 +48,7 @@ Do not export a personal Hermes profile to distribute this project. Install the 
 - [Optional adapters](docs/ADAPTERS.md)
 - [Privacy and threat model](docs/PRIVACY.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Optional Obsidian Kanban Projection 0.9 design brief](docs/ROADMAP-0.9.md)
 - [Transactional Gmail Triage 0.8 design brief](docs/ROADMAP-0.8.md)
 - [Operational Tracker 0.7 design brief](docs/ROADMAP-0.7.md)
 
