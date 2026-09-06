@@ -139,6 +139,8 @@ def record_gmail_evidence(
         raise ValueError("Gmail evidence requires exactly one minimal excerpt or content_sha256")
     if excerpt and len(excerpt.strip()) > 500:
         raise ValueError("Gmail evidence excerpt must be 500 characters or fewer")
+    if content_sha256 and not re.fullmatch(r"[0-9a-f]{64}", content_sha256.strip()):
+        raise ValueError("Gmail evidence content_sha256 must be a lowercase SHA-256 hash")
     event_id = str(uuid.uuid4())
     event = {
         "evidence_id": event_id,
@@ -565,6 +567,100 @@ def gmail_get(runner: Runner, message_id: str, user_id: str = "me") -> dict[str,
     return runner(["gws", "gmail", "users", "messages", "get", "--params", params])
 
 
+def _gmail_triage_already_processed(workspace: Path, fingerprint: str, message_id: str) -> bool:
+    ledger = workspace / "triage" / "gmail-triage.jsonl"
+    if not ledger.exists():
+        return False
+    if ledger.is_symlink():
+        raise ValueError("private artifact cannot be a symlink")
+    for line in ledger.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError("Gmail triage ledger is invalid") from exc
+        if event.get("message_fingerprint") == fingerprint and event.get("outcome") == "proposed":
+            if event.get("message_id") != message_id:
+                raise ValueError("Gmail triage fingerprint collision requires human review")
+            return True
+    return False
+
+
+def gmail_triage(
+    runner: Runner,
+    message_id: str,
+    *,
+    workspace: Path,
+    account_ref: str,
+    user_id: str = "me",
+    supported_fact: str = "",
+    excerpt: str = "",
+    content_sha256: str = "",
+) -> dict[str, Any]:
+    """Read one Gmail message and create a private, non-mutating review proposal."""
+    if not message_id.strip() or not account_ref.strip():
+        raise ValueError("Gmail triage requires message_id and account_ref")
+    message = gmail_get(runner, message_id, user_id)
+    if message.get("id") != message_id:
+        raise ValueError("Gmail readback did not return the requested message")
+    root = _private_workspace(workspace)
+    event_id = str(uuid.uuid4())
+    fingerprint = _plan_hash({"account_ref": account_ref.strip(), "message_id": message_id, "thread_id": message.get("threadId", "")})
+    if _gmail_triage_already_processed(root, fingerprint, message_id):
+        return {
+            "status": "already_processed",
+            "message_ref": f"gmail:{message_id}",
+            "proposal": {"kind": "gmail_evidence_review", "message_fingerprint": fingerprint},
+        }
+    evidence_ref = ""
+    if supported_fact.strip():
+        evidence_ref = record_gmail_evidence(
+            root, account_ref=account_ref, message_id=message_id, thread_id=str(message.get("threadId", "")),
+            supported_fact=supported_fact, excerpt=excerpt, content_sha256=content_sha256,
+        )
+    _append_jsonl(_private_append_path(root, "triage/gmail-triage.jsonl"), {
+        "triage_id": event_id,
+        "retrieved_at": _utc_now(),
+        "account_ref": account_ref.strip(),
+        "message_id": message_id,
+        "thread_id": str(message.get("threadId", "")),
+        "message_fingerprint": fingerprint,
+        "evidence_ref": evidence_ref,
+        "outcome": "proposed",
+    })
+    return {
+        "status": "proposed",
+        "message_ref": f"gmail:{message_id}",
+        "proposal": {
+            "kind": "gmail_evidence_review",
+            "triage_ref": f"triage/gmail-triage.jsonl#{event_id}",
+            "message_fingerprint": fingerprint,
+            "evidence_ref": evidence_ref,
+        },
+    }
+
+
+def gmail_reconciliation_proposal(
+    snapshot: dict[str, Any],
+    fields: dict[str, Any],
+    record: dict[str, Any],
+    evidence_ref: str,
+    *,
+    operation: str = "upsert",
+    create_physical_row: Optional[int] = None,
+) -> dict[str, Any]:
+    """Bind reviewed Gmail evidence to a pure, read-only tracker plan."""
+    if not re.fullmatch(r"evidence/gmail-evidence\.jsonl#[0-9a-fA-F-]{36}", evidence_ref):
+        raise ValueError("Gmail reconciliation requires an opaque Gmail evidence reference")
+    planner = _tracker_reconciliation_module()
+    plan = planner.reconcile(
+        snapshot, fields, record, operation=operation, create_physical_row=create_physical_row,
+        require_contiguous_business_ids=True, reject_duplicate_business_ids=True,
+    )
+    return {"status": "dry_run", "plan": plan, "evidence_ref": evidence_ref}
+
+
 def gmail_mark_read(
     runner: Runner,
     message_id: str,
@@ -572,11 +668,20 @@ def gmail_mark_read(
     apply: bool = False,
     profile: Optional[dict[str, Any]] = None,
     workspace: Optional[Path] = None,
+    approved_plan_sha256: str = "",
 ) -> dict[str, Any]:
-    plan = {"adapter": "gmail", "operation": "mark_read", "message_id": message_id, "apply": apply}
+    plan = {"adapter": "gmail", "operation": "mark_read", "message_id": message_id, "user_id": user_id}
+    approval_sha256 = _plan_hash({"domain": "career-copilot/gmail-mark-read/v1", "plan": plan})
     if not apply:
-        return {"status": "dry_run", "plan": plan}
+        return {"status": "dry_run", "plan": plan, "approval_sha256": approval_sha256}
+    if approved_plan_sha256 != approval_sha256:
+        raise ValueError("gmail mark-read requires the current approved plan hash")
     root, mode, attempt_ref = _audit_before_mutation(workspace, plan, profile, f"message:{message_id}")
+    current = gmail_get(runner, message_id, user_id)
+    if current.get("id") != message_id or "UNREAD" not in current.get("labelIds", []):
+        append_external_audit(root, adapter="gmail", operation="mark_read", target_ref=f"message:{message_id}",
+                              plan=plan, authorization_mode=mode, result="failed", detail="stale approval or message is no longer unread")
+        raise ValueError("gmail mark-read approval is stale or the message is no longer unread")
     params = json.dumps({"userId": user_id, "id": message_id}, separators=(",", ":"))
     try:
         runner(["gws", "gmail", "users", "messages", "modify", "--params", params, "--json", '{"removeLabelIds":["UNREAD"]}'])
@@ -610,18 +715,59 @@ def safe_obsidian_path(vault: Path, relative_path: str) -> Path:
     return target
 
 
-def obsidian_write(vault: Path, relative_path: str, content: str, apply: bool = False) -> dict[str, Any]:
+def _require_private_obsidian_vault(vault: Path) -> None:
+    raw = vault.expanduser()
+    if raw.is_symlink():
+        raise ValueError("Obsidian vault cannot be a symlink")
+    root = raw.resolve()
+    distribution_root = Path(__file__).resolve().parents[3]
+    if root == distribution_root or distribution_root in root.parents:
+        raise ValueError("Obsidian vault must be outside the Career Copilot distribution")
+    for ancestor in (root, *root.parents):
+        if (ancestor / ".git").exists():
+            raise ValueError("Obsidian vault must be outside a Git repository")
+
+
+def obsidian_write(
+    vault: Path,
+    relative_path: str,
+    content: str,
+    apply: bool = False,
+    profile: Optional[dict[str, Any]] = None,
+    workspace: Optional[Path] = None,
+    approved_plan_sha256: str = "",
+) -> dict[str, Any]:
     target = safe_obsidian_path(vault, relative_path)
-    plan = {"adapter": "obsidian", "operation": "write_note", "relative_path": relative_path, "characters": len(content), "apply": apply}
+    plan = {
+        "adapter": "obsidian",
+        "operation": "write_note",
+        "relative_path": relative_path,
+        "vault_path_sha256": hashlib.sha256(str(vault.expanduser().resolve()).encode("utf-8")).hexdigest(),
+        "content_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+    }
+    approval_sha256 = _plan_hash({"domain": "career-copilot/obsidian-write/v1", "plan": plan})
     if not apply:
-        return {"status": "dry_run", "plan": plan}
-    target.parent.mkdir(parents=True, exist_ok=True)
-    temporary = target.with_suffix(target.suffix + ".tmp")
-    temporary.write_text(content, encoding="utf-8")
-    os.replace(temporary, target)
-    if target.read_text(encoding="utf-8") != content:
-        raise RuntimeError("Obsidian note readback verification failed")
-    return {"status": "applied", "verified": True, "plan": plan}
+        return {"status": "dry_run", "plan": plan, "approval_sha256": approval_sha256}
+    if approved_plan_sha256 != approval_sha256:
+        raise ValueError("Obsidian write requires the current approved plan hash")
+    root, mode, attempt_ref = _audit_before_mutation(workspace, plan, profile, f"note:{relative_path}")
+    try:
+        _require_private_obsidian_vault(vault)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_suffix(target.suffix + ".tmp")
+        temporary.write_text(content, encoding="utf-8")
+        os.replace(temporary, target)
+        if target.read_text(encoding="utf-8") != content:
+            raise RuntimeError("Obsidian note readback verification failed")
+    except Exception as exc:
+        append_external_audit(root, adapter="obsidian", operation="write_note", target_ref=f"note:{relative_path}",
+                              plan=plan, authorization_mode=mode, result="failed", detail=str(exc))
+        raise
+    applied_ref = append_external_audit(root, adapter="obsidian", operation="write_note", target_ref=f"note:{relative_path}",
+                                        plan=plan, authorization_mode=mode, result="applied")
+    verified_ref = append_external_audit(root, adapter="obsidian", operation="write_note", target_ref=f"note:{relative_path}",
+                                         plan=plan, authorization_mode=mode, result="verified", readback_ref=applied_ref)
+    return {"status": "applied", "verified": True, "plan": plan, "audit_refs": [attempt_ref, applied_ref, verified_ref]}
 
 
 def parser() -> argparse.ArgumentParser:
@@ -671,17 +817,38 @@ def parser() -> argparse.ArgumentParser:
     gmail_read.add_argument("--message-id", required=True)
     gmail_read.add_argument("--user-id", default="me")
 
+    gmail_triage_parser = commands.add_parser("gmail-triage")
+    gmail_triage_parser.add_argument("--message-id", required=True)
+    gmail_triage_parser.add_argument("--account-ref", required=True)
+    gmail_triage_parser.add_argument("--workspace", required=True)
+    gmail_triage_parser.add_argument("--supported-fact", default="", help="Directly supported fact; optional")
+    gmail_triage_parser.add_argument("--excerpt", default="", help="Minimal excerpt (500 chars max); required with --supported-fact unless --content-sha256 is used")
+    gmail_triage_parser.add_argument("--content-sha256", default="", help="Content hash; alternative to --excerpt for --supported-fact")
+    gmail_triage_parser.add_argument("--user-id", default="me")
+
+    gmail_reconcile_parser = commands.add_parser("gmail-reconcile")
+    gmail_reconcile_parser.add_argument("--snapshot-json", required=True, help="Validated tracker snapshot JSON")
+    gmail_reconcile_parser.add_argument("--fields-json", required=True, help="Logical field-to-header JSON mapping")
+    gmail_reconcile_parser.add_argument("--record-json", required=True, help="Intended tracker record JSON")
+    gmail_reconcile_parser.add_argument("--evidence-ref", required=True, help="Opaque private Gmail evidence reference")
+    gmail_reconcile_parser.add_argument("--operation", choices=("upsert", "create", "update"), default="upsert")
+    gmail_reconcile_parser.add_argument("--create-physical-row", type=int)
+
     gmail_modify = commands.add_parser("gmail-mark-read")
     gmail_modify.add_argument("--message-id", required=True)
     gmail_modify.add_argument("--user-id", default="me")
     gmail_modify.add_argument("--profile", help="Private profile.yaml; required with --apply")
     gmail_modify.add_argument("--workspace", help="Private workspace for required audit events; required with --apply")
+    gmail_modify.add_argument("--approved-plan-sha256", default="", help="Required with --apply; from the reviewed dry run")
     gmail_modify.add_argument("--apply", action="store_true")
 
     obsidian = commands.add_parser("obsidian-write")
     obsidian.add_argument("--vault", required=True)
     obsidian.add_argument("--relative-path", required=True)
     obsidian.add_argument("--content-file", required=True)
+    obsidian.add_argument("--profile", help="Private profile.yaml; required with --apply")
+    obsidian.add_argument("--workspace", help="Private workspace for required audit events; required with --apply")
+    obsidian.add_argument("--approved-plan-sha256", default="", help="Required with --apply; from the reviewed dry run")
     obsidian.add_argument("--apply", action="store_true")
     return root
 
@@ -726,14 +893,35 @@ def main() -> int:
             result = gmail_search(run_json_command, args.query, args.user_id, args.max_results)
         elif args.command == "gmail-get":
             result = gmail_get(run_json_command, args.message_id, args.user_id)
+        elif args.command == "gmail-triage":
+            result = gmail_triage(
+                run_json_command, args.message_id, workspace=Path(args.workspace),
+                account_ref=args.account_ref, user_id=args.user_id, supported_fact=args.supported_fact,
+                excerpt=args.excerpt, content_sha256=args.content_sha256,
+            )
+        elif args.command == "gmail-reconcile":
+            snapshot = json.loads(args.snapshot_json)
+            fields = json.loads(args.fields_json)
+            record = json.loads(args.record_json)
+            if not isinstance(snapshot, dict) or not isinstance(fields, dict) or not isinstance(record, dict):
+                raise ValueError("snapshot-json, fields-json and record-json must all be JSON objects")
+            result = gmail_reconciliation_proposal(
+                snapshot, fields, record, args.evidence_ref, operation=args.operation,
+                create_physical_row=args.create_physical_row,
+            )
         elif args.command == "gmail-mark-read":
             result = gmail_mark_read(
                 run_json_command, args.message_id, args.user_id, args.apply,
                 load_profile(args.profile), Path(args.workspace) if args.workspace else None,
+                args.approved_plan_sha256,
             )
         elif args.command == "obsidian-write":
             content = Path(args.content_file).read_text(encoding="utf-8")
-            result = obsidian_write(Path(args.vault), args.relative_path, content, args.apply)
+            result = obsidian_write(
+                Path(args.vault), args.relative_path, content, args.apply,
+                load_profile(args.profile), Path(args.workspace) if args.workspace else None,
+                args.approved_plan_sha256,
+            )
         else:
             raise ValueError(f"unsupported command: {args.command}")
         print(json.dumps(result, indent=2, ensure_ascii=False))

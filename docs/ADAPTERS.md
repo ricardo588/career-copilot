@@ -16,9 +16,9 @@ ADAPTER="$HOME/.hermes/profiles/<PROFILE>/skills/career-copilot/scripts/adapters
 - Mutations show a plan unless `--apply` is explicitly supplied.
 - Google mutations require `--profile <private-profile.yaml>` and are blocked when that profile is `draft_only`.
 - Every mutation performs readback verification.
-- The Gmail adapter cannot send messages.
+- The Gmail adapter cannot send messages; triage reads exactly one explicit message and stores only private reviewable evidence.
 - The Sheets adapter updates only an explicit range.
-- The Obsidian adapter rejects paths outside the configured vault.
+- The Obsidian adapter rejects paths outside the configured vault and vaults that are symlinks or reside in the distribution or a Git repository.
 
 ## Google Workspace prerequisite
 
@@ -126,7 +126,7 @@ python3 "$ADAPTER" gmail-search --query 'newer_than:7d (recruiter OR application
 python3 "$ADAPTER" gmail-get --message-id '<MESSAGE_ID>'
 ```
 
-Preview marking a handled message as read:
+Preview marking a handled message as read. The response includes an `approval_sha256` bound to that message and user identity:
 
 ```bash
 python3 "$ADAPTER" gmail-mark-read \
@@ -134,7 +134,41 @@ python3 "$ADAPTER" gmail-mark-read \
   --profile "$HOME/Documents/CareerCopilot/profile.yaml"
 ```
 
-In `confirm_each_external`, apply by adding `--apply` after exact confirmation. In `draft_only`, the adapter blocks the mutation. When applied, it confirms that the `UNREAD` label is absent.
+In `confirm_each_external`, apply only with the exact reviewed hash, a private workspace and a current re-read showing the target remains unread:
+
+```bash
+python3 "$ADAPTER" gmail-mark-read \
+  --message-id '<MESSAGE_ID>' \
+  --profile "$HOME/Documents/CareerCopilot/profile.yaml" \
+  --workspace "$HOME/Documents/CareerCopilot" \
+  --approved-plan-sha256 '<HASH_FROM_REVIEWED_DRY_RUN>' \
+  --apply
+```
+
+In `draft_only`, the adapter blocks the mutation before any Gmail request. A successful apply confirms that the `UNREAD` label is absent.
+
+Triage one explicit message without any Gmail mutation:
+
+```bash
+python3 "$ADAPTER" gmail-triage \
+  --message-id '<MESSAGE_ID>' \
+  --account-ref me \
+  --workspace "$HOME/Documents/CareerCopilot"
+```
+
+Triage writes only a minimal private ledger and returns a review proposal; a repeated message is an idempotent `already_processed` no-op. A corrupt ledger or a fingerprint collision blocks the flow for human review. It never infers a tracker fact from message text. To record a fact, pass an explicitly reviewed `--supported-fact` plus exactly one minimal `--excerpt` or a lowercase 64-character SHA-256 `--content-sha256`.
+
+Bind a reviewed opaque evidence reference to a deterministic tracker proposal. This command is read-only and cannot modify Gmail, a CSV tracker, Sheets or any remote tracker:
+
+```bash
+python3 "$ADAPTER" gmail-reconcile \
+  --snapshot-json "$TRACKER_SNAPSHOT_JSON" \
+  --fields-json "$FIELDS_JSON" \
+  --record-json "$REVIEWED_RECORD_JSON" \
+  --evidence-ref 'evidence/gmail-evidence.jsonl#<EVIDENCE_UUID>'
+```
+
+The caller must resolve the target identity and review the returned decision. Identity ambiguity, collisions and insufficient support remain blocking states, not automatic tracker updates.
 
 Sending, replying, forwarding and creating drafts are intentionally unsupported in this adapter version. Career Copilot can prepare local draft text, but a separate approved workflow must handle transmission.
 
@@ -149,7 +183,18 @@ python3 "$ADAPTER" obsidian-write \
   --content-file '/path/to/local/interview-brief.md'
 ```
 
-Apply by adding `--apply`. The adapter writes atomically and reads the exact note back.
+The preview returns an `approval_sha256` bound to the content, relative note path and one canonical vault without revealing the vault path. Applying requires that exact reviewed hash, a private profile and a private workspace; the adapter writes atomically, reads the exact note back and preserves a minimal audit trail. Applied writes reject vaults that are symlinks or reside in the distribution or any Git repository. Remote Kanban is intentionally out of scope for 0.8: there is no Kanban adapter or synchronization.
+
+```bash
+python3 "$ADAPTER" obsidian-write \
+  --vault "$OBSIDIAN_VAULT_PATH" \
+  --relative-path 'CareerCopilot/Interview Brief.md' \
+  --content-file '/path/to/local/interview-brief.md' \
+  --profile "$HOME/Documents/CareerCopilot/profile.yaml" \
+  --workspace "$HOME/Documents/CareerCopilot" \
+  --approved-plan-sha256 '<HASH_FROM_REVIEWED_DRY_RUN>' \
+  --apply
+```
 
 ## Testing without accounts
 

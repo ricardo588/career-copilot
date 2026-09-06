@@ -9,6 +9,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
+from adapters import gmail_reconciliation_proposal, gmail_triage
 from pipeline import (
     atomic_write_tracker,
     evaluate,
@@ -69,6 +70,38 @@ def main() -> int:
         encoding="utf-8",
     )
 
+    gmail_message = {"id": "synthetic-gmail-message", "threadId": "synthetic-gmail-thread", "labelIds": ["INBOX", "UNREAD"]}
+    gmail_triage_result = gmail_triage(
+        lambda _command: dict(gmail_message), "synthetic-gmail-message", workspace=output / "gmail-private",
+        account_ref="synthetic-account", supported_fact="Synthetic recruiter screen is scheduled",
+        excerpt="Synthetic invitation confirms a recruiter screen.",
+    )
+    gmail_headers = ["No", "Company", "Role", "Location", "Canonical URL", "External Job ID", "Status", "Priority", "Notes"]
+    gmail_fields = {
+        "business_id": "No", "company": "Company", "role": "Role", "location": "Location",
+        "canonical_url": "Canonical URL", "external_job_id": "External Job ID", "status": "Status",
+        "priority": "Priority", "notes": "Notes",
+    }
+    gmail_record = {
+        "business_id": "1", "company": "Synthetic Co", "role": "Program Director", "location": "Remote",
+        "canonical_url": "https://jobs.example.test/synthetic/1", "external_job_id": "SYN-1",
+        "status": "identified", "priority": "medium", "notes": "Synthetic Gmail evidence reviewed.",
+    }
+    gmail_snapshot = {"headers": gmail_headers, "rows": [{
+        "physical_row": 5,
+        "values": dict(zip(gmail_headers, [
+            "1", "Synthetic Co", "Program Director", "Remote", "https://jobs.example.test/synthetic/1", "SYN-1", "identified", "medium", "",
+        ])),
+    }]}
+    gmail_reconciliation = gmail_reconciliation_proposal(
+        gmail_snapshot, gmail_fields, gmail_record, gmail_triage_result["proposal"]["evidence_ref"],
+    )
+    gmail_triage_path = output / "gmail-triage.json"
+    gmail_triage_path.write_text(json.dumps({
+        "triage": gmail_triage_result,
+        "reconciliation": gmail_reconciliation,
+    }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
     result = {
         "scenario": "synthetic_profile_to_interview",
         "external_actions": 0,
@@ -80,6 +113,9 @@ def main() -> int:
         "tracker_review_artifact": str(tracker_review_path),
         "interview_brief": str(brief_path),
         "offer_negotiation": str(offer_path),
+        "gmail_triage": gmail_triage_result,
+        "gmail_reconciliation": gmail_reconciliation,
+        "gmail_triage_artifact": str(gmail_triage_path),
     }
     result_path = output / "demo-result.json"
     result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

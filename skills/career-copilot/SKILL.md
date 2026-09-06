@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.7.0
+version: 0.8.0
 author: Career Copilot contributors
 metadata:
   hermes:
@@ -124,8 +124,8 @@ Never copy rendered STAR/CAR/DAR wording back as a new factual source. CV mode e
 Read `references/adapters.md` before use.
 
 - Google Sheets: explicit range; updates are dry-run-first and require `--apply`, `--profile` and a `confirm_each_external` profile.
-- Gmail: search/read plus dry-run-first mark-read; mutation requires `--profile`; sending is intentionally unsupported.
-- Obsidian: scoped local Markdown writes; rejects paths outside the configured vault.
+- Gmail: explicit-message triage produces private reviewable evidence only; reconciliation is dry-run only. Mark-read removes only `UNREAD` after a reviewed hash, current preflight and readback; sending is intentionally unsupported.
+- Obsidian: scoped local Markdown writes require a reviewed hash and reject vaults that are symlinks or reside in the distribution or a Git repository.
 - Every mutation must pass readback verification.
 - Never store adapter credentials or IDs in the distributable repository.
 
@@ -199,6 +199,8 @@ See `references/demo.md` for pass criteria.
 - Any state write was read back.
 - External actions were not claimed without execution evidence.
 - No private data was written inside the skill or distribution repository.
+- Gmail triage used an explicit message, private opaque evidence and a dry-run-only reconciliation; no Gmail bodies or IDs were copied into a tracker.
+- Any Gmail or Obsidian mutation was individually hash-approved, audit-recorded and read back before success was claimed.
 - Story views reused confirmed private records by stable ID without duplicating or inventing facts.
 - Relationship/debrief artifacts remained read-only and outside the repository, with tracker state unchanged.
 - Offer negotiation artifacts remained read-only and outside the repository, with no external accept/decline/send/sign action claimed without exact authorization and verified readback.

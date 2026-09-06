@@ -16,7 +16,8 @@ El escenario incluido demuestra el flujo local sin usar un candidato, empleador,
 8. Genera un brief de entrevista usando solo evidencia declarada.
 9. Agrega una siguiente acción sintética y deriva una señal `follow_up_overdue` de solo lectura sin cambiar el estado del tracker durante la revisión.
 10. Renderiza un brief sintético de negociación de oferta con comparación de paquete fechada en la fuente y lenguaje de solo borrador.
-11. Registra que ocurrieron cero acciones externas.
+11. Ejecuta un triage Gmail sintético y de solo lectura: mensaje explícito → evidencia privada → ledger idempotente → propuesta de reconciliación del tracker.
+12. Registra que ocurrieron cero acciones externas.
 
 ## Ejecutar
 
@@ -42,6 +43,7 @@ Artefactos generados:
 - `tracker-review.json`
 - `interview-brief.md`
 - `offer-negotiation.md`
+- `gmail-triage.json`
 
 Ejecuta por separado los modos de preparación relacional y de debrief de entrevista, ambos de solo lectura (sus salidas deben quedar fuera del repositorio):
 
@@ -66,6 +68,7 @@ python3 skills/career-copilot/scripts/pipeline.py \
 - `human_path_last_verified` coincide con `retrieved_at` validado del artefacto de Human Path.
 - `external_actions` es `0`.
 - `tracker_review.read_only` es `true` y exactamente un elemento es `follow_up_overdue`.
+- `gmail_triage.status` es `proposed`; `gmail_reconciliation.status` es `dry_run` y su decisión es `update_plan`.
 - El estado persistido del tracker permanece en `applied`; la revisión no lo muta.
 - Los atributos protegidos y sus proxies de nombre/foto/fecha quedan excluidos del fit scoring.
 - El brief de entrevista contiene Human Path, inteligencia sobre entrevistadores y el guardrail de evidencia.

@@ -104,12 +104,12 @@ hermes profile install . --name career-copilot-upgrade-test
 hermes -p career-copilot-upgrade-test skills list
 ```
 
-Para 0.7.0, ejecuta una vez `status` de onboarding en el workspace privado antes
-de finalizar o editar un perfil: actualiza el checkpoint privado a schema 5 y
-preserva los valores legacy de objetivo/piso como una política `unspecified`.
-Esa política no coincide intencionalmente con ofertas de nómina o contractor
-hasta que la persona defina tipo de contratación y periodicidad. El tracker CSV
-local permanece en schema 0.3; no agregues columnas de compensación manualmente:
-consulta `skills/career-copilot/references/tracker-compensation-migration.md`.
+Para 0.8.0 no se requiere migrar datos privados. Los workspaces existentes y
+trackers CSV locales siguen siendo compatibles. Los directorios de evidencia
+Gmail, ledger de idempotencia y auditoría del adaptador se crean sólo al ejecutar
+un comando opcional dentro de un workspace privado elegido por el usuario. La
+migración 0.7 del checkpoint de onboarding a schema 5 sigue aplicando para
+perfiles anteriores; no agregues columnas de compensación manualmente: consulta
+`skills/career-copilot/references/tracker-compensation-migration.md`.
 
 Nunca uses la exportación de un perfil personal como mecanismo de actualización o distribución.

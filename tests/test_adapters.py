@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -323,21 +324,120 @@ class AdapterTests(unittest.TestCase):
             )
         self.assertEqual(len(fake.calls), 1)
 
+    def test_gmail_triage_reads_one_message_and_proposes_without_mutation(self):
+        message = {
+            "id": "synthetic-message",
+            "threadId": "synthetic-thread",
+            "labelIds": ["INBOX", "UNREAD"],
+            "internalDate": "1760000000000",
+            "snippet": "Your recruiter screen is scheduled.",
+        }
+        fake = FakeRunner([message])
+        with tempfile.TemporaryDirectory() as tmp:
+            result = ADAPTERS.gmail_triage(
+                fake, "synthetic-message", workspace=Path(tmp) / "private", account_ref="me",
+            )
+        self.assertEqual(result["status"], "proposed")
+        self.assertEqual(result["message_ref"], "gmail:synthetic-message")
+        self.assertEqual(result["proposal"]["kind"], "gmail_evidence_review")
+        self.assertEqual(len(fake.calls), 1)
+        self.assertIn("get", fake.calls[0])
+        self.assertNotIn("modify", fake.calls[0])
+
+    def test_gmail_triage_records_only_explicit_direct_evidence(self):
+        message = {"id": "synthetic-message", "threadId": "synthetic-thread"}
+        fake = FakeRunner([message])
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "private"
+            result = ADAPTERS.gmail_triage(
+                fake, "synthetic-message", workspace=workspace, account_ref="me",
+                supported_fact="Recruiter explicitly scheduled a screen", excerpt="I would like to schedule a screen.",
+            )
+            evidence = (workspace / "evidence" / "gmail-evidence.jsonl").read_text(encoding="utf-8")
+        self.assertTrue(result["proposal"]["evidence_ref"].startswith("evidence/gmail-evidence.jsonl#"))
+        self.assertIn('"supported_fact":"Recruiter explicitly scheduled a screen"', evidence)
+
+    def test_gmail_evidence_can_feed_a_read_only_tracker_reconciliation_proposal(self):
+        snapshot = {"headers": self.tracker_headers, "rows": [{
+            "physical_row": 5,
+            "values": dict(zip(self.tracker_headers, [
+                "1", "Synthetic Co", "Program Director", "Remote", "https://jobs.example.test/synthetic/1", "SYN-1", "identified", "medium", "Old note.",
+            ])),
+        }]}
+        result = ADAPTERS.gmail_reconciliation_proposal(
+            snapshot, self.tracker_fields, self.tracker_record,
+            "evidence/gmail-evidence.jsonl#00000000-0000-0000-0000-000000000000",
+        )
+        self.assertEqual(result["status"], "dry_run")
+        self.assertEqual(result["plan"]["decision"], "update_plan")
+        self.assertEqual(result["evidence_ref"], "evidence/gmail-evidence.jsonl#00000000-0000-0000-0000-000000000000")
+
+    def test_gmail_triage_reprocessing_is_a_private_idempotent_no_op(self):
+        message = {"id": "synthetic-message", "threadId": "synthetic-thread"}
+        fake = FakeRunner([message, message])
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "private"
+            first = ADAPTERS.gmail_triage(fake, "synthetic-message", workspace=workspace, account_ref="me")
+            second = ADAPTERS.gmail_triage(fake, "synthetic-message", workspace=workspace, account_ref="me")
+            ledger = (workspace / "triage" / "gmail-triage.jsonl").read_text(encoding="utf-8")
+        self.assertEqual(first["status"], "proposed")
+        self.assertEqual(second["status"], "already_processed")
+        self.assertEqual(ledger.count('"outcome":"proposed"'), 1)
+        self.assertEqual(len(fake.calls), 2)
+
+    def test_gmail_triage_blocks_a_fingerprint_collision(self):
+        message = {"id": "synthetic-message", "threadId": "synthetic-thread"}
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "private"
+            ADAPTERS.gmail_triage(FakeRunner([message]), "synthetic-message", workspace=workspace, account_ref="me")
+            ledger_path = workspace / "triage" / "gmail-triage.jsonl"
+            event = json.loads(ledger_path.read_text(encoding="utf-8"))
+            event["message_id"] = "different-message"
+            ledger_path.write_text(json.dumps(event) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "fingerprint collision"):
+                ADAPTERS.gmail_triage(FakeRunner([message]), "synthetic-message", workspace=workspace, account_ref="me")
+
+    def test_gmail_triage_fails_closed_when_ledger_is_corrupt(self):
+        message = {"id": "synthetic-message", "threadId": "synthetic-thread"}
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "private"
+            ledger_path = workspace / "triage" / "gmail-triage.jsonl"
+            ledger_path.parent.mkdir(parents=True)
+            ledger_path.write_text("not-json\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "ledger is invalid"):
+                ADAPTERS.gmail_triage(
+                    FakeRunner([message]), "synthetic-message", workspace=workspace, account_ref="me",
+                )
+
+    def test_gmail_mark_read_rejects_apply_without_the_reviewed_plan_hash(self):
+        fake = FakeRunner([])
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, "approved plan hash"):
+                ADAPTERS.gmail_mark_read(
+                    fake, "synthetic-message", apply=True, profile=self.confirm_each,
+                    workspace=Path(tmp) / "private",
+                )
+        self.assertEqual(fake.calls, [])
+
     def test_gmail_mark_read_is_dry_run_then_verified(self):
         dry_fake = FakeRunner([])
         dry = ADAPTERS.gmail_mark_read(dry_fake, "synthetic-message")
         self.assertEqual(dry["status"], "dry_run")
         self.assertEqual(dry_fake.calls, [])
 
-        apply_fake = FakeRunner([{"id": "synthetic-message"}, {"id": "synthetic-message", "labelIds": ["INBOX"]}])
+        apply_fake = FakeRunner([
+            {"id": "synthetic-message", "labelIds": ["INBOX", "UNREAD"]},
+            {"id": "synthetic-message"},
+            {"id": "synthetic-message", "labelIds": ["INBOX"]},
+        ])
         with tempfile.TemporaryDirectory() as tmp:
             applied = ADAPTERS.gmail_mark_read(
                 apply_fake, "synthetic-message", apply=True, profile=self.confirm_each,
-                workspace=Path(tmp) / "private",
+                workspace=Path(tmp) / "private", approved_plan_sha256=dry["approval_sha256"],
             )
             audit = (Path(tmp) / "private" / "audit" / "external-actions.jsonl").read_text(encoding="utf-8")
         self.assertTrue(applied["verified"])
-        self.assertEqual(len(apply_fake.calls), 2)
+        self.assertEqual(len(apply_fake.calls), 3)
         self.assertIn('"payload_plan_sha256"', audit)
 
     def test_draft_only_blocks_external_mutations_even_with_apply(self):
@@ -349,9 +449,11 @@ class AdapterTests(unittest.TestCase):
                     fake, "sheet-example-1234", "Applications!A2:B2", [["Acme", "Role"]],
                     apply=True, profile=self.draft_only, workspace=workspace,
                 )
+            gmail_dry = ADAPTERS.gmail_mark_read(fake, "synthetic-message")
             with self.assertRaises(ValueError):
                 ADAPTERS.gmail_mark_read(
                     fake, "synthetic-message", apply=True, profile=self.draft_only, workspace=workspace,
+                    approved_plan_sha256=gmail_dry["approval_sha256"],
                 )
             audit = (workspace / "audit" / "external-actions.jsonl").read_text(encoding="utf-8")
         self.assertEqual(fake.calls, [])
@@ -383,19 +485,79 @@ class AdapterTests(unittest.TestCase):
                     workspace, account_ref="me", message_id="message-126", supported_fact="invalid", excerpt="maybe", content_sha256="abc",
                 )
 
+    def test_gmail_evidence_rejects_an_invalid_content_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, "SHA-256"):
+                ADAPTERS.record_gmail_evidence(
+                    Path(tmp) / "private", account_ref="me", message_id="message-126",
+                    supported_fact="reviewed", content_sha256="this must not be stored as a hash",
+                )
+
     def test_mutation_failure_is_audited_after_the_preflight_event(self):
+        calls = 0
+
         def failing_runner(command):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return {"id": "synthetic-message", "labelIds": ["UNREAD"]}
             raise RuntimeError("synthetic provider failure")
 
+        dry = ADAPTERS.gmail_mark_read(FakeRunner([]), "synthetic-message")
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "private"
             with self.assertRaisesRegex(RuntimeError, "provider failure"):
                 ADAPTERS.gmail_mark_read(
                     failing_runner, "synthetic-message", apply=True, profile=self.confirm_each, workspace=workspace,
+                    approved_plan_sha256=dry["approval_sha256"],
                 )
             audit = (workspace / "audit" / "external-actions.jsonl").read_text(encoding="utf-8")
         self.assertIn('"result":"attempted"', audit)
         self.assertIn('"result":"failed"', audit)
+
+    def test_obsidian_write_rejects_apply_without_the_reviewed_plan_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, "approved plan hash"):
+                ADAPTERS.obsidian_write(
+                    Path(tmp) / "vault", "CareerCopilot/Brief.md", "# Brief\n", apply=True,
+                    profile=self.confirm_each, workspace=Path(tmp) / "private",
+                )
+
+    def test_obsidian_write_rejects_vault_inside_git_repository(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            (vault / ".git").mkdir(parents=True)
+            dry = ADAPTERS.obsidian_write(vault, "CareerCopilot/Brief.md", "# Brief\n")
+            with self.assertRaisesRegex(ValueError, "Git repository"):
+                ADAPTERS.obsidian_write(
+                    vault, "CareerCopilot/Brief.md", "# Brief\n", apply=True,
+                    profile=self.confirm_each, workspace=Path(tmp) / "private", approved_plan_sha256=dry["approval_sha256"],
+                )
+
+    def test_obsidian_write_rejects_vault_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            real_vault = Path(tmp) / "real-vault"
+            real_vault.mkdir()
+            vault_link = Path(tmp) / "vault-link"
+            vault_link.symlink_to(real_vault, target_is_directory=True)
+            dry = ADAPTERS.obsidian_write(vault_link, "CareerCopilot/Brief.md", "# Brief\n")
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                ADAPTERS.obsidian_write(
+                    vault_link, "CareerCopilot/Brief.md", "# Brief\n", apply=True,
+                    profile=self.confirm_each, workspace=Path(tmp) / "private", approved_plan_sha256=dry["approval_sha256"],
+                )
+
+    def test_obsidian_write_approval_is_bound_to_one_vault(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault_a = Path(tmp) / "vault-a"
+            vault_b = Path(tmp) / "vault-b"
+            dry = ADAPTERS.obsidian_write(vault_a, "CareerCopilot/Brief.md", "# Brief\n")
+            with self.assertRaisesRegex(ValueError, "approved plan hash"):
+                ADAPTERS.obsidian_write(
+                    vault_b, "CareerCopilot/Brief.md", "# Brief\n", apply=True,
+                    profile=self.confirm_each, workspace=Path(tmp) / "private", approved_plan_sha256=dry["approval_sha256"],
+                )
+            self.assertFalse((vault_b / "CareerCopilot" / "Brief.md").exists())
 
     def test_obsidian_write_is_scoped_dry_run_first_and_read_back(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -404,9 +566,15 @@ class AdapterTests(unittest.TestCase):
             self.assertEqual(dry["status"], "dry_run")
             self.assertFalse((vault / "CareerCopilot" / "Brief.md").exists())
 
-            applied = ADAPTERS.obsidian_write(vault, "CareerCopilot/Brief.md", "# Brief\n", apply=True)
+            workspace = Path(tmp) / "private"
+            applied = ADAPTERS.obsidian_write(
+                vault, "CareerCopilot/Brief.md", "# Brief\n", apply=True,
+                profile=self.confirm_each, workspace=workspace, approved_plan_sha256=dry["approval_sha256"],
+            )
             self.assertTrue(applied["verified"])
             self.assertEqual((vault / "CareerCopilot" / "Brief.md").read_text(encoding="utf-8"), "# Brief\n")
+            audit = (workspace / "audit" / "external-actions.jsonl").read_text(encoding="utf-8")
+            self.assertIn('"result":"verified"', audit)
 
             with self.assertRaises(ValueError):
                 ADAPTERS.obsidian_write(vault, "../outside.md", "blocked", apply=True)
