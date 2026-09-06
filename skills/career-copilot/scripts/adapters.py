@@ -11,6 +11,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -753,10 +754,7 @@ def obsidian_write(
     root, mode, attempt_ref = _audit_before_mutation(workspace, plan, profile, f"note:{relative_path}")
     try:
         _require_private_obsidian_vault(vault)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        temporary = target.with_suffix(target.suffix + ".tmp")
-        temporary.write_text(content, encoding="utf-8")
-        os.replace(temporary, target)
+        _atomic_obsidian_write(target, content)
         if target.read_text(encoding="utf-8") != content:
             raise RuntimeError("Obsidian note readback verification failed")
     except Exception as exc:
@@ -768,6 +766,24 @@ def obsidian_write(
     verified_ref = append_external_audit(root, adapter="obsidian", operation="write_note", target_ref=f"note:{relative_path}",
                                          plan=plan, authorization_mode=mode, result="verified", readback_ref=applied_ref)
     return {"status": "applied", "verified": True, "plan": plan, "audit_refs": [attempt_ref, applied_ref, verified_ref]}
+
+
+def _atomic_obsidian_write(target: Path, content: str) -> None:
+    """Replace one Markdown target using a private, randomly named sibling file."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.parent.is_symlink():
+        raise ValueError("Obsidian note parent cannot be a symlink")
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".tmp", dir=target.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, target)
+    finally:
+        if temporary.exists() or temporary.is_symlink():
+            temporary.unlink()
 
 
 def _kanban_artifact(artifact: dict[str, Any]) -> tuple[str, str]:
@@ -794,11 +810,20 @@ def _new_kanban_board(lane: str, card_line: str) -> str:
     )
 
 
+def _require_kanban_board_grammar(existing: str) -> None:
+    frontmatter = re.match(r"\A---\r?\n(?P<body>.*?)\r?\n---\r?\n", existing, re.DOTALL)
+    if not frontmatter:
+        raise ValueError("existing Kanban board must begin with valid frontmatter")
+    declarations = [line.strip() for line in frontmatter.group("body").splitlines() if line.strip() == "kanban-plugin: board"]
+    if len(declarations) != 1:
+        raise ValueError("existing Kanban board frontmatter must declare kanban-plugin: board exactly once")
+    settings = list(re.finditer(r"(?m)^%% kanban:settings\s*$", existing))
+    if len(settings) != 1 or not re.match(r"\r?\n```", existing[settings[0].end():]):
+        raise ValueError("existing Kanban board must include one valid kanban:settings block")
+
+
 def _append_kanban_card(existing: str, lane: str, card_line: str) -> tuple[str, str]:
-    if not re.search(r"(?m)^kanban-plugin:\s*board\s*$", existing):
-        raise ValueError("existing Kanban board must declare kanban-plugin: board")
-    if "%% kanban:settings" not in existing:
-        raise ValueError("existing Kanban board must include a kanban:settings block")
+    _require_kanban_board_grammar(existing)
     lane_pattern = re.compile(rf"(?m)^##\s+{re.escape(lane)}\s*$")
     matches = list(lane_pattern.finditer(existing))
     if len(matches) != 1:
@@ -807,7 +832,7 @@ def _append_kanban_card(existing: str, lane: str, card_line: str) -> tuple[str, 
     next_boundary = re.search(r"(?m)^(?:##\s+|\*\*\*\s*$|%% kanban:settings)", existing[start:])
     end = start + next_boundary.start() if next_boundary else len(existing)
     marker = card_line.rsplit("^", 1)[-1]
-    matching = [match for match in re.finditer(rf"(?m)^- \[[ xX]\] .*\^{re.escape(marker)}\s*$", existing)]
+    matching = [match for match in re.finditer(rf"(?m)^- \[[ xX]\] .*\^{re.escape(marker)}[ \t]*$", existing)]
     if len(matching) > 1:
         raise ValueError("Kanban card marker is ambiguous")
     if matching:
@@ -857,18 +882,27 @@ def obsidian_kanban_project(
     approval_sha256 = _plan_hash({"domain": "career-copilot/obsidian-kanban-project/v1", "plan": plan})
     if not apply:
         return {"status": "dry_run", "plan": plan, "markdown": markdown, "approval_sha256": approval_sha256}
+    if not re.fullmatch(r"[0-9a-f]{64}", approved_plan_sha256):
+        raise ValueError("Obsidian Kanban projection requires a 64-character lowercase SHA-256 approved plan hash")
     if approved_plan_sha256 != approval_sha256:
         raise ValueError("Obsidian Kanban projection requires the current approved plan hash")
+    if decision == "no_change":
+        if workspace is None:
+            raise ValueError("external mutations require --workspace for private audit logging")
+        _private_workspace(workspace)
+        require_external_permission(profile)
+        _require_private_obsidian_vault(vault)
+        current = target.read_text(encoding="utf-8") if target.exists() else ""
+        if hashlib.sha256(current.encode("utf-8")).hexdigest() != plan["current_content_sha256"]:
+            raise ValueError("Obsidian Kanban board changed after review")
+        return {"status": "no_change", "verified": True, "plan": plan, "audit_refs": []}
     root, mode, attempt_ref = _audit_before_mutation(workspace, plan, profile, f"kanban:{relative_path}:{marker}")
     try:
         _require_private_obsidian_vault(vault)
         current = target.read_text(encoding="utf-8") if target.exists() else ""
         if hashlib.sha256(current.encode("utf-8")).hexdigest() != plan["current_content_sha256"]:
             raise ValueError("Obsidian Kanban board changed after review")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        temporary = target.with_suffix(target.suffix + ".tmp")
-        temporary.write_text(markdown, encoding="utf-8")
-        os.replace(temporary, target)
+        _atomic_obsidian_write(target, markdown)
         if target.read_text(encoding="utf-8") != markdown:
             raise RuntimeError("Obsidian Kanban readback verification failed")
     except Exception as exc:

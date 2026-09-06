@@ -643,6 +643,66 @@ class AdapterTests(unittest.TestCase):
             self.assertIn("Updated synthetic card", updated["markdown"])
             self.assertNotIn("Original synthetic card", updated["markdown"])
 
+    def test_obsidian_kanban_rejects_text_that_only_imitates_board_markers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            board = vault / "CareerCopilot" / "Board.md"
+            board.parent.mkdir(parents=True)
+            board.write_text("# Notes\n\n```\nkanban-plugin: board\n%% kanban:settings\n```\n\n## To do\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "frontmatter"):
+                ADAPTERS.obsidian_kanban_project(
+                    vault, "CareerCopilot/Board.md", "To do",
+                    {"artifact_ref": "evidence/synthetic#marker-check", "card_text": "Synthetic card"},
+                )
+
+    def test_obsidian_kanban_apply_rejects_malformed_approval_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            with self.assertRaisesRegex(ValueError, "64-character lowercase SHA-256"):
+                ADAPTERS.obsidian_kanban_project(
+                    vault, "CareerCopilot/Board.md", "To do",
+                    {"artifact_ref": "evidence/synthetic#hash-check", "card_text": "Synthetic card"},
+                    apply=True, profile=self.confirm_each, workspace=Path(tmp) / "private",
+                    approved_plan_sha256="not-a-sha256",
+                )
+
+    def test_obsidian_kanban_apply_no_change_does_not_replace_or_audit_the_board(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            workspace = Path(tmp) / "private"
+            artifact = {"artifact_ref": "evidence/synthetic#no-change", "card_text": "Synthetic card"}
+            board = vault / "CareerCopilot" / "Board.md"
+            first = ADAPTERS.obsidian_kanban_project(vault, "CareerCopilot/Board.md", "To do", artifact)
+            board.parent.mkdir(parents=True)
+            board.write_text(first["markdown"], encoding="utf-8")
+            dry = ADAPTERS.obsidian_kanban_project(vault, "CareerCopilot/Board.md", "To do", artifact)
+            result = ADAPTERS.obsidian_kanban_project(
+                vault, "CareerCopilot/Board.md", "To do", artifact, apply=True,
+                profile=self.confirm_each, workspace=workspace, approved_plan_sha256=dry["approval_sha256"],
+            )
+            self.assertEqual(result["status"], "no_change")
+            self.assertEqual(board.read_text(encoding="utf-8"), first["markdown"])
+            self.assertFalse((workspace / "audit" / "external-actions.jsonl").exists())
+
+    def test_obsidian_kanban_apply_ignores_a_predictable_temp_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            workspace = Path(tmp) / "private"
+            outside = Path(tmp) / "outside.md"
+            board = vault / "CareerCopilot" / "Board.md"
+            board.parent.mkdir(parents=True)
+            predictable_temp = board.with_suffix(".md.tmp")
+            predictable_temp.symlink_to(outside)
+            artifact = {"artifact_ref": "evidence/synthetic#temp-check", "card_text": "Synthetic card"}
+            dry = ADAPTERS.obsidian_kanban_project(vault, "CareerCopilot/Board.md", "To do", artifact)
+            ADAPTERS.obsidian_kanban_project(
+                vault, "CareerCopilot/Board.md", "To do", artifact, apply=True,
+                profile=self.confirm_each, workspace=workspace, approved_plan_sha256=dry["approval_sha256"],
+            )
+            self.assertFalse(outside.exists())
+            self.assertTrue(predictable_temp.is_symlink())
+            self.assertIn("Synthetic card", board.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()
