@@ -139,6 +139,8 @@ def record_gmail_evidence(
         raise ValueError("Gmail evidence requires exactly one minimal excerpt or content_sha256")
     if excerpt and len(excerpt.strip()) > 500:
         raise ValueError("Gmail evidence excerpt must be 500 characters or fewer")
+    if content_sha256 and not re.fullmatch(r"[0-9a-f]{64}", content_sha256.strip()):
+        raise ValueError("Gmail evidence content_sha256 must be a lowercase SHA-256 hash")
     event_id = str(uuid.uuid4())
     event = {
         "evidence_id": event_id,
@@ -714,13 +716,14 @@ def safe_obsidian_path(vault: Path, relative_path: str) -> Path:
 
 
 def _require_private_obsidian_vault(vault: Path) -> None:
-    root = vault.expanduser().resolve()
+    raw = vault.expanduser()
+    if raw.is_symlink():
+        raise ValueError("Obsidian vault cannot be a symlink")
+    root = raw.resolve()
     distribution_root = Path(__file__).resolve().parents[3]
     if root == distribution_root or distribution_root in root.parents:
         raise ValueError("Obsidian vault must be outside the Career Copilot distribution")
     for ancestor in (root, *root.parents):
-        if ancestor.is_symlink():
-            raise ValueError("Obsidian vault cannot be beneath a symlink")
         if (ancestor / ".git").exists():
             raise ValueError("Obsidian vault must be outside a Git repository")
 
@@ -739,6 +742,7 @@ def obsidian_write(
         "adapter": "obsidian",
         "operation": "write_note",
         "relative_path": relative_path,
+        "vault_path_sha256": hashlib.sha256(str(vault.expanduser().resolve()).encode("utf-8")).hexdigest(),
         "content_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
     }
     approval_sha256 = _plan_hash({"domain": "career-copilot/obsidian-write/v1", "plan": plan})

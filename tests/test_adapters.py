@@ -397,6 +397,18 @@ class AdapterTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "fingerprint collision"):
                 ADAPTERS.gmail_triage(FakeRunner([message]), "synthetic-message", workspace=workspace, account_ref="me")
 
+    def test_gmail_triage_fails_closed_when_ledger_is_corrupt(self):
+        message = {"id": "synthetic-message", "threadId": "synthetic-thread"}
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "private"
+            ledger_path = workspace / "triage" / "gmail-triage.jsonl"
+            ledger_path.parent.mkdir(parents=True)
+            ledger_path.write_text("not-json\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "ledger is invalid"):
+                ADAPTERS.gmail_triage(
+                    FakeRunner([message]), "synthetic-message", workspace=workspace, account_ref="me",
+                )
+
     def test_gmail_mark_read_rejects_apply_without_the_reviewed_plan_hash(self):
         fake = FakeRunner([])
         with tempfile.TemporaryDirectory() as tmp:
@@ -473,6 +485,14 @@ class AdapterTests(unittest.TestCase):
                     workspace, account_ref="me", message_id="message-126", supported_fact="invalid", excerpt="maybe", content_sha256="abc",
                 )
 
+    def test_gmail_evidence_rejects_an_invalid_content_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, "SHA-256"):
+                ADAPTERS.record_gmail_evidence(
+                    Path(tmp) / "private", account_ref="me", message_id="message-126",
+                    supported_fact="reviewed", content_sha256="this must not be stored as a hash",
+                )
+
     def test_mutation_failure_is_audited_after_the_preflight_event(self):
         calls = 0
 
@@ -513,6 +533,31 @@ class AdapterTests(unittest.TestCase):
                     vault, "CareerCopilot/Brief.md", "# Brief\n", apply=True,
                     profile=self.confirm_each, workspace=Path(tmp) / "private", approved_plan_sha256=dry["approval_sha256"],
                 )
+
+    def test_obsidian_write_rejects_vault_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            real_vault = Path(tmp) / "real-vault"
+            real_vault.mkdir()
+            vault_link = Path(tmp) / "vault-link"
+            vault_link.symlink_to(real_vault, target_is_directory=True)
+            dry = ADAPTERS.obsidian_write(vault_link, "CareerCopilot/Brief.md", "# Brief\n")
+            with self.assertRaisesRegex(ValueError, "symlink"):
+                ADAPTERS.obsidian_write(
+                    vault_link, "CareerCopilot/Brief.md", "# Brief\n", apply=True,
+                    profile=self.confirm_each, workspace=Path(tmp) / "private", approved_plan_sha256=dry["approval_sha256"],
+                )
+
+    def test_obsidian_write_approval_is_bound_to_one_vault(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault_a = Path(tmp) / "vault-a"
+            vault_b = Path(tmp) / "vault-b"
+            dry = ADAPTERS.obsidian_write(vault_a, "CareerCopilot/Brief.md", "# Brief\n")
+            with self.assertRaisesRegex(ValueError, "approved plan hash"):
+                ADAPTERS.obsidian_write(
+                    vault_b, "CareerCopilot/Brief.md", "# Brief\n", apply=True,
+                    profile=self.confirm_each, workspace=Path(tmp) / "private", approved_plan_sha256=dry["approval_sha256"],
+                )
+            self.assertFalse((vault_b / "CareerCopilot" / "Brief.md").exists())
 
     def test_obsidian_write_is_scoped_dry_run_first_and_read_back(self):
         with tempfile.TemporaryDirectory() as tmp:

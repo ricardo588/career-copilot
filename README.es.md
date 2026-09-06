@@ -58,6 +58,7 @@ No exportes un perfil personal de Hermes para distribuir este proyecto. Instala 
 - [Adaptadores opcionales](docs/es/ADAPTERS.md)
 - [Privacidad y modelo de amenazas](docs/es/PRIVACY.md)
 - [Solución de problemas](docs/es/TROUBLESHOOTING.md)
+- [Diseño de Triage transaccional Gmail 0.8](docs/es/ROADMAP-0.8.md)
 - [Diseño de Operational Tracker 0.7](docs/es/ROADMAP-0.7.md)
 
 ## Instaladores (para usuarios finales)
@@ -89,6 +90,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Estado actual
 
-La versión 0.7.0 es una versión piloto. Agrega reconciliación opcional de tracker con un planificador de Google Sheets de sólo lectura y una ruta apply separada, limitada y aprobada por hash; también agrega evaluación privada de política de compensación. Sheets nunca envía aplicaciones ni contacto externo, y para escribir exige `confirm_each_external`, hash del plan actual revisado, lectura posterior por celda y workspace privado de auditoría. La compensación es determinista, no convierte monedas, trata cifras no divulgadas como desconocidas y no modifica el tracker. Los adaptadores de Google requieren un CLI `gws` compatible, instalado y autenticado por separado; Gmail no puede enviar mensajes intencionalmente.
+La versión 0.8.0 es una versión piloto. Agrega triage transaccional Gmail: un mensaje Gmail explícito se convierte en una propuesta de evidencia privada y revisable, que sólo puede alimentar un plan dry-run de reconciliación del tracker. Nunca infiere hechos del tracker desde correo, reconcilia automáticamente, envía correo, aplica a vacantes, archiva, etiqueta ni borra mensajes. La acción opcional de marcar leído sólo puede retirar `UNREAD` después de `confirm_each_external`, hash vigente del plan revisado, prelectura actual sin leer, auditoría y readback verificado. También agrega una proyección opcional a Markdown de Obsidian con hash aprobado, privada y atómica; Kanban remoto sigue diferido. Los adaptadores de Google requieren un CLI `gws` compatible, instalado y autenticado por separado.
 
 Con licencia Apache-2.0; consulta [LICENSE](LICENSE).

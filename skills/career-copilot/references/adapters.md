@@ -19,8 +19,8 @@ Never place spreadsheet IDs or credential paths in the skill/repository.
 
 - `gmail-search` lists message IDs from a narrow query.
 - `gmail-get` reads one full message before classification.
-- `gmail-triage --message-id <id> --account-ref <ref> --workspace <workspace>` reads one explicitly named message, creates a private idempotency ledger entry and returns a review proposal without calling any Gmail mutation endpoint.
-- A tracker fact is never inferred from Gmail text. A reviewed caller may pass `--supported-fact` with exactly one minimal `--excerpt` or `--content-sha256`; this creates the opaque private evidence reference required by the tracker.
+- `gmail-triage --message-id <id> --account-ref <ref> --workspace <workspace>` reads one explicitly named message, creates a private idempotency ledger entry and returns a review proposal without calling any Gmail mutation endpoint. A corrupt ledger or fingerprint collision blocks the flow for human review.
+- A tracker fact is never inferred from Gmail text. A reviewed caller may pass `--supported-fact` with exactly one minimal `--excerpt` or a lowercase 64-character SHA-256 `--content-sha256`; this creates the opaque private evidence reference required by the tracker.
 - `gmail-reconcile --snapshot-json <snapshot> --fields-json <mapping> --record-json <record> --evidence-ref <ref>` binds one opaque evidence reference to the existing pure reconciliation planner and returns only a `dry_run` decision; it cannot modify a tracker or Gmail.
 - `gmail-mark-read` previews by default and returns an approval hash.
 - `gmail-mark-read --apply --approved-plan-sha256 <hash> --profile <profile.yaml> --workspace <workspace>` first checks `confirm_each_external`, re-reads the exact message to ensure it remains unread, removes only `UNREAD`, records lifecycle audit events, and confirms the label is absent.
@@ -34,8 +34,9 @@ A local text draft is not authorization to send.
 
 - Resolve the concrete vault path locally.
 - `obsidian-write` previews target path and character count.
-- `obsidian-write --apply` writes atomically and reads back exact content.
-- Only relative `.md` paths beneath the vault are allowed.
+- `obsidian-write --apply` writes atomically and reads back exact content; its approval hash is bound to the canonical vault path by a private hash as well as the relative note path and content.
+- Only relative `.md` paths beneath the vault are allowed; applied writes reject vaults that are symlinks or reside in the distribution or a Git repository.
+- Remote Kanban projection is not part of this release.
 
 ## Failure ladder
 

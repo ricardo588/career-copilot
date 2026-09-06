@@ -16,9 +16,9 @@ ADAPTER="$HOME/.hermes/profiles/<PROFILE>/skills/career-copilot/scripts/adapters
 - Las mutaciones muestran un plan salvo que se proporcione explícitamente `--apply`.
 - Las mutaciones de Google requieren `--profile <private-profile.yaml>` y se bloquean cuando ese perfil está en `draft_only`.
 - Cada mutación hace verificación de lectura posterior.
-- El adaptador de Gmail no puede enviar mensajes.
+- El adaptador de Gmail no puede enviar mensajes; el triage lee exactamente un mensaje explícito y guarda sólo evidencia privada revisable.
 - El adaptador de Sheets solo actualiza un rango explícito.
-- El adaptador de Obsidian rechaza rutas fuera del vault configurado.
+- El adaptador de Obsidian rechaza rutas fuera del vault y vaults que sean symlinks o estén dentro de la distribución o de un repositorio Git.
 
 ## Prerrequisito de Google Workspace
 
@@ -157,7 +157,19 @@ python3 "$ADAPTER" gmail-triage \
   --workspace "$HOME/Documents/CareerCopilot"
 ```
 
-El triage escribe únicamente un ledger privado mínimo y devuelve una propuesta revisable; repetir el mensaje devuelve el no-op idempotente `already_processed`. Nunca infiere un hecho para el tracker desde el texto. Para registrar un hecho, proporciona un `--supported-fact` revisado explícitamente y exactamente uno entre `--excerpt` mínimo o `--content-sha256`.
+El triage escribe únicamente un ledger privado mínimo y devuelve una propuesta revisable; repetir el mensaje devuelve el no-op idempotente `already_processed`. Un ledger corrupto o una colisión de fingerprint bloquean el flujo para revisión humana. Nunca infiere un hecho para el tracker desde el texto. Para registrar un hecho, proporciona un `--supported-fact` revisado explícitamente y exactamente uno entre `--excerpt` mínimo o un `--content-sha256` SHA-256 de 64 caracteres en minúsculas.
+
+Vincula una referencia opaca de evidencia revisada con una propuesta determinista del tracker. Este comando es de sólo lectura y no puede modificar Gmail, un tracker CSV, Sheets ni un tracker remoto:
+
+```bash
+python3 "$ADAPTER" gmail-reconcile \
+  --snapshot-json "$TRACKER_SNAPSHOT_JSON" \
+  --fields-json "$FIELDS_JSON" \
+  --record-json "$REVIEWED_RECORD_JSON" \
+  --evidence-ref 'evidence/gmail-evidence.jsonl#<EVIDENCE_UUID>'
+```
+
+Quien lo ejecuta debe resolver la identidad destino y revisar la decisión devuelta. Ambigüedad de identidad, colisiones y evidencia insuficiente siguen siendo estados de bloqueo, no actualizaciones automáticas del tracker.
 
 Enviar, responder, reenviar y crear borradores están intencionalmente no soportados en esta versión del adaptador. Career Copilot puede preparar texto local de borrador, pero un flujo de trabajo aprobado separado debe encargarse de la transmisión.
 
@@ -172,7 +184,7 @@ python3 "$ADAPTER" obsidian-write \
   --content-file '/path/to/local/interview-brief.md'
 ```
 
-La vista previa devuelve un `approval_sha256`. Para aplicar se requieren el hash exacto revisado, perfil privado y workspace privado; el adaptador escribe de forma atómica, hace readback y conserva una auditoría mínima:
+La vista previa devuelve un `approval_sha256` ligado al contenido, ruta relativa de la nota y un vault canónico sin revelar la ruta del vault. Para aplicar se requieren el hash exacto revisado, perfil privado y workspace privado; el adaptador escribe de forma atómica, hace readback y conserva una auditoría mínima. Las escrituras aplicadas rechazan vaults que sean symlinks o estén dentro de la distribución o de cualquier repositorio Git. Kanban remoto queda intencionalmente fuera del alcance de 0.8: no existe adaptador ni sincronización con Kanban.
 
 ```bash
 python3 "$ADAPTER" obsidian-write \
