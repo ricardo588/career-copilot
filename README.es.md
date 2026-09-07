@@ -12,6 +12,7 @@ Operaciones reutilizables y centradas en la privacidad para la búsqueda de empl
 
 - Incorporación conversacional reanudable con puntos de control privados
 - Incorporación basada en CV que extrae localmente la información admitida y pide al usuario confirmar o corregirla
+- Empresas objetivo opcionales y sugerencias transparentes de portales según puestos y geografía declarados, seleccionables y editables por el usuario
 - Evaluación de vacantes específica por candidato con evidencia verificada
 - Matrices con cita de requisito-a-evidencia por oportunidad, más revisión local opcional del CV
 - Empresas objetivo privadas y respaldadas por evidencia con relojes independientes de frescura para empresa y Human Path
@@ -59,6 +60,7 @@ No exportes un perfil personal de Hermes para distribuir este proyecto. Instala 
 - [Privacidad y modelo de amenazas](docs/es/PRIVACY.md)
 - [Solución de problemas](docs/es/TROUBLESHOOTING.md)
 - [Diseño de Proyección opcional a Kanban de Obsidian 0.9](docs/es/ROADMAP-0.9.md)
+- [Diseño de Onboarding estratégico 0.9.1](docs/es/ROADMAP-0.9.1.md)
 - [Diseño de Triage transaccional Gmail 0.8](docs/es/ROADMAP-0.8.md)
 - [Diseño de Operational Tracker 0.7](docs/es/ROADMAP-0.7.md)
 
@@ -91,6 +93,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Estado actual
 
-La versión 0.9.0 es una versión piloto. Conserva el triage transaccional Gmail: un mensaje Gmail explícito se convierte en una propuesta de evidencia privada y revisable que sólo puede alimentar un plan dry-run de reconciliación del tracker. Agrega una proyección opcional y local a Kanban de Obsidian: un artefacto revisado puede crear, agregar, actualizar o dejar sin cambio seguro una tarjeta Markdown en un lane explícito de un tablero. Nunca escanea el vault, importa contenido del tablero, sincroniza, trata Kanban como autoridad del tracker ni usa un proveedor remoto de Kanban. Aplicar una mutación de Obsidian requiere `confirm_each_external`, hash vigente del plan revisado, auditoría en workspace privado, prelectura vigente, escritura atómica y readback verificado. Los adaptadores de Google requieren un CLI `gws` compatible, instalado y autenticado por separado.
+La versión 0.9.1 es una versión piloto. Conserva el triage transaccional Gmail y la proyección opcional y local a Kanban de Obsidian de v0.9.0: un artefacto revisado puede crear, agregar, actualizar o dejar sin cambio seguro una tarjeta Markdown en un lane explícito, sin escanear vaults, importar, sincronizar, usar Kanban remoto ni tratarlo como autoridad del tracker. También agrega onboarding estratégico: captura opcional de empresas objetivo y sugerencias transparentes, editables por la persona, de cobertura de portales derivadas sólo de puestos y geografía elegible declarados. El catálogo inicial incluye cobertura para México y adiciones para puestos tecnológicos; no afirma desempeño vigente de los portales ni obtiene vacantes. Las empresas y portales elegidos permanecen como reglas privadas y nunca autorizan investigación, contacto, postulación, edición de perfiles ni acciones externas. Cualquier mutación de Obsidian sigue requiriendo `confirm_each_external`, hash vigente de un plan revisado, auditoría en workspace privado, prelectura vigente, escritura atómica y readback verificado. Los adaptadores Google requieren un CLI `gws` compatible, instalado y autenticado por separado.
 
 Con licencia Apache-2.0; consulta [LICENSE](LICENSE).

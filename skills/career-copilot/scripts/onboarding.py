@@ -36,6 +36,8 @@ QUESTIONS = [
     {"phase": "constraints", "field": "constraints.accommodations", "prompt": "Which job-process accommodations do you explicitly request, if any?", "required": False},
     {"phase": "constraints", "field": "constraints.excluded_roles", "prompt": "Which roles must be excluded?", "required": False},
     {"phase": "preferences", "field": "search.freshness_days", "prompt": "How many days should a vacancy remain fresh?", "required": False},
+    {"phase": "search_strategy", "field": "search.target_companies", "prompt": "Which companies would you like to target? You may leave this blank and add them later.", "required": False},
+    {"phase": "search_strategy", "field": "search.selected_job_portals", "prompt": "Which job portals do you want to use? Review the location- and role-aware suggestions first; you can add any portal or leave this blank.", "required": False},
 
     {"phase": "permissions", "field": "permissions.tracker_updates", "prompt": "May the copilot update the private tracker?", "required": True},
     {"phase": "permissions", "field": "permissions.external_action_mode", "prompt": "Keep draft-only mode, or explicitly opt in to confirmation for each external action?", "required": False},
@@ -98,6 +100,8 @@ DEFAULT_ANSWERS: dict[str, Any] = {
         ],
         "freshness_days": 14,
         "require_current_source": True,
+        "target_companies": [],
+        "selected_job_portals": [],
     },
     "integrations": {
         "google_sheets": {"enabled": False, "spreadsheet_id_env": "CAREER_COPILOT_SHEET_ID", "range": "Applications!A:U"},
@@ -121,7 +125,7 @@ LIST_FIELDS = {
     "constraints.countries", "constraints.locations", "constraints.work_modes",
     "constraints.employment_types", "constraints.excluded_roles", "constraints.excluded_industries",
     "constraints.job_eligibility.work_authorization", "constraints.accommodations",
-    "documents.alternate_cvs", "search.source_priority",
+    "documents.alternate_cvs", "search.source_priority", "search.target_companies", "search.selected_job_portals",
 }
 BOOLEAN_FIELDS = {
     "documents.has_cv",
@@ -315,6 +319,12 @@ def load_state(workspace: Path) -> dict[str, Any]:
     documents.setdefault("primary_cv", "")
     documents.setdefault("alternate_cvs", [])
     documents.setdefault("cv_import_status", "not_started")
+    search = state["answers"].setdefault("search", {})
+    for field in ("target_companies", "selected_job_portals"):
+        if field not in search:
+            search[field] = []
+        elif not isinstance(search[field], list):
+            raise ValueError(f"search.{field} must be a JSON array; correct it before resuming onboarding")
     profile = state["answers"].setdefault("profile", {})
     career_direction = profile.setdefault("career_direction", {})
     direction_defaults = DEFAULT_ANSWERS["profile"]["career_direction"]
@@ -378,6 +388,36 @@ def is_populated(value: Any) -> bool:
     return True
 
 
+def portal_recommendations(answers: dict[str, Any]) -> list[dict[str, str]]:
+    """Return transparent coverage suggestions, never an asserted market ranking."""
+    roles = " ".join(get_nested(answers, "profile.target_roles") or []).casefold()
+    geographies = " ".join(
+        (get_nested(answers, "constraints.countries") or []) +
+        (get_nested(answers, "constraints.locations") or [])
+    ).casefold()
+    recommendations = [
+        {"id": "linkedin", "name": "LinkedIn", "reason": "Professional-network coverage for the declared roles and geography."},
+        {"id": "official_company_sites", "name": "Official company career sites and ATS", "reason": "Canonical source, especially for the companies the candidate targets."},
+    ]
+    if "mexico" in geographies or "méxico" in geographies:
+        recommendations.extend([
+            {"id": "occ_mundial", "name": "OCC Mundial", "reason": "Mexico-focused job-board coverage."},
+            {"id": "computrabajo", "name": "Computrabajo México", "reason": "Mexico-focused job-board coverage."},
+        ])
+    technology_terms = ("software", "engineering", "engineer", "data", "product", "technology", "tecnolog", "desarrollo")
+    latin_america_terms = ("mexico", "méxico", "latin america", "latinoamerica", "latinoamérica", "brazil", "brasil", "argentina", "chile", "colombia", "peru", "perú", "uruguay", "paraguay", "bolivia", "ecuador", "venezuela", "guatemala", "costa rica", "panama", "panamá", "dominican republic", "república dominicana")
+    remote_declared = any("remote" in item.casefold() or "remoto" in item.casefold() for item in (get_nested(answers, "constraints.work_modes") or []))
+    latin_america_declared = any(term in geographies for term in latin_america_terms)
+    if any(term in roles for term in technology_terms):
+        if "mexico" in geographies or "méxico" in geographies:
+            recommendations.append({"id": "hireline", "name": "Hireline", "reason": "Mexico technology-role coverage."})
+        if latin_america_declared or remote_declared:
+            recommendations.append({"id": "get_on_board", "name": "Get on Board", "reason": "Declared Latin American or remote technology-role coverage."})
+    if not geographies:
+        recommendations.append({"id": "indeed", "name": "Indeed", "reason": "Broad coverage while the eligible geography is still unknown."})
+    return recommendations
+
+
 def missing_fields(state: dict[str, Any]) -> list[str]:
     answers = state["answers"]
     explicitly_answered = set(state.get("answered_fields", []))
@@ -413,8 +453,9 @@ def next_question_for(state: dict[str, Any], missing: list[str]) -> dict[str, An
         if item["field"] in missing:
             return item
     answers = state.get("answers", {})
+    explicitly_answered = set(state.get("answered_fields", []))
     for item in optional_order:
-        if not is_populated(get_nested(answers, item["field"])):
+        if item["field"] not in explicitly_answered and not is_populated(get_nested(answers, item["field"])):
             return item
     return None
 
@@ -424,7 +465,12 @@ def status_payload(state: dict[str, Any]) -> dict[str, Any]:
     has_cv = get_nested(state["answers"], "documents.has_cv")
     required_total = len(REQUIRED_FIELDS) + 1 + (2 if has_cv is True else 0)
     completed = max(0, required_total - len(missing))
-    optional_missing = [item["field"] for item in QUESTIONS if not item.get("required") and not is_populated(get_nested(state["answers"], item["field"]))]
+    optional_missing = [
+        item["field"] for item in QUESTIONS
+        if not item.get("required")
+        and item["field"] not in state.get("answered_fields", [])
+        and not is_populated(get_nested(state["answers"], item["field"]))
+    ]
     permissions = state.get("answers", {}).get("permissions", {})
     cv_import = state.get("cv_import", {"status": "not_started", "proposals": {}})
     return {
@@ -438,6 +484,7 @@ def status_payload(state: dict[str, Any]) -> dict[str, Any]:
             "status": cv_import.get("status", "not_started"),
             "proposals": cv_import.get("proposals", {}) if cv_import.get("status") == "pending_confirmation" else {},
         },
+        "portal_recommendations": portal_recommendations(state["answers"]),
         "external_action_policy": {
             "mode": permissions.get("external_action_mode", "draft_only"),
             "locked": bool(permissions.get("external_action_mode_locked", False)),

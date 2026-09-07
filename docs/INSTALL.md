@@ -104,7 +104,7 @@ hermes profile install . --name career-copilot-upgrade-test
 hermes -p career-copilot-upgrade-test skills list
 ```
 
-For 0.9.0, no private-data migration is required. Existing workspaces and local CSV trackers remain compatible. Gmail evidence, idempotency-ledger and adapter audit directories are created only when an optional adapter command is run in a user-selected private workspace. Optional Obsidian Kanban projection never scans or migrates a vault; it requires an explicit vault, board-relative Markdown path, lane and reviewed artifact. The 0.7 onboarding checkpoint migration to schema 5 remains applicable to profiles that predate it; do not add compensation columns manually—see
+For 0.9.1, no private-data migration is required. Existing onboarding checkpoints gain empty `search.target_companies` and `search.selected_job_portals` lists when resumed; existing workspaces and local CSV trackers remain compatible. Portal suggestions are local, transparent coverage heuristics based only on declared roles and eligible geography, not live market rankings. Gmail evidence, idempotency-ledger and adapter audit directories are created only when an optional adapter command is run in a user-selected private workspace. Optional Obsidian Kanban projection never scans or migrates a vault; it requires an explicit vault, board-relative Markdown path, lane and reviewed artifact. The 0.7 onboarding checkpoint migration to schema 5 remains applicable to profiles that predate it; do not add compensation columns manually—see
 `skills/career-copilot/references/tracker-compensation-migration.md`.
 
 Never use a personal profile export as an upgrade or distribution mechanism.

@@ -65,6 +65,8 @@ REQUIRED = [
     "docs/es/TROUBLESHOOTING.md",
     "docs/ROADMAP-0.7.md",
     "docs/es/ROADMAP-0.7.md",
+    "docs/ROADMAP-0.9.1.md",
+    "docs/es/ROADMAP-0.9.1.md",
     "cron/README.md",
     "cron/README.es.md",
 ]
@@ -80,6 +82,7 @@ DOC_LINK_PAIRS = [
     ("docs/PRIVACY.md", "docs/es/PRIVACY.md", "es/PRIVACY.md"),
     ("docs/TROUBLESHOOTING.md", "docs/es/TROUBLESHOOTING.md", "es/TROUBLESHOOTING.md"),
     ("docs/ROADMAP-0.7.md", "docs/es/ROADMAP-0.7.md", "es/ROADMAP-0.7.md"),
+    ("docs/ROADMAP-0.9.1.md", "docs/es/ROADMAP-0.9.1.md", "es/ROADMAP-0.9.1.md"),
     ("cron/README.md", "cron/README.es.md", "README.es.md"),
 ]
 
