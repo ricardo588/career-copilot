@@ -4,7 +4,7 @@ Versión original en inglés: [docs/ROADMAP-0.9.md](../ROADMAP-0.9.md).
 
 ## Estado
 
-**Planeada; no iniciada.** v0.9 extiende la frontera de proyección privada, atómica y Markdown de Obsidian entregada en v0.8. No afirma que se haya completado ningún paso independiente de publicación.
+**Entregada en v0.9.0.** v0.9 extiende la frontera de proyección privada, atómica y Markdown de Obsidian entregada en v0.8 con una proyección opcional y local de tarjetas a Kanban de Obsidian. No crea proveedores remotos, escaneos de vaults, sincronización ni acciones automáticas. El contrato detallado de seguridad siguiente se conserva como frontera de la versión; el endurecimiento posterior al comando implementado para un tablero queda diferido y no se infiere.
 
 ## Objetivo
 

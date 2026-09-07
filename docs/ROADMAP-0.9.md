@@ -4,7 +4,7 @@ Spanish version: [docs/es/ROADMAP-0.9.md](es/ROADMAP-0.9.md).
 
 ## Status
 
-**Planned; not started.** v0.9 extends the v0.8 private, atomic Obsidian Markdown projection boundary. It does not assert the completion of any independent release-publication step.
+**Delivered in v0.9.0.** v0.9 extends the v0.8 private, atomic Obsidian Markdown projection boundary with an optional local Obsidian Kanban card projection. It does not create remote providers, vault scans, synchronization, or automatic actions. The detailed safety contract below remains the release boundary; later hardening beyond the implemented one-board command remains deferred rather than implied.
 
 ## Goal
 

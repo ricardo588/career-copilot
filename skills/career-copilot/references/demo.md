@@ -16,6 +16,7 @@ The scenario uses only bundled synthetic JSON and a reserved `.test` URL. It mus
 - recommendation `High`;
 - exactly three meaningfully supported requirements;
 - `gmail-triage.json` with a proposed triage and a dry-run tracker reconciliation from opaque private evidence;
+- `kanban-projection.json` with a dry-run local Obsidian Kanban projection from an opaque synthetic artifact;
 - zero external actions.
 - no protected or proxy attribute used in fit scoring.
 
