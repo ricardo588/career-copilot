@@ -48,6 +48,7 @@ Do not export a personal Hermes profile to distribute this project. Install the 
 - [Optional adapters](docs/ADAPTERS.md)
 - [Privacy and threat model](docs/PRIVACY.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Optional Obsidian Kanban Projection 0.9 design brief](docs/ROADMAP-0.9.md)
 - [Transactional Gmail Triage 0.8 design brief](docs/ROADMAP-0.8.md)
 - [Operational Tracker 0.7 design brief](docs/ROADMAP-0.7.md)
 
@@ -90,6 +91,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.8.0 is a pilot release. It adds transactional Gmail triage: one explicit Gmail message becomes a private, reviewable evidence proposal, which can feed only a dry-run tracker reconciliation plan. It never infers tracker facts from email text, performs automatic reconciliation, sends mail, applies to jobs, archives, labels or deletes messages. An optional mark-read action can remove only `UNREAD` after `confirm_each_external`, a reviewed current-plan hash, a current unread preflight, audit logging and verified readback. It also adds a hash-approved, private, atomic Obsidian Markdown projection; remote Kanban remains deferred. Google adapters require a separately installed and authenticated compatible `gws` CLI.
+Version 0.9.0 is a pilot release. It retains transactional Gmail triage: one explicit Gmail message becomes a private, reviewable evidence proposal that can feed only a dry-run tracker reconciliation plan. It adds an optional, local Obsidian Kanban projection: one reviewed artifact can create, append, update, or safely no-op one Markdown card in one explicit board lane. It never scans a vault, imports board content, synchronizes, treats Kanban as tracker authority, or uses a remote Kanban provider. Applying an Obsidian mutation requires `confirm_each_external`, a reviewed current-plan hash, private workspace auditing, a current preflight, atomic write, and verified readback. Google adapters require a separately installed and authenticated compatible `gws` CLI.
 
 Licensed under Apache-2.0; see [LICENSE](LICENSE).

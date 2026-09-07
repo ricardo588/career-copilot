@@ -17,7 +17,8 @@ The bundled scenario proves the local workflow without using a real candidate, e
 9. Add a synthetic next action and derive one read-only `follow_up_overdue` signal without changing tracker status during review.
 10. Render a synthetic offer negotiation brief with source-dated package comparison and draft-only language.
 11. Run a synthetic, read-only Gmail triage: explicit message → private evidence → idempotency ledger → tracker reconciliation proposal.
-12. Record that zero external actions occurred.
+12. Preview one synthetic, local Obsidian Kanban card projection without writing a vault.
+13. Record that zero external actions occurred.
 
 ## Run
 
@@ -44,6 +45,7 @@ Generated artifacts:
 - `interview-brief.md`
 - `offer-negotiation.md`
 - `gmail-triage.json`
+- `kanban-projection.json`
 
 Exercise the read-only relationship and debrief modes separately (their outputs must be outside the repository):
 
@@ -69,6 +71,7 @@ python3 skills/career-copilot/scripts/pipeline.py \
 - `external_actions` is `0`.
 - `tracker_review.read_only` is `true` and exactly one item is `follow_up_overdue`.
 - `gmail_triage.status` is `proposed`; `gmail_reconciliation.status` is `dry_run` and its decision is `update_plan`.
+- `kanban_projection.status` is `dry_run` and its decision is `create_board_plan`.
 - The persisted tracker status remains `applied`; review does not mutate it.
 - Protected attributes and their name/photo/date proxies are excluded from fit scoring.
 - The interview brief contains Human Path, interviewer intelligence and the evidence guardrail.

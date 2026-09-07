@@ -36,6 +36,8 @@ A local text draft is not authorization to send.
 - `obsidian-write` previews target path and character count.
 - `obsidian-write --apply` writes atomically and reads back exact content; its approval hash is bound to the canonical vault path by a private hash as well as the relative note path and content.
 - Only relative `.md` paths beneath the vault are allowed; applied writes reject vaults that are symlinks or reside in the distribution or a Git repository.
+- `obsidian-kanban-project` previews one reviewed artifact as one Markdown task card in one explicit Obsidian Kanban lane. The plan binds the canonical vault hash, relative board path, current-content hash, lane, opaque artifact hash, marker and rendered Markdown.
+- `obsidian-kanban-project --apply --approved-plan-sha256 <hash> --profile <profile.yaml> --workspace <workspace>` requires `confirm_each_external`, a current board preflight, atomic write and exact readback. It never scans a vault, imports board content, synchronizes, or treats Kanban as tracker authority.
 - Remote Kanban projection is not part of this release.
 
 ## Failure ladder
