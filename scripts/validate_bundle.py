@@ -40,6 +40,7 @@ REQUIRED = [
     "skills/career-copilot/scripts/bootstrap_workspace.py",
     "skills/career-copilot/scripts/workspace_backup.py",
     "skills/career-copilot/scripts/onboarding.py",
+    "skills/career-copilot/scripts/vacancy_discovery.py",
     "skills/career-copilot/scripts/pipeline.py",
     "skills/career-copilot/scripts/tracker_reconciliation.py",
     "skills/career-copilot/scripts/run_synthetic_demo.py",
@@ -67,6 +68,8 @@ REQUIRED = [
     "docs/es/ROADMAP-0.7.md",
     "docs/ROADMAP-0.9.1.md",
     "docs/es/ROADMAP-0.9.1.md",
+    "docs/ROADMAP-0.10.0.md",
+    "docs/es/ROADMAP-0.10.0.md",
     "cron/README.md",
     "cron/README.es.md",
 ]
@@ -83,6 +86,7 @@ DOC_LINK_PAIRS = [
     ("docs/TROUBLESHOOTING.md", "docs/es/TROUBLESHOOTING.md", "es/TROUBLESHOOTING.md"),
     ("docs/ROADMAP-0.7.md", "docs/es/ROADMAP-0.7.md", "es/ROADMAP-0.7.md"),
     ("docs/ROADMAP-0.9.1.md", "docs/es/ROADMAP-0.9.1.md", "es/ROADMAP-0.9.1.md"),
+    ("docs/ROADMAP-0.10.0.md", "docs/es/ROADMAP-0.10.0.md", "es/ROADMAP-0.10.0.md"),
     ("cron/README.md", "cron/README.es.md", "README.es.md"),
 ]
 

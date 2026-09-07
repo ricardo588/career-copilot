@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.9.1
+version: 0.10.0
 author: Career Copilot contributors
 metadata:
   hermes:
@@ -105,6 +105,12 @@ For encrypted private-workspace backup, verification and non-destructive recover
 For deterministic local evaluation/tracking/brief generation, use:
 
 `python3 ${HERMES_SKILL_DIR}/scripts/pipeline.py --profile <profile> --rules <rules> --vacancy <vacancy-json> --as-of <YYYY-MM-DD> [--human-path <private-json>] [--interviewer-research <private-json>] [--tracker <csv>] [--brief <md>]`
+
+For a private, read-only vacancy-export import, use:
+
+`python3 ${HERMES_SKILL_DIR}/scripts/vacancy_discovery.py --profile <private-profile-json> --rules <private-rules-json> --import-file <explicit-private-export.json-or-csv> --output <private-shortlist-json> --as-of <YYYY-MM-DD>`
+
+This import never queries a portal, modifies a tracker or authorizes an external action.
 
 For a read-only overdue follow-up review, use:
 
