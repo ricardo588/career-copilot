@@ -47,7 +47,25 @@ Ask Career Copilot to continue onboarding. It should:
 
 ## Import a private vacancy export (read only)
 
-If the person explicitly provides a private JSON export from a selected portal, shortlist it without contacting the portal or changing the tracker:
+If the person explicitly provides a private JSON or CSV export from a selected portal, shortlist it without contacting the portal or changing the tracker. CSV support is a complete, versioned local mapping contract, not a claim that any vendor's export format is supported.
+
+### Supported CSV contract
+
+The following case-insensitive headers are normalized by replacing `_` and `-` with spaces and collapsing whitespace. Required internal fields are `source`, `company`, `role`, `location`, `canonical_url` and `date_posted`; the other fields are optional and become empty strings when absent.
+
+| Internal field | Accepted CSV headers |
+| --- | --- |
+| `source` | `Source`, `Portal`, `Job Portal` |
+| `company` | `Company`, `Company Name`, `Employer`, `Employer Name` |
+| `role` | `Role`, `Title`, `Job Title`, `Position`, `Position Title` |
+| `location` | `Location`, `Job Location`, `City` |
+| `canonical_url` | `Canonical URL`, `URL`, `Job URL`, `Job Link`, `Posting URL` |
+| `date_posted` | `Date Posted`, `Posted Date`, `Posting Date`, `Date` |
+| `work_mode` | `Work Mode`, `Workplace Type` |
+| `employment_type` | `Employment Type`, `Job Type` |
+| `external_job_id` | `External Job ID`, `Job ID`, `Requisition ID` |
+
+Supported source-label normalization is: `LinkedIn`/`LinkedIn Jobs` → `linkedin`; `OCC Mundial`/`OCC.com.mx` → `occ_mundial`; `Computrabajo` → `computrabajo`; `Hireline` → `hireline`; `Get on Board` → `get_on_board`; `We Work Remotely` → `we_work_remotely`; `Upwork` → `upwork`; `Behance` → `behance`; `The Ladders` → `the_ladders`; `Official Company Sites` → `official_company_sites`; and `Official ATS` → `official_ats`. Any other source label becomes lowercase snake case (spaces become `_`) and must exactly match a portal selected in the private rules; otherwise the normal source-selection validation discards it. No source label authorizes a query or claims vendor-format support.
 
 ```bash
 python3 "$SKILL_DIR/scripts/vacancy_discovery.py" \

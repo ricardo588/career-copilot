@@ -108,7 +108,7 @@ For deterministic local evaluation/tracking/brief generation, use:
 
 For a private, read-only vacancy-export import, use:
 
-`python3 ${HERMES_SKILL_DIR}/scripts/vacancy_discovery.py --profile <private-profile-json> --rules <private-rules-json> --import-file <explicit-private-export-json> --output <private-shortlist-json> --as-of <YYYY-MM-DD>`
+`python3 ${HERMES_SKILL_DIR}/scripts/vacancy_discovery.py --profile <private-profile-json> --rules <private-rules-json> --import-file <explicit-private-export.json-or-csv> --output <private-shortlist-json> --as-of <YYYY-MM-DD>`
 
 This import never queries a portal, modifies a tracker or authorizes an external action.
 

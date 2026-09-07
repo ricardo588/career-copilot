@@ -47,7 +47,25 @@ Pídele a Career Copilot que continúe el onboarding. Debe:
 
 ## Importa una exportación privada de vacantes (sólo lectura)
 
-Si la persona proporciona explícitamente una exportación JSON privada desde un portal seleccionado, crea un shortlist sin contactar al portal ni cambiar el tracker:
+Si la persona proporciona explícitamente una exportación JSON o CSV privada desde un portal seleccionado, crea un shortlist sin contactar al portal ni cambiar el tracker. El soporte CSV es un contrato local completo y versionado de mapeo, no una afirmación de que sea compatible con el formato de exportación de algún proveedor.
+
+### Contrato CSV compatible
+
+Los siguientes encabezados sin distinción entre mayúsculas/minúsculas se normalizan reemplazando `_` y `-` por espacios y colapsando espacios repetidos. Los campos internos obligatorios son `source`, `company`, `role`, `location`, `canonical_url` y `date_posted`; los demás son opcionales y quedan como cadenas vacías si no existen.
+
+| Campo interno | Encabezados CSV aceptados |
+| --- | --- |
+| `source` | `Source`, `Portal`, `Job Portal` |
+| `company` | `Company`, `Company Name`, `Employer`, `Employer Name` |
+| `role` | `Role`, `Title`, `Job Title`, `Position`, `Position Title` |
+| `location` | `Location`, `Job Location`, `City` |
+| `canonical_url` | `Canonical URL`, `URL`, `Job URL`, `Job Link`, `Posting URL` |
+| `date_posted` | `Date Posted`, `Posted Date`, `Posting Date`, `Date` |
+| `work_mode` | `Work Mode`, `Workplace Type` |
+| `employment_type` | `Employment Type`, `Job Type` |
+| `external_job_id` | `External Job ID`, `Job ID`, `Requisition ID` |
+
+La normalización de etiquetas de fuente compatible es: `LinkedIn`/`LinkedIn Jobs` → `linkedin`; `OCC Mundial`/`OCC.com.mx` → `occ_mundial`; `Computrabajo` → `computrabajo`; `Hireline` → `hireline`; `Get on Board` → `get_on_board`; `We Work Remotely` → `we_work_remotely`; `Upwork` → `upwork`; `Behance` → `behance`; `The Ladders` → `the_ladders`; `Official Company Sites` → `official_company_sites`; y `Official ATS` → `official_ats`. Cualquier otra etiqueta de fuente se convierte a snake case en minúsculas (los espacios se vuelven `_`) y debe coincidir exactamente con un portal seleccionado en las reglas privadas; de otro modo, la validación normal de fuente seleccionada la descarta. Ninguna etiqueta de fuente autoriza una consulta ni afirma compatibilidad con formatos de proveedores.
 
 ```bash
 python3 "$SKILL_DIR/scripts/vacancy_discovery.py" \

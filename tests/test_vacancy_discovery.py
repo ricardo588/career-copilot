@@ -105,6 +105,27 @@ class VacancyDiscoveryTests(unittest.TestCase):
             "reason": "duplicate_canonical_url",
         }])
 
+    def test_csv_import_normalizes_linkedin_export_headers_and_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            export = Path(tmp) / "linkedin-export.csv"
+            export.write_text(
+                "Company Name,Job Title,Job Location,Job URL,Date Posted,Work Mode,Employment Type,Source\n"
+                "Synthetic Holdings,Program Director,Mexico City,https://jobs.example.invalid/roles/123?utm_source=linkedin,2026-09-01,Remote,Full-time,LinkedIn Jobs\n",
+                encoding="utf-8",
+            )
+            payload = DISCOVERY.load_vacancy_export(export)
+        self.assertEqual(payload, {"vacancies": [{
+            "source": "linkedin",
+            "company": "Synthetic Holdings",
+            "role": "Program Director",
+            "location": "Mexico City",
+            "canonical_url": "https://jobs.example.invalid/roles/123?utm_source=linkedin",
+            "date_posted": "2026-09-01",
+            "work_mode": "Remote",
+            "employment_type": "Full-time",
+            "external_job_id": "",
+        }]})
+
     def test_cli_rejects_private_inputs_inside_a_git_repository_without_writing_report(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

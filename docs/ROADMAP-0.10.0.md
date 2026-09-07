@@ -7,13 +7,13 @@ Spanish version: [docs/es/ROADMAP-0.10.0.md](es/ROADMAP-0.10.0.md).
 v0.10.0 extends strategic onboarding with two private, deterministic capabilities:
 
 1. Portal coverage suggestions use the candidate's declared role family, seniority, industry, eligible geography, work mode and employment type.
-2. An explicit local JSON vacancy export can produce a private, read-only shortlist.
+2. An explicit local JSON or CSV vacancy export can produce a private, read-only shortlist.
 
 ## Delivered behavior
 
 1. **Candidate-controlled recommendations:** onboarding asks optional industry and employment-type questions. `status` returns editable `portal_recommendations`, each with an ID, name and reason.
 2. **Coverage, not a ranking:** the catalog includes baseline professional and official-source coverage plus conditional suggestions for Mexico, technology, creative roles or industries, remote work, contract or freelance work, and senior roles in the United States. These are local heuristics, not claims about live availability, portal quality or market performance.
-3. **Explicit private import:** `vacancy_discovery.py` reads only the supplied local JSON export. It validates the selected source, freshness, canonical HTTP(S) URL and duplicate canonical URLs.
+3. **Explicit private import:** `vacancy_discovery.py` reads only the supplied local JSON or CSV export. The complete, versioned generic CSV header-alias and source-label contract is published in the [Quickstart](QUICKSTART.md#import-a-private-vacancy-export-read-only); it is not a claim of vendor-export compatibility. Every import validates the selected source, freshness, canonical HTTP(S) URL and duplicate canonical URLs.
 4. **Traceable context:** every private shortlist preserves the declared role, seniority, industry, geography, work-mode and employment-type context without silently declaring a vacancy a match.
 5. **Safe handoff:** a shortlist is not a tracker write, verified vacancy, application authorization or external-action authorization. Every retained entry requires canonical-source verification before later evaluation or tracking.
 
@@ -36,6 +36,6 @@ Before publishing, run the full unit suite, bundle validation, privacy scan, Git
 ## Deferred
 
 - Direct portal, ATS or company-site acquisition adapters.
-- CSV import support and source-specific export normalizers.
+- Source-specific export normalizers beyond the documented header aliases and source labels.
 - Current, source-dated market-coverage evidence beyond the local catalog.
 - Automatic tracker writes, applications, messages, contacts or other external actions.

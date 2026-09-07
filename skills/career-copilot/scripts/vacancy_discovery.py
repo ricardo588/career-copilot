@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import sys
@@ -13,6 +14,41 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 SYSTEM_PATH_SYMLINKS = {Path("/var"), Path("/tmp")}
+CSV_FIELD_ALIASES = {
+    "source": ("source", "portal", "job portal"),
+    "company": ("company", "company name", "employer", "employer name"),
+    "role": ("role", "title", "job title", "position", "position title"),
+    "location": ("location", "job location", "city"),
+    "canonical_url": ("canonical url", "url", "job url", "job link", "posting url"),
+    "date_posted": ("date posted", "posted date", "posting date", "date"),
+    "work_mode": ("work mode", "workplace type"),
+    "employment_type": ("employment type", "job type"),
+    "external_job_id": ("external job id", "job id", "requisition id"),
+}
+SOURCE_NORMALIZERS = {
+    "linkedin": "linkedin",
+    "linkedin jobs": "linkedin",
+    "occ mundial": "occ_mundial",
+    "occ.com.mx": "occ_mundial",
+    "computrabajo": "computrabajo",
+    "hireline": "hireline",
+    "get on board": "get_on_board",
+    "we work remotely": "we_work_remotely",
+    "upwork": "upwork",
+    "behance": "behance",
+    "the ladders": "the_ladders",
+    "official company sites": "official_company_sites",
+    "official ats": "official_ats",
+}
+
+
+def normalize_csv_header(value: str) -> str:
+    return " ".join(value.strip().casefold().replace("_", " ").replace("-", " ").split())
+
+
+def normalize_source(value: str) -> str:
+    normalized = normalize_csv_header(value)
+    return SOURCE_NORMALIZERS.get(normalized, normalized.replace(" ", "_"))
 
 
 def load_json(path: Path, field: str) -> dict[str, Any]:
@@ -23,6 +59,37 @@ def load_json(path: Path, field: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{field} must be a JSON object")
     return value
+
+
+def load_vacancy_export(path: Path) -> dict[str, Any]:
+    if path.suffix.casefold() == ".json":
+        return load_json(path, "import")
+    if path.suffix.casefold() != ".csv":
+        raise ValueError("import-file must be a .json or .csv file")
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        if not reader.fieldnames:
+            raise ValueError("CSV import must include a header row")
+        aliases = {normalize_csv_header(header): header for header in reader.fieldnames if header is not None}
+        fields: dict[str, str | None] = {}
+        for field, names in CSV_FIELD_ALIASES.items():
+            fields[field] = next((aliases[name] for name in names if name in aliases), None)
+        required = ("source", "company", "role", "location", "canonical_url", "date_posted")
+        missing = [field for field in required if fields[field] is None]
+        if missing:
+            raise ValueError(f"CSV import is missing required column(s): {', '.join(missing)}")
+        vacancies = []
+        for row in reader:
+            normalized = {
+                field: str(row.get(column) or "").strip()
+                for field, column in fields.items()
+                if column is not None
+            }
+            normalized["source"] = normalize_source(normalized["source"])
+            for field in ("work_mode", "employment_type", "external_job_id"):
+                normalized.setdefault(field, "")
+            vacancies.append(normalized)
+    return {"vacancies": vacancies}
 
 
 def parse_date(value: Any, field: str) -> date:
@@ -189,7 +256,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", required=True, help="Private profile JSON")
     parser.add_argument("--rules", required=True, help="Private rules JSON")
-    parser.add_argument("--import-file", dest="import_file", required=True, help="Explicit private vacancy-export JSON")
+    parser.add_argument("--import-file", dest="import_file", required=True, help="Explicit private vacancy-export JSON or CSV")
     parser.add_argument("--output", required=True, help="Private shortlist report JSON")
     parser.add_argument("--as-of", required=True, help="YYYY-MM-DD")
     args = parser.parse_args()
@@ -197,7 +264,7 @@ def main() -> int:
         report = discover_vacancies(
             load_json(private_input_file(Path(args.profile), "profile"), "profile"),
             load_json(private_input_file(Path(args.rules), "rules"), "rules"),
-            load_json(private_input_file(Path(args.import_file), "import-file"), "import"),
+            load_vacancy_export(private_input_file(Path(args.import_file), "import-file")),
             parse_date(args.as_of, "as_of"),
         )
         write_private_report(Path(args.output), report)
