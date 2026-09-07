@@ -39,10 +39,26 @@ Pídele a Career Copilot que continúe el onboarding. Debe:
 2. Preguntar si el usuario ya tiene un CV.
 3. Si lo tiene, leerlo localmente y pedir al usuario que confirme o corrija la propuesta extraída.
 4. Hacer una fase a la vez solo para la información y permisos faltantes.
-5. Preguntar por empresas objetivo opcionales y, cuando ya se conozcan los puestos y geografía elegible, mostrar sugerencias transparentes de cobertura de portales para que la persona elija, ajuste u omita.
-6. Guardar cada respuesta confirmada en el punto de control privado.
-7. Reportar los campos obligatorios faltantes sin repetir valores sensibles.
-8. Finalizar solo cuando los campos obligatorios estén completos.
+5. Preguntar por empresas objetivo opcionales y, cuando ya se conozcan la familia de puesto, seniority, industria, geografía elegible, modalidad y tipo de empleo, mostrar sugerencias transparentes de cobertura de portales para que la persona elija, ajuste u omita.
+6. Cuando la persona proporcione explícitamente una exportación privada de vacantes, crear un shortlist de sólo lectura; no consultar un portal, escribir el tracker, postular ni contactar a nadie.
+7. Guardar cada respuesta confirmada en el punto de control privado.
+8. Reportar los campos obligatorios faltantes sin repetir valores sensibles.
+9. Finalizar solo cuando los campos obligatorios estén completos.
+
+## Importa una exportación privada de vacantes (sólo lectura)
+
+Si la persona proporciona explícitamente una exportación JSON privada desde un portal seleccionado, crea un shortlist sin contactar al portal ni cambiar el tracker:
+
+```bash
+python3 "$SKILL_DIR/scripts/vacancy_discovery.py" \
+  --profile "$WORKSPACE/profile.yaml" \
+  --rules "$WORKSPACE/rules.yaml" \
+  --import-file "$WORKSPACE/exportacion-privada.json" \
+  --output "$WORKSPACE/shortlist-privado.json" \
+  --as-of 2026-09-07
+```
+
+El reporte conserva el contexto declarado de puesto, seniority, industria, geografía, modalidad y tipo de empleo para la evaluación posterior. No infiere un veredicto de encaje y debe mantenerse dentro del workspace privado.
 
 ## Ejecuta la demo sintética segura
 

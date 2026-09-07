@@ -12,7 +12,8 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 
 - Resumable conversational onboarding with private checkpoints
 - CV-first onboarding that locally extracts supported facts and asks the user to confirm or correct them
-- Optional target companies plus transparent job-portal coverage suggestions from declared roles and geography, selectable and editable by the user
+- Optional target companies plus transparent, editable job-portal coverage suggestions based on declared role family, seniority, industry, eligible geography, work mode and employment type
+- Private, read-only JSON vacancy-export shortlist generation with selected-source, freshness and canonical-URL validation; it never queries a portal or changes a tracker
 - Candidate-specific vacancy evaluation using verified evidence
 - Per-opportunity cited requirement-to-evidence matrices plus opt-in local CV review
 - Private, evidence-backed target companies with independent company/Human Path freshness clocks
@@ -51,6 +52,7 @@ Do not export a personal Hermes profile to distribute this project. Install the 
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Optional Obsidian Kanban Projection 0.9 design brief](docs/ROADMAP-0.9.md)
 - [Strategic Onboarding 0.9.1 release brief](docs/ROADMAP-0.9.1.md)
+- [Private Vacancy Discovery 0.10.0 release brief](docs/ROADMAP-0.10.0.md)
 - [Transactional Gmail Triage 0.8 design brief](docs/ROADMAP-0.8.md)
 - [Operational Tracker 0.7 design brief](docs/ROADMAP-0.7.md)
 
@@ -93,6 +95,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.9.1 is a pilot release. It retains transactional Gmail triage and the optional, local Obsidian Kanban projection from v0.9.0: a reviewed artifact can create, append, update, or safely no-op one Markdown card in one explicit board lane, without vault scanning, import, synchronization, remote Kanban, or tracker authority. It also adds strategic onboarding: optional target-company capture and transparent, user-editable job-portal coverage suggestions derived only from declared roles and eligible geography. The initial catalog includes Mexico coverage and technology-role additions; it does not claim live portal performance or retrieve vacancies. Target and portal choices remain private rules and never authorize research, contact, application, profile edits, or external actions. Any Obsidian mutation still requires `confirm_each_external`, a reviewed current-plan hash, private workspace auditing, current preflight, atomic write, and verified readback. Google adapters require a separately installed and authenticated compatible `gws` CLI.
+Version 0.10.0 is a pilot release candidate. It retains transactional Gmail triage and the optional, local Obsidian Kanban projection from v0.9.0. It extends v0.9.1 strategic onboarding with transparent, user-editable job-portal coverage suggestions derived from declared role family, seniority, industry, eligible geography, work mode and employment type. The local catalog is a coverage heuristic, not a current market-performance ranking. It also introduces private read-only JSON vacancy-export shortlisting: it accepts only an explicitly supplied local file, validates candidate-selected sources, posting freshness and canonical URLs, removes canonical duplicates, and preserves candidate context for later evaluation without declaring a match. It does not query portals, retrieve live vacancies, write the tracker, submit applications, contact people, or perform any external action. Target and portal choices and shortlist reports remain private. Any Obsidian mutation still requires `confirm_each_external`, a reviewed current-plan hash, private workspace auditing, current preflight, atomic write, and verified readback. Google adapters require a separately installed and authenticated compatible `gws` CLI.
 
 Licensed under Apache-2.0; see [LICENSE](LICENSE).

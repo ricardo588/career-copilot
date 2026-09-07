@@ -20,6 +20,7 @@ QUESTIONS = [
     {"phase": "documents", "field": "documents.primary_cv", "prompt": "Share or select the local CV only if you accept that its extracted text is processed by your configured Hermes model provider (unless you use a local model). I will propose onboarding facts for your confirmation.", "required": False},
     {"phase": "goals", "field": "profile.target_roles", "prompt": "Which roles are you targeting?", "required": True},
     {"phase": "goals", "field": "profile.target_seniority", "prompt": "Which seniority levels are appropriate?", "required": True},
+    {"phase": "goals", "field": "profile.target_industries", "prompt": "Which industries should inform the search and portal coverage suggestions? You may leave this blank.", "required": False},
     {"phase": "evidence", "field": "profile.strengths", "prompt": "Which verified strengths should drive matching?", "required": True},
     {"phase": "evidence", "field": "profile.verified_evidence", "prompt": "Which real achievements or examples support those strengths?", "required": True},
     {"phase": "direction", "field": "profile.career_direction.success_criteria", "prompt": "What success criteria should be captured as factual, interpretive or preference-based?", "required": False},
@@ -31,6 +32,7 @@ QUESTIONS = [
     {"phase": "constraints", "field": "constraints.countries", "prompt": "Which countries are eligible?", "required": False},
     {"phase": "constraints", "field": "constraints.locations", "prompt": "Which locations are eligible?", "required": False},
     {"phase": "constraints", "field": "constraints.work_modes", "prompt": "Which work modes are acceptable?", "required": False},
+    {"phase": "constraints", "field": "constraints.employment_types", "prompt": "Which employment types are acceptable? This can refine portal coverage suggestions; you may leave it blank.", "required": False},
     {"phase": "constraints", "field": "constraints.job_eligibility.work_authorization", "prompt": "Which work authorizations or eligibility facts do you explicitly declare?", "required": False},
     {"phase": "constraints", "field": "constraints.job_eligibility.travel", "prompt": "What travel availability do you explicitly declare?", "required": False},
     {"phase": "constraints", "field": "constraints.accommodations", "prompt": "Which job-process accommodations do you explicitly request, if any?", "required": False},
@@ -391,6 +393,9 @@ def is_populated(value: Any) -> bool:
 def portal_recommendations(answers: dict[str, Any]) -> list[dict[str, str]]:
     """Return transparent coverage suggestions, never an asserted market ranking."""
     roles = " ".join(get_nested(answers, "profile.target_roles") or []).casefold()
+    seniority = " ".join(get_nested(answers, "profile.target_seniority") or []).casefold()
+    industries = " ".join(get_nested(answers, "profile.target_industries") or []).casefold()
+    employment_types = " ".join(get_nested(answers, "constraints.employment_types") or []).casefold()
     geographies = " ".join(
         (get_nested(answers, "constraints.countries") or []) +
         (get_nested(answers, "constraints.locations") or [])
@@ -405,14 +410,26 @@ def portal_recommendations(answers: dict[str, Any]) -> list[dict[str, str]]:
             {"id": "computrabajo", "name": "Computrabajo México", "reason": "Mexico-focused job-board coverage."},
         ])
     technology_terms = ("software", "engineering", "engineer", "data", "product", "technology", "tecnolog", "desarrollo")
+    creative_terms = ("creative", "design", "diseño", "advertising", "marketing", "content")
+    executive_terms = ("director", "executive", "vice president", "vp", "c-suite", "chief", "head of")
+    contract_terms = ("contract", "contractor", "freelance", "consult", "independent", "por proyecto")
     latin_america_terms = ("mexico", "méxico", "latin america", "latinoamerica", "latinoamérica", "brazil", "brasil", "argentina", "chile", "colombia", "peru", "perú", "uruguay", "paraguay", "bolivia", "ecuador", "venezuela", "guatemala", "costa rica", "panama", "panamá", "dominican republic", "república dominicana")
     remote_declared = any("remote" in item.casefold() or "remoto" in item.casefold() for item in (get_nested(answers, "constraints.work_modes") or []))
     latin_america_declared = any(term in geographies for term in latin_america_terms)
+    united_states_declared = "united states" in geographies or "usa" in geographies or "u.s." in geographies
     if any(term in roles for term in technology_terms):
         if "mexico" in geographies or "méxico" in geographies:
             recommendations.append({"id": "hireline", "name": "Hireline", "reason": "Mexico technology-role coverage."})
         if latin_america_declared or remote_declared:
             recommendations.append({"id": "get_on_board", "name": "Get on Board", "reason": "Declared Latin American or remote technology-role coverage."})
+    if any(term in roles or term in industries for term in creative_terms):
+        recommendations.append({"id": "behance", "name": "Behance", "reason": "Creative-role and creative-industry coverage for the declared profile."})
+    if remote_declared:
+        recommendations.append({"id": "we_work_remotely", "name": "We Work Remotely", "reason": "Remote-role coverage for the declared work-mode preference."})
+    if any(term in employment_types for term in contract_terms):
+        recommendations.append({"id": "upwork", "name": "Upwork", "reason": "Contract and freelance coverage for the declared employment-type preference."})
+    if united_states_declared and any(term in seniority for term in executive_terms):
+        recommendations.append({"id": "the_ladders", "name": "The Ladders", "reason": "Senior-level coverage for the declared seniority and United States geography."})
     if not geographies:
         recommendations.append({"id": "indeed", "name": "Indeed", "reason": "Broad coverage while the eligible geography is still unknown."})
     return recommendations

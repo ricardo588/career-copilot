@@ -128,6 +128,34 @@ class OnboardingTests(unittest.TestCase):
             unchanged = json.loads(checkpoint.read_text(encoding="utf-8"))
             self.assertEqual(unchanged["answers"]["search"]["target_companies"], "Synthetic Holdings")
 
+    def test_portal_suggestions_use_seniority_industry_employment_type_and_work_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            answers = {
+                "profile.target_roles": ["Creative Director"],
+                "profile.target_seniority": ["Director"],
+                "profile.target_industries": ["Creative services"],
+                "constraints.countries": ["United States"],
+                "constraints.work_modes": ["Remote"],
+                "constraints.employment_types": ["Contract"],
+            }
+            result = {}
+            for field, value in answers.items():
+                result = self.run_command(
+                    "--workspace", str(workspace), "answer", "--field", field,
+                    "--json-value", json.dumps(value),
+                )
+            suggestions = {item["id"]: item for item in result["portal_recommendations"]}
+            self.assertIn("behance", suggestions)
+            self.assertIn("we_work_remotely", suggestions)
+            self.assertIn("upwork", suggestions)
+            self.assertIn("the_ladders", suggestions)
+            self.assertIn("creative", suggestions["behance"]["reason"].casefold())
+            self.assertIn("remote", suggestions["we_work_remotely"]["reason"].casefold())
+            self.assertIn("contract", suggestions["upwork"]["reason"].casefold())
+            self.assertIn("seniority", suggestions["the_ladders"]["reason"].casefold())
+
     def test_technology_portals_respect_non_latin_american_non_remote_geography(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "candidate"
