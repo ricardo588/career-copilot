@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.9.0
+version: 0.9.1
 author: Career Copilot contributors
 metadata:
   hermes:
@@ -68,8 +68,9 @@ Use this skill to run a structured job search from each user's private candidate
 2. Ask `documents.has_cv` first. If the user has a CV, read `references/cv-first-onboarding.md`, extract supported fields locally, show direct facts and inferences separately, and apply them only after explicit confirmation. Ask manually only for missing preferences and permissions.
 3. Ask one short phase at a time. Do not ask for passwords, tokens, government IDs or payment data. The default mode is `draft_only`; `confirm_each_external` requires explicit user opt-in.
 4. Store each approved manual answer with `answer --field <field> --json-value '<valid-json>'`.
-5. Re-run `status` after each phase. Do not repeat sensitive values unnecessarily.
-6. Finalize only when `missing` is empty:
+5. After declared roles and eligible geography are available, use `status` to show transparent portal-coverage suggestions, then ask the optional target-company and selected-portal questions. Suggestions are not current-market rankings; keep chosen values only in the private workspace.
+6. Re-run `status` after each phase. Do not repeat sensitive values unnecessarily.
+7. Finalize only when `missing` is empty:
 
    `python3 ${HERMES_SKILL_DIR}/scripts/onboarding.py --workspace <configured-path> finalize`
 

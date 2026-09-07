@@ -39,9 +39,10 @@ Pídele a Career Copilot que continúe el onboarding. Debe:
 2. Preguntar si el usuario ya tiene un CV.
 3. Si lo tiene, leerlo localmente y pedir al usuario que confirme o corrija la propuesta extraída.
 4. Hacer una fase a la vez solo para la información y permisos faltantes.
-5. Guardar cada respuesta confirmada en el punto de control privado.
-6. Reportar los campos obligatorios faltantes sin repetir valores sensibles.
-7. Finalizar solo cuando los campos obligatorios estén completos.
+5. Preguntar por empresas objetivo opcionales y, cuando ya se conozcan los puestos y geografía elegible, mostrar sugerencias transparentes de cobertura de portales para que la persona elija, ajuste u omita.
+6. Guardar cada respuesta confirmada en el punto de control privado.
+7. Reportar los campos obligatorios faltantes sin repetir valores sensibles.
+8. Finalizar solo cuando los campos obligatorios estén completos.
 
 ## Ejecuta la demo sintética segura
 

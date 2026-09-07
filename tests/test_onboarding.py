@@ -59,6 +59,89 @@ class OnboardingTests(unittest.TestCase):
             self.assertEqual(story["results"]["facts"], ["Led a verified synthetic program"])
             self.assertEqual(profile["profile"]["verified_evidence"], ["Led a verified synthetic program"])
 
+    def test_onboarding_captures_target_companies_and_suggests_portals_from_location_and_roles(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            catalog = self.run_command("--workspace", str(workspace), "questions")
+            fields = {question["field"] for question in catalog}
+            self.assertIn("search.target_companies", fields)
+            self.assertIn("search.selected_job_portals", fields)
+
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "profile.target_roles", "--json-value", '["Software Engineering Manager"]',
+            )
+            result = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "constraints.countries", "--json-value", '["Mexico"]',
+            )
+            recommendation_ids = [item["id"] for item in result["portal_recommendations"]]
+            self.assertEqual(recommendation_ids[:2], ["linkedin", "official_company_sites"])
+            self.assertIn("occ_mundial", recommendation_ids)
+            self.assertIn("hireline", recommendation_ids)
+            self.assertIn("get_on_board", recommendation_ids)
+            self.assertNotIn("indeed", recommendation_ids)
+
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "search.target_companies", "--json-value", '["Synthetic Holdings"]',
+            )
+            stored = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "search.selected_job_portals", "--json-value", '["linkedin", "occ_mundial"]',
+            )
+            self.assertEqual(stored["portal_recommendations"][0]["id"], "linkedin")
+            state = json.loads((workspace / ".career_copilot_onboarding.json").read_text(encoding="utf-8"))
+            self.assertEqual(state["answers"]["search"]["target_companies"], ["Synthetic Holdings"])
+            self.assertEqual(state["answers"]["search"]["selected_job_portals"], ["linkedin", "occ_mundial"])
+
+    def test_blank_target_companies_and_portals_are_recorded_as_skipped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            target_skipped = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "search.target_companies", "--json-value", "[]",
+            )
+            self.assertNotIn("search.target_companies", target_skipped["optional_missing"])
+            portals_skipped = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "search.selected_job_portals", "--json-value", "[]",
+            )
+            self.assertNotIn("search.selected_job_portals", portals_skipped["optional_missing"])
+
+    def test_target_portal_checkpoint_migration_rejects_non_list_values_without_erasing_them(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            checkpoint = workspace / ".career_copilot_onboarding.json"
+            state = json.loads(checkpoint.read_text(encoding="utf-8"))
+            state["answers"]["search"]["target_companies"] = "Synthetic Holdings"
+            checkpoint.write_text(json.dumps(state), encoding="utf-8")
+            completed = subprocess.run(
+                [sys.executable, str(ONBOARDING), "--workspace", str(workspace), "status"],
+                check=False, capture_output=True, text=True,
+            )
+            self.assertEqual(completed.returncode, 2)
+            self.assertIn("search.target_companies must be a JSON array", completed.stderr)
+            unchanged = json.loads(checkpoint.read_text(encoding="utf-8"))
+            self.assertEqual(unchanged["answers"]["search"]["target_companies"], "Synthetic Holdings")
+
+    def test_technology_portals_respect_non_latin_american_non_remote_geography(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "profile.target_roles", "--json-value", '["Software Engineering Manager"]',
+            )
+            result = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "constraints.countries", "--json-value", '["Germany"]',
+            )
+            self.assertNotIn("get_on_board", [item["id"] for item in result["portal_recommendations"]])
+
     def test_optional_career_direction_is_resumable_and_preserves_fact_categories(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "candidate"

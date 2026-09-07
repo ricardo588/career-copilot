@@ -8,6 +8,8 @@ search:
     - aggregators
   freshness_days: 14
   require_current_source: true
+  target_companies: []
+  selected_job_portals: []
 evaluation:
   hard_exclusions: []
   preferred_signals: []

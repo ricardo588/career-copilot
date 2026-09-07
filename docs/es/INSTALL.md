@@ -104,14 +104,7 @@ hermes profile install . --name career-copilot-upgrade-test
 hermes -p career-copilot-upgrade-test skills list
 ```
 
-Para 0.9.0 no se requiere migrar datos privados. Los workspaces existentes y
-trackers CSV locales siguen siendo compatibles. Los directorios de evidencia
-Gmail, ledger de idempotencia y auditoría del adaptador se crean sólo al ejecutar
-un comando opcional dentro de un workspace privado elegido por el usuario. La
-proyección opcional a Kanban de Obsidian nunca escanea ni migra un vault; requiere
-un vault explícito, ruta Markdown relativa al tablero, lane y artefacto revisado.
-La migración 0.7 del checkpoint de onboarding a schema 5 sigue aplicando para
-perfiles anteriores; no agregues columnas de compensación manualmente: consulta
+Para 0.9.1 no se requiere migrar datos privados. Al reanudar, los checkpoints de onboarding existentes obtienen listas vacías `search.target_companies` y `search.selected_job_portals`; los workspaces existentes y trackers CSV locales siguen siendo compatibles. Las sugerencias de portales son heurísticas locales y transparentes de cobertura, basadas únicamente en puestos y geografía elegible declarados; no son rankings vigentes de mercado. Los directorios de evidencia Gmail, ledger de idempotencia y auditoría del adaptador se crean sólo al ejecutar un comando opcional dentro de un workspace privado elegido por el usuario. La proyección opcional a Kanban de Obsidian nunca escanea ni migra un vault; requiere un vault explícito, ruta Markdown relativa al tablero, lane y artefacto revisado. La migración 0.7 del checkpoint de onboarding a schema 5 sigue aplicando para perfiles anteriores; no agregues columnas de compensación manualmente: consulta
 `skills/career-copilot/references/tracker-compensation-migration.md`.
 
 Nunca uses la exportación de un perfil personal como mecanismo de actualización o distribución.

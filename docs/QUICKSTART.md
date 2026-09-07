@@ -39,9 +39,10 @@ Ask Career Copilot to continue onboarding. It should:
 2. Ask whether the user already has a CV.
 3. If so, read it locally and ask the user to confirm or correct the extracted proposal.
 4. Ask one phase at a time only for missing information and permissions.
-5. Store each confirmed answer in the private checkpoint.
-6. Report missing required fields without repeating sensitive values.
-7. Finalize only when required fields are complete.
+5. Ask for optional target companies and, after roles and eligible geography are known, show transparent job-portal coverage suggestions for the user to select, amend or skip.
+6. Store each confirmed answer in the private checkpoint.
+7. Report missing required fields without repeating sensitive values.
+8. Finalize only when required fields are complete.
 
 ## Run the safe synthetic demo
 
