@@ -85,6 +85,18 @@ class VacancyDiscoveryTests(unittest.TestCase):
         self.assertEqual(report["discarded"][0]["reason"], "source_not_selected")
         self.assertEqual(report["discarded"][1]["reason"], "stale_posting")
 
+    def test_import_accepts_source_updated_date_with_explicit_freshness_basis(self):
+        payload = {"vacancies": [{
+            "source": "greenhouse_public_board", "company": "Synthetic Holdings", "role": "Program Director",
+            "location": "Mexico", "canonical_url": "https://boards.greenhouse.io/example/jobs/42",
+            "source_updated_on": "2026-09-01",
+        }]}
+        rules = {"search": {**self.rules["search"], "selected_job_portals": ["greenhouse_public_board"]}}
+        report = DISCOVERY.discover_vacancies(self.profile, rules, payload, date(2026, 9, 7))
+        self.assertEqual(report["shortlist"][0]["freshness_basis"], "source_updated_on")
+        self.assertEqual(report["shortlist"][0]["source_updated_on"], "2026-09-01")
+        self.assertNotIn("date_posted", report["shortlist"][0])
+
     def test_import_deduplicates_equivalent_canonical_urls(self):
         payload = {"vacancies": [
             {

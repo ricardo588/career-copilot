@@ -78,6 +78,28 @@ python3 "$SKILL_DIR/scripts/vacancy_discovery.py" \
 
 The report preserves the declared role, seniority, industry, geography, work-mode and employment-type context for later evaluation. It does not infer a fit verdict and must remain in the private workspace.
 
+## Acquire one explicit public ATS feed (read only)
+
+Greenhouse Job Board and Lever Postings are the two supported source-specific public JSON adapters. They run only when you explicitly invoke the command with a candidate-confirmed board/site identifier and company label; they do not search providers, accept credentials, submit applications, contact people or change a tracker.
+
+```bash
+python3 "$SKILL_DIR/scripts/vacancy_acquisition.py" \
+  --adapter greenhouse_public_board \
+  --source-identifier '<CONFIRMED_BOARD_TOKEN>' \
+  --company '<CONFIRMED_COMPANY_LABEL>' \
+  --as-of <YYYY-MM-DD> \
+  --output "$WORKSPACE/private-acquisition.json"
+```
+
+The report uses the same `vacancies` shape as the private import path. Greenhouse supplies `source_updated_on` (a provider update time), which the shortlist labels as its freshness basis; it is not a posting-date claim. Select `greenhouse_public_board` or `lever_public_postings` in private rules before importing it into a shortlist. Read [the acquisition and action contract](../skills/career-copilot/references/acquisition-and-actions.md) before use.
+
+Audit catalog freshness locally without opening source URLs:
+
+```bash
+python3 "$SKILL_DIR/scripts/onboarding.py" --workspace "$WORKSPACE" \
+  catalog-audit --as-of <YYYY-MM-DD> --max-age-days 90
+```
+
 ## Run the safe synthetic demo
 
 ```bash

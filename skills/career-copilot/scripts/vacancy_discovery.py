@@ -176,14 +176,27 @@ def validate_vacancy(raw: Any, as_of: date) -> dict[str, str]:
     if not isinstance(raw, dict):
         raise ValueError("vacancies entries must be JSON objects")
     result: dict[str, str] = {}
-    for field in ("source", "company", "role", "location", "canonical_url", "date_posted"):
+    for field in ("source", "company", "role", "location", "canonical_url"):
         value = raw.get(field)
         if not isinstance(value, str) or not value.strip():
             raise ValueError(f"vacancies.{field} must be a non-empty string")
         result[field] = value.strip()
+    date_posted = raw.get("date_posted")
+    source_updated_on = raw.get("source_updated_on")
+    if isinstance(date_posted, str) and date_posted.strip():
+        result["date_posted"] = date_posted.strip()
+        parse_date(result["date_posted"], "vacancies.date_posted")
+        result["freshness_basis"] = "date_posted"
+    elif isinstance(source_updated_on, str) and source_updated_on.strip():
+        result["source_updated_on"] = source_updated_on.strip()
+        parse_date(result["source_updated_on"], "vacancies.source_updated_on")
+        result["freshness_basis"] = "source_updated_on"
+    else:
+        raise ValueError("vacancies.date_posted or vacancies.source_updated_on must be a non-empty ISO date")
     result["canonical_url"] = canonicalize_url(result["canonical_url"])
-    if parse_date(result["date_posted"], "vacancies.date_posted") > as_of:
-        raise ValueError("vacancies.date_posted cannot be later than as_of")
+    freshness_date = result.get("date_posted", result.get("source_updated_on", ""))
+    if parse_date(freshness_date, "vacancies freshness date") > as_of:
+        raise ValueError("vacancy freshness date cannot be later than as_of")
     for optional in ("work_mode", "employment_type", "external_job_id"):
         value = raw.get(optional, "")
         if value is not None and not isinstance(value, str):
@@ -215,7 +228,8 @@ def discover_vacancies(profile: dict[str, Any], rules: dict[str, Any], payload: 
         if vacancy["source"].casefold() not in selected:
             discarded.append({"canonical_url": vacancy["canonical_url"], "reason": "source_not_selected"})
             continue
-        if (as_of - parse_date(vacancy["date_posted"], "vacancies.date_posted")).days > freshness_days:
+        freshness_date = vacancy.get("date_posted", vacancy.get("source_updated_on", ""))
+        if (as_of - parse_date(freshness_date, "vacancies freshness date")).days > freshness_days:
             discarded.append({"canonical_url": vacancy["canonical_url"], "reason": "stale_posting"})
             continue
         if vacancy["canonical_url"] in seen_urls:

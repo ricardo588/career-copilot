@@ -15,12 +15,13 @@
 
 1. Read source priorities, target roles, geography and freshness.
 2. Prefer official employer/ATS sources, then configured secondary sources.
-3. For v0.10 private imports, accept only one explicitly selected local export, validate it against `search.selected_job_portals`, freshness and canonical URLs, and generate a private read-only shortlist. Preserve the declared role, seniority, industry, geography, work-mode and employment-type context for later evaluation; do not silently infer a match or exclude an entry solely from text matching. An import does not query a portal, write the tracker or authorize an application.
-4. Treat search output as a shortlist, not approved tracker entries.
-5. Verify each promising role on a canonical source.
-6. Deduplicate before writing.
-7. Run a scoped Human Path search for every viable role before final prioritization.
-8. Report reviewed sources, verified additions, Human Paths, discards and incomplete sources.
+3. For local imports, accept only one explicitly selected local export, validate it against `search.selected_job_portals`, freshness and canonical URLs, and generate a private read-only shortlist. Preserve the declared role, seniority, industry, geography, work-mode and employment-type context for later evaluation; do not silently infer a match or exclude an entry solely from text matching. An import does not query a portal, write the tracker or authorize an application.
+4. For an explicit public Greenhouse Job Board or Lever Postings read, follow `acquisition-and-actions.md`. Use only a candidate-confirmed board/site identifier; import the resulting private report through the same shortlist validation. Never invoke it from onboarding or automatically.
+5. Treat search output as a shortlist, not approved tracker entries.
+6. Verify each promising role on a canonical source.
+7. Deduplicate before writing.
+8. Run a scoped Human Path search for every viable role before final prioritization.
+9. Report reviewed sources, verified additions, Human Paths, discards and incomplete sources.
 
 ## Reconcile evidence
 
