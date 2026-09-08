@@ -37,5 +37,5 @@ Antes de publicar, ejecuta la suite completa de pruebas unitarias, validación d
 
 - Adaptadores de adquisición directa desde portales, ATS o sitios de carrera.
 - Normalizadores de exportación específicos por fuente más allá de los alias de encabezados y etiquetas de fuente documentados.
-- Evidencia de cobertura de mercado vigente, fechada por fuente, fuera del catálogo local.
+- Evidencia de cobertura de mercado más amplia y renovada, fechada por fuente, más allá del catálogo local inicial documentado en `skills/career-copilot/references/portal-catalog.es.md`.
 - Escrituras automáticas al tracker, postulaciones, mensajes, contactos u otras acciones externas.

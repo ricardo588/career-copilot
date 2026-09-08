@@ -70,6 +70,8 @@ REQUIRED = [
     "docs/es/ROADMAP-0.9.1.md",
     "docs/ROADMAP-0.10.0.md",
     "docs/es/ROADMAP-0.10.0.md",
+    "docs/ROADMAP-0.10.1.md",
+    "docs/es/ROADMAP-0.10.1.md",
     "cron/README.md",
     "cron/README.es.md",
 ]
@@ -87,6 +89,7 @@ DOC_LINK_PAIRS = [
     ("docs/ROADMAP-0.7.md", "docs/es/ROADMAP-0.7.md", "es/ROADMAP-0.7.md"),
     ("docs/ROADMAP-0.9.1.md", "docs/es/ROADMAP-0.9.1.md", "es/ROADMAP-0.9.1.md"),
     ("docs/ROADMAP-0.10.0.md", "docs/es/ROADMAP-0.10.0.md", "es/ROADMAP-0.10.0.md"),
+    ("docs/ROADMAP-0.10.1.md", "docs/es/ROADMAP-0.10.1.md", "es/ROADMAP-0.10.1.md"),
     ("cron/README.md", "cron/README.es.md", "README.es.md"),
 ]
 

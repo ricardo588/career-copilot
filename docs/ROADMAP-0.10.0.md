@@ -37,5 +37,5 @@ Before publishing, run the full unit suite, bundle validation, privacy scan, Git
 
 - Direct portal, ATS or company-site acquisition adapters.
 - Source-specific export normalizers beyond the documented header aliases and source labels.
-- Current, source-dated market-coverage evidence beyond the local catalog.
+- Broader, refreshed source-dated market-coverage evidence beyond the initial local catalog documented in `skills/career-copilot/references/portal-catalog.md`.
 - Automatic tracker writes, applications, messages, contacts or other external actions.
