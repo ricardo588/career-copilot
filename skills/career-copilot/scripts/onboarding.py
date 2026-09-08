@@ -10,11 +10,12 @@ import json
 import os
 import shutil
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from story_bank import load_story_bank, save_story_bank, story_bank_path
+from vacancy_acquisition import audit_catalog
 QUESTIONS = [
     {"phase": "documents", "field": "documents.has_cv", "prompt": "Do you already have a CV?", "required": True},
     {"phase": "documents", "field": "documents.primary_cv", "prompt": "Share or select the local CV only if you accept that its extracted text is processed by your configured Hermes model provider (unless you use a local model). I will propose onboarding facts for your confirmation.", "required": False},
@@ -391,7 +392,7 @@ def is_populated(value: Any) -> bool:
 
 
 PORTAL_CATALOG_VERSION = "2026-09-07"
-PORTAL_CATALOG: dict[str, dict[str, str]] = {
+_PORTAL_CATALOG_EVIDENCE: dict[str, dict[str, str]] = {
     "linkedin": {"evidence_url": "https://linkedin.com/help/linkedin/answer/a511260", "evidence_scope": "Official job-search documentation supports professional-network coverage; not a ranking."},
     "official_company_sites": {"evidence_url": "https://github.com/ricardo588/career-copilot/blob/v0.10.0/docs/ROADMAP-0.10.0.md#safety-boundaries", "evidence_scope": "Career Copilot safety policy requires canonical official-source coverage; not a market ranking."},
     "occ_mundial": {"evidence_url": "https://www.occ.com.mx/empleos/en-ciudad-de-mexico/", "evidence_scope": "Official Mexico job-listing page supports Mexico coverage; not a ranking."},
@@ -403,6 +404,10 @@ PORTAL_CATALOG: dict[str, dict[str, str]] = {
     "upwork": {"evidence_url": "https://www.upwork.com/freelance-jobs/", "evidence_scope": "Official freelance-job page supports contract and freelance coverage; not a ranking."},
     "the_ladders": {"evidence_url": "https://theladders.com/signup/all-jobs", "evidence_scope": "Official job-search page supports senior-role coverage in the United States; not a ranking."},
     "indeed": {"evidence_url": "https://www.indeed.com/", "evidence_scope": "Official job-search page supports broad coverage while geography is unknown; not a ranking."},
+}
+PORTAL_CATALOG: dict[str, dict[str, str]] = {
+    portal_id: {**entry, "evidence_checked_on": PORTAL_CATALOG_VERSION}
+    for portal_id, entry in _PORTAL_CATALOG_EVIDENCE.items()
 }
 
 
@@ -763,6 +768,9 @@ def build_parser() -> argparse.ArgumentParser:
     cv_skip.add_argument("--reason", required=True)
     commands.add_parser("status", help="Show progress and next question")
     commands.add_parser("questions", help="List the conversational question catalog")
+    catalog_audit = commands.add_parser("catalog-audit", help="Audit dated catalog evidence locally without opening URLs")
+    catalog_audit.add_argument("--as-of", required=True, help="Explicit YYYY-MM-DD review date")
+    catalog_audit.add_argument("--max-age-days", type=int, default=90)
     commands.add_parser("finalize", help="Validate and write profile/rules")
     return parser
 
@@ -796,6 +804,9 @@ def main() -> int:
 
         if args.command == "questions":
             print(json.dumps(QUESTIONS, indent=2, ensure_ascii=False))
+            return 0
+        if args.command == "catalog-audit":
+            print(json.dumps(audit_catalog(PORTAL_CATALOG, date.fromisoformat(args.as_of), max_age_days=args.max_age_days), indent=2, ensure_ascii=False))
             return 0
 
         state = load_state(workspace)

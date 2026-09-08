@@ -10,6 +10,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from adapters import gmail_reconciliation_proposal, gmail_triage, obsidian_kanban_project
+from vacancy_acquisition import acquire_public_feed
 from pipeline import (
     atomic_write_tracker,
     evaluate,
@@ -40,6 +41,19 @@ def main() -> int:
     interviewer_research = load_document(fixtures / "interviewer-research.json")
     offer_negotiation = load_document(fixtures / "offer-negotiation.json")
     as_of = date.fromisoformat(args.as_of)
+    synthetic_acquisition_report = acquire_public_feed(
+        "greenhouse_public_board", "synthetic", "Synthetic Co", as_of,
+        lambda _url: {"jobs": [{
+            "id": 1, "title": "Program Director", "absolute_url": "https://boards.greenhouse.io/synthetic/jobs/1",
+            "location": {"name": "Remote"}, "updated_at": f"{args.as_of}T00:00:00Z",
+        }]},
+    )
+    synthetic_acquisition = {
+        "adapter": synthetic_acquisition_report["adapter"],
+        "vacancy_count": len(synthetic_acquisition_report["vacancies"]),
+        "external_actions": synthetic_acquisition_report["external_actions"],
+        "network_executed": False,
+    }
 
     evaluation = evaluate(profile, rules, vacancy, as_of)
     tracker_path = output / "tracker.csv"
@@ -114,6 +128,7 @@ def main() -> int:
     result = {
         "scenario": "synthetic_profile_to_interview",
         "external_actions": 0,
+        "synthetic_acquisition": synthetic_acquisition,
         "evaluation": evaluation,
         "human_path": human_summary,
         "tracker": tracker_result,

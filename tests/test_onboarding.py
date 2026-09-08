@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import stat
 import subprocess
@@ -10,6 +11,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP = ROOT / "skills" / "career-copilot" / "scripts" / "bootstrap_workspace.py"
 ONBOARDING = ROOT / "skills" / "career-copilot" / "scripts" / "onboarding.py"
+sys.path.insert(0, str(ONBOARDING.parent))
+ONBOARDING_SPEC = importlib.util.spec_from_file_location("onboarding_catalog_under_test", ONBOARDING)
+assert ONBOARDING_SPEC and ONBOARDING_SPEC.loader
+ONBOARDING_MODULE = importlib.util.module_from_spec(ONBOARDING_SPEC)
+ONBOARDING_SPEC.loader.exec_module(ONBOARDING_MODULE)
 
 
 class OnboardingTests(unittest.TestCase):
@@ -176,6 +182,22 @@ class OnboardingTests(unittest.TestCase):
                 suggestions["occ_mundial"]["evidence_url"],
                 "https://www.occ.com.mx/empleos/en-ciudad-de-mexico/",
             )
+
+    def test_portal_catalog_exposes_checked_on_date_for_local_freshness_audits(self):
+        self.assertTrue(ONBOARDING_MODULE.PORTAL_CATALOG)
+        for portal_id, entry in ONBOARDING_MODULE.PORTAL_CATALOG.items():
+            self.assertEqual(entry["evidence_checked_on"], ONBOARDING_MODULE.PORTAL_CATALOG_VERSION, portal_id)
+
+    def test_catalog_audit_command_is_read_only_and_reports_due_entries(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            completed = subprocess.run([
+                sys.executable, str(ONBOARDING), "--workspace", str(workspace), "catalog-audit",
+                "--as-of", "2026-10-08", "--max-age-days", "30",
+            ], check=True, capture_output=True, text=True)
+        audit = json.loads(completed.stdout)
+        self.assertEqual(audit["external_actions"], 0)
+        self.assertEqual(audit["review_required"], sorted(ONBOARDING_MODULE.PORTAL_CATALOG))
 
     def test_technology_portals_respect_non_latin_american_non_remote_geography(self):
         with tempfile.TemporaryDirectory() as tmp:
