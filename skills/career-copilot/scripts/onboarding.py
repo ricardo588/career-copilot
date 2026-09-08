@@ -390,6 +390,35 @@ def is_populated(value: Any) -> bool:
     return True
 
 
+PORTAL_CATALOG_VERSION = "2026-09-07"
+PORTAL_CATALOG: dict[str, dict[str, str]] = {
+    "linkedin": {"evidence_url": "https://linkedin.com/help/linkedin/answer/a511260", "evidence_scope": "Official job-search documentation supports professional-network coverage; not a ranking."},
+    "official_company_sites": {"evidence_url": "https://github.com/ricardo588/career-copilot/blob/v0.10.0/docs/ROADMAP-0.10.0.md#safety-boundaries", "evidence_scope": "Career Copilot safety policy requires canonical official-source coverage; not a market ranking."},
+    "occ_mundial": {"evidence_url": "https://www.occ.com.mx/empleos/en-ciudad-de-mexico/", "evidence_scope": "Official Mexico job-listing page supports Mexico coverage; not a ranking."},
+    "computrabajo": {"evidence_url": "https://mx.computrabajo.com/", "evidence_scope": "Official Mexico employment portal supports Mexico coverage; not a ranking."},
+    "hireline": {"evidence_url": "https://hireline.io/mx", "evidence_scope": "Official Mexico technology-employment portal supports technology coverage; not a ranking."},
+    "get_on_board": {"evidence_url": "https://www.getonbrd.com.mx/", "evidence_scope": "Official Mexico and remote technology-employment page supports declared coverage; not a ranking."},
+    "behance": {"evidence_url": "https://help.behance.net/hc/en-us/articles/360034476413-Guide-Applying-For-Jobs-On-Behance", "evidence_scope": "Official creative-job guidance supports creative-field coverage; not a ranking."},
+    "we_work_remotely": {"evidence_url": "https://weworkremotely.com/remote-jobs", "evidence_scope": "Official remote-job listing page supports remote-work coverage; not a ranking."},
+    "upwork": {"evidence_url": "https://www.upwork.com/freelance-jobs/", "evidence_scope": "Official freelance-job page supports contract and freelance coverage; not a ranking."},
+    "the_ladders": {"evidence_url": "https://theladders.com/signup/all-jobs", "evidence_scope": "Official job-search page supports senior-role coverage in the United States; not a ranking."},
+    "indeed": {"evidence_url": "https://www.indeed.com/", "evidence_scope": "Official job-search page supports broad coverage while geography is unknown; not a ranking."},
+}
+
+
+def portal_recommendation(portal_id: str, name: str, reason: str) -> dict[str, str]:
+    catalog = PORTAL_CATALOG[portal_id]
+    return {
+        "id": portal_id,
+        "name": name,
+        "reason": reason,
+        "catalog_version": PORTAL_CATALOG_VERSION,
+        "evidence_url": catalog["evidence_url"],
+        "evidence_checked_on": PORTAL_CATALOG_VERSION,
+        "evidence_scope": catalog["evidence_scope"],
+    }
+
+
 def portal_recommendations(answers: dict[str, Any]) -> list[dict[str, str]]:
     """Return transparent coverage suggestions, never an asserted market ranking."""
     roles = " ".join(get_nested(answers, "profile.target_roles") or []).casefold()
@@ -401,13 +430,13 @@ def portal_recommendations(answers: dict[str, Any]) -> list[dict[str, str]]:
         (get_nested(answers, "constraints.locations") or [])
     ).casefold()
     recommendations = [
-        {"id": "linkedin", "name": "LinkedIn", "reason": "Professional-network coverage for the declared roles and geography."},
-        {"id": "official_company_sites", "name": "Official company career sites and ATS", "reason": "Canonical source, especially for the companies the candidate targets."},
+        portal_recommendation("linkedin", "LinkedIn", "Professional-network coverage for the declared roles and geography."),
+        portal_recommendation("official_company_sites", "Official company career sites and ATS", "Canonical source, especially for the companies the candidate targets."),
     ]
     if "mexico" in geographies or "méxico" in geographies:
         recommendations.extend([
-            {"id": "occ_mundial", "name": "OCC Mundial", "reason": "Mexico-focused job-board coverage."},
-            {"id": "computrabajo", "name": "Computrabajo México", "reason": "Mexico-focused job-board coverage."},
+            portal_recommendation("occ_mundial", "OCC Mundial", "Mexico-focused job-board coverage."),
+            portal_recommendation("computrabajo", "Computrabajo México", "Mexico-focused job-board coverage."),
         ])
     technology_terms = ("software", "engineering", "engineer", "data", "product", "technology", "tecnolog", "desarrollo")
     creative_terms = ("creative", "design", "diseño", "advertising", "marketing", "content")
@@ -419,19 +448,19 @@ def portal_recommendations(answers: dict[str, Any]) -> list[dict[str, str]]:
     united_states_declared = "united states" in geographies or "usa" in geographies or "u.s." in geographies
     if any(term in roles for term in technology_terms):
         if "mexico" in geographies or "méxico" in geographies:
-            recommendations.append({"id": "hireline", "name": "Hireline", "reason": "Mexico technology-role coverage."})
+            recommendations.append(portal_recommendation("hireline", "Hireline", "Mexico technology-role coverage."))
         if latin_america_declared or remote_declared:
-            recommendations.append({"id": "get_on_board", "name": "Get on Board", "reason": "Declared Latin American or remote technology-role coverage."})
+            recommendations.append(portal_recommendation("get_on_board", "Get on Board", "Declared Latin American or remote technology-role coverage."))
     if any(term in roles or term in industries for term in creative_terms):
-        recommendations.append({"id": "behance", "name": "Behance", "reason": "Creative-role and creative-industry coverage for the declared profile."})
+        recommendations.append(portal_recommendation("behance", "Behance", "Creative-role and creative-industry coverage for the declared profile."))
     if remote_declared:
-        recommendations.append({"id": "we_work_remotely", "name": "We Work Remotely", "reason": "Remote-role coverage for the declared work-mode preference."})
+        recommendations.append(portal_recommendation("we_work_remotely", "We Work Remotely", "Remote-role coverage for the declared work-mode preference."))
     if any(term in employment_types for term in contract_terms):
-        recommendations.append({"id": "upwork", "name": "Upwork", "reason": "Contract and freelance coverage for the declared employment-type preference."})
+        recommendations.append(portal_recommendation("upwork", "Upwork", "Contract and freelance coverage for the declared employment-type preference."))
     if united_states_declared and any(term in seniority for term in executive_terms):
-        recommendations.append({"id": "the_ladders", "name": "The Ladders", "reason": "Senior-level coverage for the declared seniority and United States geography."})
+        recommendations.append(portal_recommendation("the_ladders", "The Ladders", "Senior-level coverage for the declared seniority and United States geography."))
     if not geographies:
-        recommendations.append({"id": "indeed", "name": "Indeed", "reason": "Broad coverage while the eligible geography is still unknown."})
+        recommendations.append(portal_recommendation("indeed", "Indeed", "Broad coverage while the eligible geography is still unknown."))
     return recommendations
 
 

@@ -156,6 +156,27 @@ class OnboardingTests(unittest.TestCase):
             self.assertIn("contract", suggestions["upwork"]["reason"].casefold())
             self.assertIn("seniority", suggestions["the_ladders"]["reason"].casefold())
 
+    def test_portal_suggestions_include_versioned_catalog_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "candidate"
+            self.run_command("--workspace", str(workspace), "start")
+            result = self.run_command(
+                "--workspace", str(workspace), "answer",
+                "--field", "constraints.countries", "--json-value", '["Mexico"]',
+            )
+            suggestions = {item["id"]: item for item in result["portal_recommendations"]}
+            for suggestion in suggestions.values():
+                self.assertEqual(suggestion["catalog_version"], "2026-09-07")
+                self.assertTrue(suggestion["evidence_url"].startswith("https://"))
+                self.assertEqual(suggestion["evidence_checked_on"], "2026-09-07")
+                self.assertIn("coverage", suggestion["evidence_scope"].casefold())
+                self.assertIn("not", suggestion["evidence_scope"].casefold())
+                self.assertIn("ranking", suggestion["evidence_scope"].casefold())
+            self.assertEqual(
+                suggestions["occ_mundial"]["evidence_url"],
+                "https://www.occ.com.mx/empleos/en-ciudad-de-mexico/",
+            )
+
     def test_technology_portals_respect_non_latin_american_non_remote_geography(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "candidate"
