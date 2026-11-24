@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "kind": "google_sheets_snapshot",
+    "retrieved_at": "2026-11-22T00:00:00Z",
+    "read_only": true
+  },
+  "headers": ["No", "Empresa", "Puesto", "Fuente", "Estatus", "Resultado", "Fecha de ultimo estatus", "Notas", "URL", "Contacto en la empresa"],
+  "rows": [
+    {
+      "physical_row": 2,
+      "values": {
+        "No": "1",
+        "Empresa": "Example Co",
+        "Puesto": "Director",
+        "Fuente": "Direct",
+        "Estatus": "10. Preparar",
+        "Resultado": "",
+        "Fecha de ultimo estatus": "01/nov/2026",
+        "Notas": "Synthetic only",
+        "URL": "https://jobs.example.test/roles/1?utm_source=synthetic",
+        "Contacto en la empresa": "Example Person"
+      }
+    }
+  ]
+}

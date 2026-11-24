@@ -112,6 +112,12 @@ For a private, read-only vacancy-export import, use:
 
 This import never queries a portal, modifies a tracker or authorizes an external action.
 
+For deterministic local provider coverage guidance, use:
+
+`python3 ${HERMES_SKILL_DIR}/scripts/provider_selection.py --workspace <private-workspace> --profile <private-profile-json> --rules <private-rules-json> --output <private-selection-json>`
+
+Read `references/provider-selection.md` first. It performs no network request and never discovers a provider identifier; Greenhouse and Lever still require a separate, explicit candidate-confirmed read.
+
 For an explicit public, GET-only Greenhouse Job Board or Lever Postings read, use:
 
 `python3 ${HERMES_SKILL_DIR}/scripts/vacancy_acquisition.py --adapter <greenhouse_public_board|lever_public_postings> --source-identifier <candidate-confirmed-id> --company <candidate-confirmed-label> --as-of <YYYY-MM-DD> --output <private-report.json>`
@@ -123,6 +129,12 @@ For a read-only overdue follow-up review, use:
 `python3 ${HERMES_SKILL_DIR}/scripts/pipeline.py --review-tracker <csv> --as-of <YYYY-MM-DD>`
 
 `follow_up_overdue` is a derived reminder only. It never changes process `status` or claims that another person failed to respond.
+
+For a local, snapshot-only Hunter process report or an explicit decision packet, use:
+
+`python3 ${HERMES_SKILL_DIR}/scripts/hunter_process_review.py <report|packet> --snapshot <private-json> --mapping <private-yaml> --workspace <private-workspace> --as-of <YYYY-MM-DD> --output-json <private-json> --output-md <private-md>`
+
+Read `references/hunter-process-review.md` first. This command never accesses Sheets, the network, credentials, browsers, or external services, and never mutates its inputs, tracker, or Sheet.
 
 The script supports the workflow; it does not replace current-source verification.
 
@@ -186,6 +198,7 @@ See `references/demo.md` for pass criteria.
 - `references/onboarding.md` — checkpointed private onboarding.
 - `references/portal-catalog.md` — dated portal-coverage evidence and maintenance rules (Spanish: `references/portal-catalog.es.md`).
 - `references/acquisition-and-actions.md` — explicit public ATS reads, local catalog audit and draft-only action plans (Spanish: `references/acquisition-and-actions.es.md`).
+- `references/provider-selection.md` — local provider coverage guidance and extension gate.
 - `references/cv-first-onboarding.md` — local CV extraction, proposal and confirmation workflow.
 - `references/workflow.md` — end-to-end operating flows.
 - `references/evaluation.md` — qualitative fit decision.
@@ -196,6 +209,7 @@ See `references/demo.md` for pass criteria.
 - `references/google-sheets-tracker-backend.md` — pure reconciliation planning and future gated Sheets contract.
 - `references/compensation-policy.md` — private policy matching, explicit unknowns and non-mutating proposals.
 - `references/privacy-and-actions.md` — privacy and authorization model.
+- `references/hunter-process-review.md` — local snapshot-only Hunter review and decision packets.
 - `references/adapters.md` — optional integration safety contract.
 - `references/demo.md` — synthetic end-to-end verification.
 - `references/human-path-and-interviewer-research.md` — sourced Human Path and interviewer intelligence.

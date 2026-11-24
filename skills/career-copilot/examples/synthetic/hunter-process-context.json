@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "vacancy_evidence": {
+    "source_url": "https://example.test/official-job",
+    "verified_at": "2026-11-22",
+    "state": "confirmed"
+  },
+  "requirement_matrix": {
+    "ref": "private/opaque-requirement-matrix",
+    "state": "confirmed"
+  },
+  "human_path": {
+    "retrieved_at": "2026-11-22",
+    "relationships": [
+      {
+        "name": "Example Person",
+        "current_company": "Example Co",
+        "current_role": "Director",
+        "source_url": "https://example.test/person",
+        "confidence": "confirmed",
+        "authorization": {
+          "contact": false,
+          "reference": false,
+          "referral": false,
+          "follow_up": false,
+          "introduce": false
+        }
+      }
+    ]
+  }
+}

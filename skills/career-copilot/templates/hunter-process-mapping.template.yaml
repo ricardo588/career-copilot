@@ -1,0 +1,18 @@
+schema_version: 1
+fields:
+  business_id: "No"
+  company: "Empresa"
+  role: "Puesto"
+  source: "Fuente"
+  status: "Estatus"
+  result: "Resultado"
+  status_date: "Fecha de ultimo estatus"
+  notes: "Notas"
+  canonical_url: "URL"
+  contact: "Contacto en la empresa"
+status_groups:
+  terminal: []
+  active: []
+  review: []
+review_thresholds:
+  status_age_days: null
