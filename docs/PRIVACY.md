@@ -21,13 +21,13 @@ Versión en español: [docs/es/PRIVACY.md](es/PRIVACY.md).
 - Market research notes, source dates and message IDs
 - Live vacancy/application tracker
 - Account identifiers, tokens and credential files
-- Hermes sessions, memories and profile exports
+- Host sessions, memories and profile exports (including Hermes profiles)
 
 ## Storage boundary
 
-Generated private state belongs in `career_copilot.workspace`, outside both the source repository and installed Hermes profile. A CV may remain at its candidate-chosen local path outside Git repositories; onboarding stores the path and confirmed proposal state without copying the CV. The onboarding script rejects workspaces inside the distribution/profile root or a Git tree.
+Generated private state belongs in `career_copilot.workspace`, outside the source repository and any installed host profile or skill directory. A CV may remain at its candidate-chosen local path outside Git repositories; onboarding stores the path and confirmed proposal state without copying the CV. The onboarding script rejects workspaces inside the distribution/profile root or a Git tree.
 
-Hermes extracts CV text from the local file. The extracted content is then processed by the model provider configured for that Hermes profile unless the user selected a local model. Onboarding must disclose that boundary before asking for the file. The checkpoint stores only proposed values, direct/inferred labels and source-section names required for confirmation—not the full extracted CV text. No additional document parser or OCR service is used by default.
+The local host extracts CV text from the local file. Any host or model provider that receives extracted text can process that content unless the user selected a verified local model; onboarding must disclose the actual host/model boundary before asking for the file. Hermes currently uses its configured model provider for this step. The checkpoint stores only proposed values, direct/inferred labels and source-section names required for confirmation—not the full extracted CV text. No additional document parser or OCR service is used by default.
 
 Every bootstrap run normalizes the private workspace and nested directories to `0700`, and regular files to `0600`; symlinks are rejected. CV proposals are bound to the staged file contents with SHA-256 and cannot be confirmed if the source changes at the same path.
 

@@ -22,13 +22,15 @@ The bundled scenario proves the local workflow without using a real candidate, e
 
 ## Run
 
-From an installed profile:
+From an installed Hermes profile:
 
 ```bash
 SKILL_DIR="$HOME/.hermes/profiles/<PROFILE>/skills/career-copilot"
 OUTPUT_DIR="$(mktemp -d)/career-copilot-demo"
 python3 "$SKILL_DIR/scripts/run_synthetic_demo.py" --output-dir "$OUTPUT_DIR"
 ```
+
+For another executable host, run the identical script from its checked-out portable core; do not assume the Hermes profile path exists.
 
 From the source repository:
 

@@ -11,8 +11,8 @@ The CV is evidence, not authorization to invent preferences. Compensation, exclu
 1. Start or resume onboarding and inspect `next_question`.
 2. Ask `documents.has_cv` first.
 3. If false, continue with manual questions.
-4. If true, explain that Hermes extracts the file locally but the extracted content is processed by the model provider configured for that Hermes profile unless the user uses a local model. Ask the user to attach the CV or provide a local `.pdf`, `.docx`, `.txt` or `.md` path only if they accept that boundary, then store the path in `documents.primary_cv`.
-5. Read the file with Hermes `read_file`; it extracts text from PDF and DOCX. Do not upload the CV to any additional document parser, OCR vendor or model service.
+4. If true, explain the actual local-host/model boundary: extracted content may be processed by the configured model provider unless the user uses a verified local model. Ask the user to attach the CV or provide a local `.pdf`, `.docx`, `.txt` or `.md` path only if they accept that boundary, then store the path in `documents.primary_cv`.
+5. Read the file through the local host's approved file-reading capability; it must extract supported PDF/DOCX text without uploading the CV to an additional document parser, OCR vendor or model service.
 6. If the file is scanned and local text extraction is empty, use local OCR only when available and appropriate. Otherwise run `cv-skip` and continue manually.
 7. Build proposals only for the allowlisted fields below. Label each proposal `direct` or `inferred` and name the CV section that supports it.
 8. Stage the proposals with `cv-propose`. Show the resulting proposal summary to the user.
@@ -100,5 +100,5 @@ python3 ${HERMES_SKILL_DIR}/scripts/onboarding.py \
 - The CV may remain at its candidate-chosen local path, provided it is outside the installed profile, distribution and any Git repository; the private profile stores only that path and import status.
 - Keep proposal files and checkpoints private (`0600`) and delete temporary proposal files after staging.
 - Do not retain full extracted CV text in the checkpoint. Store only the proposed values, `direct`/`inferred` basis and source-section labels needed for confirmation.
-- The configured Hermes model provider may process extracted CV text; do not claim the entire inference path is local unless that profile uses a verified local model.
+- The configured host model provider may process extracted CV text; do not claim the entire inference path is local unless it uses a verified local model.
 - Never extract or request passwords, tokens, government IDs, financial identifiers or other secrets.

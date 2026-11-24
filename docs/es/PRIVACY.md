@@ -21,13 +21,13 @@ Versión original en inglés: [docs/PRIVACY.md](../PRIVACY.md).
 - Notas de investigación de mercado, fechas de origen y IDs de mensajes
 - Tracker vivo de vacantes/postulaciones
 - Identificadores de cuentas, tokens y archivos de credenciales
-- Sesiones de Hermes, memorias y exportaciones de perfil
+- Sesiones, memorias y exportaciones de perfiles de hosts (incluidos perfiles Hermes)
 
 ## Límite de almacenamiento
 
-El estado privado generado debe vivir en `career_copilot.workspace`, fuera tanto del repositorio fuente como del perfil instalado de Hermes. Un CV puede permanecer en la ruta local elegida por el candidato fuera de repositorios Git; el onboarding guarda la ruta y el estado de la propuesta confirmada sin copiar el CV. El script de onboarding rechaza espacios de trabajo dentro de la raíz de distribución/perfil o dentro de un árbol Git.
+El estado privado generado debe vivir en `career_copilot.workspace`, fuera del repositorio fuente y de todo perfil o directorio de skill instalado por un host. Un CV puede permanecer en la ruta local elegida por el candidato fuera de repositorios Git; el onboarding guarda la ruta y el estado de la propuesta confirmada sin copiar el CV. El script de onboarding rechaza espacios de trabajo dentro de la raíz de distribución/perfil o dentro de un árbol Git.
 
-Hermes extrae el texto del CV desde el archivo local. Después, el contenido extraído es procesado por el proveedor de modelos configurado para ese perfil de Hermes, salvo que el usuario haya seleccionado un modelo local. El onboarding debe revelar ese límite antes de pedir el archivo. El punto de control almacena solo valores propuestos, etiquetas directas/inferidas y nombres de secciones de origen necesarias para la confirmación, no el texto completo del CV extraído. Por defecto no se usa ningún parser de documentos ni servicio OCR adicional.
+El host local extrae el texto del CV desde el archivo local. Cualquier host o proveedor de modelos que reciba ese texto puede procesarlo, salvo que la persona haya elegido un modelo local verificado; el onboarding debe revelar el límite real de host/modelo antes de pedir el archivo. Hermes actualmente usa el proveedor de modelos configurado en su perfil para este paso. El punto de control almacena solo valores propuestos, etiquetas directas/inferidas y nombres de secciones de origen necesarias para la confirmación, no el texto completo del CV extraído. Por defecto no se usa ningún parser de documentos ni servicio OCR adicional.
 
 Cada ejecución de bootstrap normaliza el espacio de trabajo privado y los directorios anidados a `0700`, y los archivos regulares a `0600`; se rechazan symlinks. Las propuestas del CV quedan vinculadas al contenido del archivo en staging con SHA-256 y no pueden confirmarse si el origen cambia en la misma ruta.
 

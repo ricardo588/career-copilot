@@ -2,6 +2,8 @@
 
 Versión original en inglés: [docs/TROUBLESHOOTING.md](../TROUBLESHOOTING.md).
 
+Esta página resuelve problemas del adaptador Hermes. Para límites de Claude Code, OpenClaw o ChatGPT, lee [hosts de agentes y portabilidad](AGENT-HOSTS.md).
+
 ## El skill no aparece
 
 ```bash

@@ -1,8 +1,8 @@
-# Installation for third parties
+# Install with Hermes Agent
 
 Versión en español: [docs/es/INSTALL.md](es/INSTALL.md).
 
-Career Copilot installs as an isolated Hermes profile. Each person gets a separate private workspace; the repository contains no candidate data.
+This page documents the **Hermes-specific adapter**. Career Copilot's portable core also supports Claude Code and OpenClaw, while ChatGPT receives guidance only; select the appropriate host in [AGENT-HOSTS.md](AGENT-HOSTS.md) before following any command here. Each person gets a separate private workspace; the repository contains no candidate data.
 
 ## Quick links for end users
 

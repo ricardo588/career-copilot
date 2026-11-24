@@ -22,13 +22,15 @@ El escenario incluido demuestra el flujo local sin usar un candidato, empleador,
 
 ## Ejecutar
 
-Desde un perfil instalado:
+Desde un perfil Hermes instalado:
 
 ```bash
 SKILL_DIR="$HOME/.hermes/profiles/<PROFILE>/skills/career-copilot"
 OUTPUT_DIR="$(mktemp -d)/career-copilot-demo"
 python3 "$SKILL_DIR/scripts/run_synthetic_demo.py" --output-dir "$OUTPUT_DIR"
 ```
+
+Desde otro host ejecutable, ejecuta el mismo script desde su núcleo portable clonado; no supongas que existe la ruta de perfil Hermes.
 
 Desde el repositorio fuente:
 

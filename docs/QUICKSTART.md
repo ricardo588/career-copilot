@@ -1,6 +1,6 @@
-# Quickstart
+# Hermes Agent quickstart
 
-Versión en español: [docs/es/QUICKSTART.md](es/QUICKSTART.md).
+Versión en español: [docs/es/QUICKSTART.md](es/QUICKSTART.md). For Claude Code, OpenClaw or ChatGPT, first read [agent hosts and portability](AGENT-HOSTS.md); the commands below are Hermes-only.
 
 ## Install
 

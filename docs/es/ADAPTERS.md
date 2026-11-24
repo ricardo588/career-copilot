@@ -2,7 +2,7 @@
 
 Versión original en inglés: [docs/ADAPTERS.md](../ADAPTERS.md).
 
-Todos los adaptadores son opcionales, están deshabilitados en la plantilla y siguen la regla dry-run primero. Las credenciales, IDs y rutas del vault permanecen locales.
+Todos los adaptadores son opcionales, están desactivados en la plantilla y empiezan en dry run. Las credenciales, IDs y rutas de vault permanecen locales. Los comandos de esta página usan la ruta de perfil instalado de Hermes; otro host ejecutable debe invocar el mismo script portable desde su propio clon local y preservar el mismo contrato de autorización.
 
 Define una vez la ruta del adaptador instalado:
 

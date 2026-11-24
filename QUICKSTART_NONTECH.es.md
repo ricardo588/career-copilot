@@ -1,6 +1,6 @@
-# Inicio rápido — para personas no técnicas
+# Guía rápida con Hermes Agent — para personas no técnicas
 
-Versión original en inglés: [QUICKSTART_NONTECH.md](QUICKSTART_NONTECH.md).
+Versión original en inglés: [QUICKSTART_NONTECH.md](QUICKSTART_NONTECH.md). Esta guía y ambos instaladores son para Hermes Agent; consulta [hosts de agentes y portabilidad](docs/es/AGENT-HOSTS.md) para otros hosts soportados.
 
 ## 🖱️ Opción A: Doble clic (macOS, la más fácil)
 
@@ -42,7 +42,7 @@ Clona, instala el perfil, configura todo y crea tu espacio de trabajo privado.
 
 ## 🆘 Si algo sale mal
 
-1. Asegúrate de que **Hermes esté instalado** y funcione (`hermes --version`).
+1. Para este instalador específico de Hermes, asegúrate de que **Hermes esté instalado** y funcione (`hermes --version`).
 2. Si el doble clic no abre Terminal: clic derecho → "Open With" → Terminal.
 3. Si dice "permission denied": vuelve a ejecutar `chmod +x`.
 4. Contacta al mantenedor y lo corregimos.

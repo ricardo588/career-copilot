@@ -119,7 +119,7 @@ Finalization:
 - **Candidate changes direction:** update only the changed fields, then finalize again.
 - **Sensitive value accidentally offered:** do not persist secrets; ask the user to rotate them if exposed.
 - **Conflicting answers:** label the conflict and ask before replacing the stored value.
-- **Multiple candidates:** use separate workspaces and separate Hermes profiles when practical.
+- **Multiple candidates:** use separate workspaces and, when supported by the host, separate host profiles or projects.
 - **Incomplete evidence:** preserve the gap; do not create achievements or metrics.
 - **Current location in CV:** treat it only as a proposed eligible location and require confirmation.
 - **Scanned or unreadable CV:** use local OCR if available; otherwise switch to explicit manual fallback. Never upload it to an external parser by default.

@@ -1,4 +1,4 @@
-# Career Copilot for Hermes
+# Career Copilot
 
 <p align="center">
   <img src="assets/career-copilot-wordmark.png" alt="Career Copilot" width="800">
@@ -6,7 +6,15 @@
 
 Versión en español: [README.es.md](README.es.md).
 
-Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-agent.nousresearch.com/docs).
+Privacy-first, local-first job-search operations for supported AI-agent hosts. Hermes Agent, Claude Code and OpenClaw can execute the portable core; ChatGPT has a guidance-only package. See [agent hosts and portability](docs/AGENT-HOSTS.md).
+
+## How Career Copilot helps your job search
+
+Career Copilot turns a scattered, high-stakes job search into a private and reviewable operating system. It helps you clarify what you want, preserve evidence for each opportunity, compare requirements against confirmed experience, and prepare tailored materials without treating guesses as facts.
+
+It keeps the human in control: it distinguishes confirmed information from hypotheses and drafts, keeps your private workspace out of the repository, and defaults to no external actions. Instead of silently applying, contacting people or changing a tracker, it prepares the exact research, decision material and drafts you can review and approve.
+
+Use it to resume a long-running search without losing context, identify what still needs verification, prepare for conversations and interviews, and learn from each cycle—whether you work through Hermes, Claude Code, OpenClaw or a supported local host. ChatGPT can guide the same process, but does not execute your local workflows.
 
 ## Capabilities
 
@@ -39,11 +47,12 @@ Reusable, privacy-first job-search operations for [Hermes Agent](https://hermes-
 
 The repository contains methodology, empty templates, deterministic scripts and synthetic fixtures only. Candidate CVs, story banks, career preferences, contacts, compensation, emails, memories, sessions, credentials, IDs and live trackers belong in each installer's private workspace and are never committed.
 
-Do not export a personal Hermes profile to distribute this project. Install the profile distribution contained here.
+Do not export a personal host profile to distribute this project. The repository distributes only its portable core and host adapters; a Hermes profile distribution is available as one optional adapter.
 
 ## Documentation
 
 - [Installation](docs/INSTALL.md) — full CLI reference
+- [Agent hosts and portability](docs/AGENT-HOSTS.md) — supported-host boundaries and setup model
 - [Non-technical quickstart](QUICKSTART_NONTECH.md) — one-liner, macOS .command, step-by-step guide
 - [Quickstart](docs/QUICKSTART.md) — developer quickstart
 - [Synthetic demo](docs/DEMO.md)
@@ -71,7 +80,7 @@ Do not export a personal Hermes profile to distribute this project. Install the 
 - [Privacidad y modelo de amenazas](docs/es/PRIVACY.md)
 - [Solución de problemas](docs/es/TROUBLESHOOTING.md)
 
-## Installers (for end users)
+## Hermes installers (for end users)
 
 | Method | File | Best for |
 |--------|------|----------|
@@ -79,11 +88,11 @@ Do not export a personal Hermes profile to distribute this project. Install the 
 | **Double-click (macOS)** | [`Install_Career_Copilot.command`](Install_Career_Copilot.command) | Zero-terminal experience |
 | **Step-by-step guide** | [`QUICKSTART_NONTECH.md`](QUICKSTART_NONTECH.md) | Anyone who wants to read first |
 
-All installers create an isolated Hermes profile, a private workspace (`~/Documents/CareerCopilot/` with `0700/0600` permissions), and start guided onboarding. External actions are blocked by default in `draft_only`; other users may explicitly opt in to `confirm_each_external`.
+These Hermes-specific installers create an isolated Hermes profile, a private workspace (`~/Documents/CareerCopilot/` with `0700/0600` permissions), and start guided onboarding. For Claude Code, OpenClaw and ChatGPT, read [agent hosts and portability](docs/AGENT-HOSTS.md); do not run Hermes commands as though they were cross-host installation commands. External actions are blocked by default in `draft_only`; other users may explicitly opt in to `confirm_each_external`.
 
 ## Local development
 
-Requirements: Hermes Agent 0.20.0+, Git and Python 3.11+.
+Portable-core requirements: Git and Python 3.11+. Hermes Agent 0.20.0+ is required only for the Hermes adapter and its profile-install verification.
 
 ```bash
 python3 scripts/validate_bundle.py
@@ -100,6 +109,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Current status
 
-Version 0.12.0 adds a portable skill contract for Hermes, Claude Code and OpenClaw, plus a guidance-only package for ChatGPT. It also adds deterministic local provider selection for Mexico, Latin America, United States and remote work. Greenhouse and Lever remain the only integrated, explicit public reads; every other recommendation is coverage-only guidance, never a market ranking or a live-vacancy assertion. Version 0.11.0 retains explicit, read-only public acquisition for candidate-confirmed Greenhouse and Lever feeds, provider-specific normalized freshness, local catalog-freshness auditing, and draft-only external-action plans. It validates private output paths before any GET, rejects redirects, and accepts only documented provider-hosted job-page URLs; it never searches, authenticates, follows application URLs, submits applications, writes a tracker or contacts people. It retains v0.10.1 dated portal-catalog evidence. It retains transactional Gmail triage and the optional, local Obsidian Kanban projection from v0.9.0. It extends v0.9.1 strategic onboarding with transparent, user-editable job-portal coverage suggestions derived from declared role family, seniority, industry, eligible geography, work mode and employment type. The local catalog is a coverage heuristic, not a current market-performance ranking; its dated evidence and maintenance boundary are published in the [versioned portal coverage catalog](skills/career-copilot/references/portal-catalog.md). It also introduces private read-only JSON/CSV vacancy-export shortlisting: it accepts only an explicitly supplied local file, normalizes documented CSV headers and source labels locally, validates candidate-selected sources, posting freshness and canonical URLs, removes canonical duplicates, and preserves candidate context for later evaluation without declaring a match. It does not query portals, retrieve live vacancies, write the tracker, submit applications, contact people, or perform any external action. Target and portal choices and shortlist reports remain private. Any Obsidian mutation still requires `confirm_each_external`, a reviewed current-plan hash, private workspace auditing, current preflight, atomic write, and verified readback. Google adapters require a separately installed and authenticated compatible `gws` CLI.
+Version 0.12.1 corrects the documentation so the portable core is presented as the product and Hermes as one optional executable adapter. Version 0.12.0 adds a portable skill contract for Hermes, Claude Code and OpenClaw, plus a guidance-only package for ChatGPT. It also adds deterministic local provider selection for Mexico, Latin America, United States and remote work. Greenhouse and Lever remain the only integrated, explicit public reads; every other recommendation is coverage-only guidance, never a market ranking or a live-vacancy assertion. Version 0.11.0 retains explicit, read-only public acquisition for candidate-confirmed Greenhouse and Lever feeds, provider-specific normalized freshness, local catalog-freshness auditing, and draft-only external-action plans. It validates private output paths before any GET, rejects redirects, and accepts only documented provider-hosted job-page URLs; it never searches, authenticates, follows application URLs, submits applications, writes a tracker or contacts people. It retains v0.10.1 dated portal-catalog evidence. It retains transactional Gmail triage and the optional, local Obsidian Kanban projection from v0.9.0. It extends v0.9.1 strategic onboarding with transparent, user-editable job-portal coverage suggestions derived from declared role family, seniority, industry, eligible geography, work mode and employment type. The local catalog is a coverage heuristic, not a current market-performance ranking; its dated evidence and maintenance boundary are published in the [versioned portal coverage catalog](skills/career-copilot/references/portal-catalog.md). It also introduces private read-only JSON/CSV vacancy-export shortlisting: it accepts only an explicitly supplied local file, normalizes documented CSV headers and source labels locally, validates candidate-selected sources, posting freshness and canonical URLs, removes canonical duplicates, and preserves candidate context for later evaluation without declaring a match. It does not query portals, retrieve live vacancies, write the tracker, submit applications, contact people, or perform any external action. Target and portal choices and shortlist reports remain private. Any Obsidian mutation still requires `confirm_each_external`, a reviewed current-plan hash, private workspace auditing, current preflight, atomic write, and verified readback. Google adapters require a separately installed and authenticated compatible `gws` CLI.
 
 Licensed under Apache-2.0; see [LICENSE](LICENSE).

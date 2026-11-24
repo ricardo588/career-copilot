@@ -2,7 +2,7 @@
 
 Versión en español: [docs/es/ADAPTERS.md](es/ADAPTERS.md).
 
-All adapters are optional, disabled in the template, and dry-run-first. Credentials, IDs and vault paths remain local.
+All adapters are optional, disabled in the template, and dry-run-first. Credentials, IDs and vault paths remain local. The commands on this page use the Hermes installed-profile path; another executable host must invoke the same portable script from its own local checkout and preserve the same authorization contract.
 
 Set the installed adapter path once:
 

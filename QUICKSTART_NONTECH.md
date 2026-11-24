@@ -1,6 +1,6 @@
-# Quickstart — for non-technical users
+# Hermes Agent quickstart — for non-technical users
 
-Spanish version: [QUICKSTART_NONTECH.es.md](QUICKSTART_NONTECH.es.md).
+Spanish version: [QUICKSTART_NONTECH.es.md](QUICKSTART_NONTECH.es.md). This guide and both installers are for Hermes Agent; see [agent hosts and portability](docs/AGENT-HOSTS.md) for other supported hosts.
 
 ## 🖱️ Option A: Double-click (macOS, easiest)
 
@@ -42,7 +42,7 @@ It clones, installs the profile, configures everything, and creates your private
 
 ## 🆘 If something goes wrong
 
-1. Make sure **Hermes is installed** and working (`hermes --version`).
+1. For this Hermes-specific installer, make sure **Hermes is installed** and working (`hermes --version`).
 2. If double-click doesn't open Terminal: right-click → "Open With" → Terminal.
 3. If it says "permission denied": run `chmod +x` again.
 4. Contact the maintainer and we'll fix it.

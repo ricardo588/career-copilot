@@ -1,4 +1,4 @@
-# Career Copilot para Hermes
+# Career Copilot
 
 <p align="center">
   <img src="assets/career-copilot-wordmark.png" alt="Career Copilot" width="800">
@@ -6,7 +6,15 @@
 
 Versión original en inglés: [README.md](README.md).
 
-Operaciones reutilizables y centradas en la privacidad para la búsqueda de empleo en [Hermes Agent](https://hermes-agent.nousresearch.com/docs).
+Operaciones de búsqueda de empleo local-first y centradas en la privacidad para hosts de agentes de IA soportados. Hermes Agent, Claude Code y OpenClaw pueden ejecutar el núcleo portable; ChatGPT cuenta con un paquete sólo de guía. Consulta [hosts de agentes y portabilidad](docs/es/AGENT-HOSTS.md).
+
+## Cómo ayuda Career Copilot en tu búsqueda de empleo
+
+Career Copilot convierte una búsqueda de empleo dispersa y de alto impacto en un sistema privado y revisable. Te ayuda a aclarar qué buscas, preservar evidencia de cada oportunidad, comparar requisitos contra experiencia confirmada y preparar materiales personalizados sin tratar suposiciones como hechos.
+
+Mantiene a la persona en control: separa información confirmada, hipótesis y borradores; conserva el workspace privado fuera del repositorio; y no ejecuta acciones externas por defecto. En vez de postular, contactar personas o cambiar un tracker en silencio, prepara la investigación, material de decisión y borradores exactos para que los revises y apruebes.
+
+Úsalo para retomar una búsqueda larga sin perder contexto, identificar qué falta por verificar, prepararte para conversaciones y entrevistas, y aprender de cada ciclo, ya sea con Hermes, Claude Code, OpenClaw u otro host local soportado. ChatGPT puede guiar el mismo proceso, pero no ejecuta tus flujos locales.
 
 ## Capacidades
 
@@ -39,7 +47,7 @@ Operaciones reutilizables y centradas en la privacidad para la búsqueda de empl
 
 El repositorio contiene solo metodología, plantillas vacías, scripts deterministas y fixtures sintéticos. Los CV, bancos de historias, preferencias de carrera, contactos, compensación, correos, memorias, sesiones, credenciales, identificadores y trackers reales pertenecen al espacio de trabajo privado de cada instalador y nunca se comprometen al repositorio.
 
-No exportes un perfil personal de Hermes para distribuir este proyecto. Instala la distribución de perfil incluida aquí.
+No exportes un perfil personal de un host para distribuir este proyecto. El repositorio sólo distribuye el núcleo portable y adaptadores de host; la distribución de perfil Hermes es un adaptador opcional.
 
 ## Documentación
 
@@ -54,6 +62,7 @@ No exportes un perfil personal de Hermes para distribuir este proyecto. Instala 
 ### En español
 
 - [Instalación](docs/es/INSTALL.md)
+- [Hosts de agentes y portabilidad](docs/es/AGENT-HOSTS.md) — límites y modelo de configuración por host
 - [Guía rápida para no técnicos](QUICKSTART_NONTECH.es.md)
 - [Inicio rápido](docs/es/QUICKSTART.md)
 - [Demo sintética](docs/es/DEMO.md)
@@ -71,7 +80,7 @@ No exportes un perfil personal de Hermes para distribuir este proyecto. Instala 
 - [Diseño de Triage transaccional Gmail 0.8](docs/es/ROADMAP-0.8.md)
 - [Diseño de Operational Tracker 0.7](docs/es/ROADMAP-0.7.md)
 
-## Instaladores (para usuarios finales)
+## Instaladores de Hermes (para usuarios finales)
 
 | Método | Archivo | Ideal para |
 |--------|---------|------------|
@@ -79,11 +88,11 @@ No exportes un perfil personal de Hermes para distribuir este proyecto. Instala 
 | **Doble clic (macOS)** | [`Install_Career_Copilot.command`](Install_Career_Copilot.command) | Sin experiencia de terminal |
 | **Guía paso a paso** | [`QUICKSTART_NONTECH.md`](QUICKSTART_NONTECH.md) | Quien prefiera leer primero |
 
-Todos los instaladores crean un perfil aislado de Hermes, un espacio de trabajo privado (`~/Documents/CareerCopilot/` con permisos `0700/0600`) y arrancan la incorporación guiada. Las acciones externas están bloqueadas por defecto en `draft_only`; otros usuarios pueden optar explícitamente por `confirm_each_external`.
+Estos instaladores específicos de Hermes crean un perfil aislado de Hermes, un espacio de trabajo privado (`~/Documents/CareerCopilot/` con permisos `0700/0600`) y arrancan la incorporación guiada. Para Claude Code, OpenClaw y ChatGPT, consulta [hosts de agentes y portabilidad](docs/es/AGENT-HOSTS.md); no ejecutes comandos de Hermes como si instalaran el skill en otros hosts. Las acciones externas están bloqueadas por defecto en `draft_only`; otros usuarios pueden optar explícitamente por `confirm_each_external`.
 
 ## Desarrollo local
 
-Requisitos: Hermes Agent 0.20.0 o superior, Git y Python 3.11 o superior.
+Requisitos del núcleo portable: Git y Python 3.11 o superior. Hermes Agent 0.20.0 o superior se requiere sólo para el adaptador Hermes y su verificación de instalación de perfil.
 
 ```bash
 python3 scripts/validate_bundle.py
@@ -100,6 +109,6 @@ python3 skills/career-copilot/scripts/run_synthetic_demo.py --output-dir "$OUTPU
 
 ## Estado actual
 
-La versión 0.12.0 agrega un contrato portable para Hermes, Claude Code y OpenClaw, más un paquete de guía sin ejecución local para ChatGPT. También agrega selección determinista y local de proveedores para México, Latinoamérica, Estados Unidos y trabajo remoto. Greenhouse y Lever siguen siendo las únicas lecturas públicas integradas y explícitas; toda otra recomendación es sólo guía de cobertura, nunca un ranking de mercado ni una afirmación de vacantes vigentes. La versión 0.11.0 agrega adquisición pública explícita y de sólo lectura para feeds Greenhouse y Lever confirmados por la persona candidata, frescura normalizada por proveedor, auditoría local de frescura del catálogo y planes de acciones externas sólo como borrador. Valida rutas privadas de salida antes de cualquier GET, rechaza redirecciones y acepta únicamente URLs de páginas de vacante alojadas por proveedores documentados; nunca busca, autentica, sigue URLs de postulación, postula, escribe el tracker ni contacta personas. Conserva la evidencia fechada del catálogo de portales v0.10.1. Conserva el triage transaccional Gmail y la proyección opcional y local a Kanban de Obsidian de v0.9.0. Amplía el onboarding estratégico de v0.9.1 con sugerencias transparentes y editables por la persona de cobertura de portales, derivadas de familia de puesto, seniority, industria, geografía elegible, modalidad y tipo de empleo declarados. El catálogo local es una heurística de cobertura, no un ranking vigente de desempeño de mercado; su evidencia fechada y límite de mantenimiento se publican en el [catálogo versionado de cobertura de portales](skills/career-copilot/references/portal-catalog.es.md). También introduce shortlists privados y de sólo lectura desde exportaciones JSON/CSV de vacantes: acepta sólo un archivo local proporcionado explícitamente, normaliza localmente encabezados CSV y etiquetas de fuente documentados, valida fuentes seleccionadas por la persona, frescura de publicación y URLs canónicas, elimina duplicados canónicos y conserva el contexto del candidato para evaluación posterior sin declarar un encaje. No consulta portales, obtiene vacantes vigentes, escribe el tracker, postula, contacta personas ni ejecuta acciones externas. Las elecciones de empresa/portal y los reportes shortlist permanecen privados. Cualquier mutación de Obsidian sigue requiriendo `confirm_each_external`, hash vigente de un plan revisado, auditoría en workspace privado, prelectura vigente, escritura atómica y readback verificado. Los adaptadores Google requieren un CLI `gws` compatible, instalado y autenticado por separado.
+La versión 0.12.1 corrige la documentación para presentar el núcleo portable como producto y Hermes como un adaptador ejecutable opcional. La versión 0.12.0 agrega un contrato portable para Hermes, Claude Code y OpenClaw, más un paquete de guía sin ejecución local para ChatGPT. También agrega selección determinista y local de proveedores para México, Latinoamérica, Estados Unidos y trabajo remoto. Greenhouse y Lever siguen siendo las únicas lecturas públicas integradas y explícitas; toda otra recomendación es sólo guía de cobertura, nunca un ranking de mercado ni una afirmación de vacantes vigentes. La versión 0.11.0 agrega adquisición pública explícita y de sólo lectura para feeds Greenhouse y Lever confirmados por la persona candidata, frescura normalizada por proveedor, auditoría local de frescura del catálogo y planes de acciones externas sólo como borrador. Valida rutas privadas de salida antes de cualquier GET, rechaza redirecciones y acepta únicamente URLs de páginas de vacante alojadas por proveedores documentados; nunca busca, autentica, sigue URLs de postulación, postula, escribe el tracker ni contacta personas. Conserva la evidencia fechada del catálogo de portales v0.10.1. Conserva el triage transaccional Gmail y la proyección opcional y local a Kanban de Obsidian de v0.9.0. Amplía el onboarding estratégico de v0.9.1 con sugerencias transparentes y editables por la persona de cobertura de portales, derivadas de familia de puesto, seniority, industria, geografía elegible, modalidad y tipo de empleo declarados. El catálogo local es una heurística de cobertura, no un ranking vigente de desempeño de mercado; su evidencia fechada y límite de mantenimiento se publican en el [catálogo versionado de cobertura de portales](skills/career-copilot/references/portal-catalog.es.md). También introduce shortlists privados y de sólo lectura desde exportaciones JSON/CSV de vacantes: acepta sólo un archivo local proporcionado explícitamente, normaliza localmente encabezados CSV y etiquetas de fuente documentados, valida fuentes seleccionadas por la persona, frescura de publicación y URLs canónicas, elimina duplicados canónicos y conserva el contexto del candidato para evaluación posterior sin declarar un encaje. No consulta portales, obtiene vacantes vigentes, escribe el tracker, postula, contacta personas ni ejecuta acciones externas. Las elecciones de empresa/portal y los reportes shortlist permanecen privados. Cualquier mutación de Obsidian sigue requiriendo `confirm_each_external`, hash vigente de un plan revisado, auditoría en workspace privado, prelectura vigente, escritura atómica y readback verificado. Los adaptadores Google requieren un CLI `gws` compatible, instalado y autenticado por separado.
 
 Con licencia Apache-2.0; consulta [LICENSE](LICENSE).
