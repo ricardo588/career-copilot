@@ -1,0 +1,11 @@
+{
+  "title": "Synthetic release recovery",
+  "context": "A synthetic release had a documented regression.",
+  "challenge": "Restore the synthetic service while preserving its audit trail.",
+  "actions": ["Coordinated a rollback", "Recorded the decision"],
+  "results": {
+    "facts": ["The synthetic service was restored."],
+    "unknowns": ["Impact metric is not confirmed."]
+  },
+  "confidentiality": "candidate_private"
+}

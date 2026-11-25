@@ -1,0 +1,10 @@
+{
+  "company": "Example Co",
+  "vacancy_title": "Operations Lead",
+  "stage": "Hiring manager interview",
+  "scheduled_at": "2026-12-01T10:00:00-06:00",
+  "modality": "video",
+  "participants": [{"name": "Ada Example", "role": "Hiring manager"}],
+  "source": "Synthetic candidate-provided invitation",
+  "hypotheses": ["The role may prioritize operating cadence."]
+}

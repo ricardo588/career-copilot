@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.11.0
+version: 0.13.0
 author: Career Copilot contributors
 metadata:
   hermes:
@@ -118,6 +118,7 @@ For deterministic local provider coverage guidance, use:
 
 Read `references/provider-selection.md` first. It performs no network request and never discovers a provider identifier; Greenhouse and Lever still require a separate, explicit candidate-confirmed read.
 
+
 For an explicit public, GET-only Greenhouse Job Board or Lever Postings read, use:
 
 `python3 ${HERMES_SKILL_DIR}/scripts/vacancy_acquisition.py --adapter <greenhouse_public_board|lever_public_postings> --source-identifier <candidate-confirmed-id> --company <candidate-confirmed-label> --as-of <YYYY-MM-DD> --output <private-report.json>`
@@ -143,6 +144,18 @@ For deterministic story selection and evaluation/interview/CV views, use:
 `python3 ${HERMES_SKILL_DIR}/scripts/story_bank.py --profile <profile> --stories <private-jsonl> [--vacancy <vacancy-json>] --mode <evaluation|interview|cv>`
 
 Never copy rendered STAR/CAR/DAR wording back as a new factual source. CV mode exposes only candidate-confirmed, shareable stories.
+
+For guided private STAR capture, use:
+
+`python3 ${HERMES_SKILL_DIR}/scripts/story_capture.py --input <private-capture-json>`
+
+Read `references/guided-story-capture.md` first. It produces an unconfirmed review proposal only and never writes a story bank or treats an unknown as evidence.
+
+For guided private interview intake, use:
+
+`python3 ${HERMES_SKILL_DIR}/scripts/interview_intake.py --input <private-interview-intake-json>`
+
+Read `references/guided-interview-intake.md` first. It records confirmed logistics, hypotheses and unknowns without starting research or any external action; pass confirmed attendees only to the existing read-only interviewer-research and brief workflow.
 
 ## Optional adapters
 
@@ -199,6 +212,7 @@ See `references/demo.md` for pass criteria.
 - `references/portal-catalog.md` — dated portal-coverage evidence and maintenance rules (Spanish: `references/portal-catalog.es.md`).
 - `references/acquisition-and-actions.md` — explicit public ATS reads, local catalog audit and draft-only action plans (Spanish: `references/acquisition-and-actions.es.md`).
 - `references/provider-selection.md` — local provider coverage guidance and extension gate.
+
 - `references/cv-first-onboarding.md` — local CV extraction, proposal and confirmation workflow.
 - `references/workflow.md` — end-to-end operating flows.
 - `references/evaluation.md` — qualitative fit decision.
@@ -214,6 +228,8 @@ See `references/demo.md` for pass criteria.
 - `references/demo.md` — synthetic end-to-end verification.
 - `references/human-path-and-interviewer-research.md` — sourced Human Path and interviewer intelligence.
 - `references/story-bank-and-career-direction.md` — private evidence stories, view reuse and optional career criteria.
+- `references/guided-story-capture.md` — guided STAR proposal and confirmation boundary.
+- `references/guided-interview-intake.md` — guided logistics intake before separate interviewer research.
 - `references/assessment-prep.md` — private presentation, case and assessment prep.
 - `references/relationships-and-debriefs.md` — relationship roles/authorization, informational meetings, assessment briefs and read-only interview debriefs.
 - `references/offers-and-negotiation.md` — private offer records, total-package comparison and negotiation drafts.
