@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.13.0
+version: 0.14.0
 author: Career Copilot contributors
 metadata:
   hermes:
@@ -157,6 +157,12 @@ For guided private interview intake, use:
 
 Read `references/guided-interview-intake.md` first. It records confirmed logistics, hypotheses and unknowns without starting research or any external action; pass confirmed attendees only to the existing read-only interviewer-research and brief workflow.
 
+For a private LinkedIn connections export clue, use:
+
+`python3 ${HERMES_SKILL_DIR}/scripts/linkedin_human_path_import.py --workspace <private-workspace> --export <private-connections-csv> --vacancy <private-vacancy-json>`
+
+Read `references/linkedin-human-path-import.md` first. The command is read-only and emits JSON to stdout only; its historical clues never establish identity, current employment, relationship strength, referral availability or authorization.
+
 ## Optional adapters
 
 Read `references/adapters.md` before use.
@@ -230,6 +236,7 @@ See `references/demo.md` for pass criteria.
 - `references/story-bank-and-career-direction.md` — private evidence stories, view reuse and optional career criteria.
 - `references/guided-story-capture.md` — guided STAR proposal and confirmation boundary.
 - `references/guided-interview-intake.md` — guided logistics intake before separate interviewer research.
+- `references/linkedin-human-path-import.md` — read-only connections-export discovery clues and evidence limits.
 - `references/assessment-prep.md` — private presentation, case and assessment prep.
 - `references/relationships-and-debriefs.md` — relationship roles/authorization, informational meetings, assessment briefs and read-only interview debriefs.
 - `references/offers-and-negotiation.md` — private offer records, total-package comparison and negotiation drafts.

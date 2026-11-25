@@ -37,6 +37,7 @@ REQUIRED = [
 
     "skills/career-copilot/references/guided-story-capture.md",
     "skills/career-copilot/references/guided-interview-intake.md",
+    "skills/career-copilot/references/linkedin-human-path-import.md",
     "skills/career-copilot/references/adapters.md",
     "skills/career-copilot/references/demo.md",
     "skills/career-copilot/references/offers-and-negotiation.md",
@@ -62,6 +63,7 @@ REQUIRED = [
 
     "skills/career-copilot/scripts/story_capture.py",
     "skills/career-copilot/scripts/interview_intake.py",
+    "skills/career-copilot/scripts/linkedin_human_path_import.py",
     "skills/career-copilot/examples/synthetic/assessment-prep.json",
     "skills/career-copilot/examples/synthetic/profile.json",
     "skills/career-copilot/examples/synthetic/rules.json",
@@ -72,6 +74,8 @@ REQUIRED = [
 
     "skills/career-copilot/examples/synthetic/story-capture.json",
     "skills/career-copilot/examples/synthetic/interview-intake.json",
+    "skills/career-copilot/examples/synthetic/linkedin-connections.csv",
+    "skills/career-copilot/examples/synthetic/linkedin-vacancy.json",
     "docs/INSTALL.md",
     "docs/es/INSTALL.md",
     "docs/QUICKSTART.md",
@@ -98,6 +102,8 @@ REQUIRED = [
     "docs/es/ROADMAP-0.12.0.md",
     "docs/ROADMAP-0.13.0.md",
     "docs/es/ROADMAP-0.13.0.md",
+    "docs/ROADMAP-0.14.0.md",
+    "docs/es/ROADMAP-0.14.0.md",
     "docs/AGENT-HOSTS.md",
     "docs/es/AGENT-HOSTS.md",
     ".claude/skills/career-copilot/SKILL.md",
@@ -124,6 +130,7 @@ DOC_LINK_PAIRS = [
     ("docs/ROADMAP-0.10.1.md", "docs/es/ROADMAP-0.10.1.md", "es/ROADMAP-0.10.1.md"),
     ("docs/ROADMAP-0.11.0.md", "docs/es/ROADMAP-0.11.0.md", "es/ROADMAP-0.11.0.md"),
     ("docs/ROADMAP-0.13.0.md", "docs/es/ROADMAP-0.13.0.md", "es/ROADMAP-0.13.0.md"),
+    ("docs/ROADMAP-0.14.0.md", "docs/es/ROADMAP-0.14.0.md", "es/ROADMAP-0.14.0.md"),
     ("cron/README.md", "cron/README.es.md", "README.es.md"),
 ]
 
