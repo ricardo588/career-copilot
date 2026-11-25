@@ -3,6 +3,7 @@ name: career-copilot
 description: Use when managing a private, profile-driven job search.
 version: 0.14.0
 author: Career Copilot contributors
+license: Apache-2.0
 metadata:
   hermes:
     tags: [career, jobs, applications, interviews, privacy]

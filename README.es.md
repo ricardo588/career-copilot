@@ -80,6 +80,45 @@ No exportes un perfil personal de un host para distribuir este proyecto. El repo
 - [Diseño de Triage transaccional Gmail 0.8](docs/es/ROADMAP-0.8.md)
 - [Diseño de Operational Tracker 0.7](docs/es/ROADMAP-0.7.md)
 
+## Skill comunitario vs. perfil completo de Hermes
+
+Career Copilot tiene dos rutas de instalación distintas para Hermes. No son intercambiables:
+
+| Ruta | Qué instala | Uso previsto |
+|---|---|---|
+| **Skill comunitario** | Solo `career-copilot` y sus archivos de soporte necesarios. | Para quien ya tiene Hermes y quiere incorporar la capacidad manualmente. |
+| **Distribución de perfil** | Un perfil aislado completo con `SOUL.md`, configuración, el skill y documentación. | Para quien quiere Career Copilot preparado como su propio perfil de Hermes. |
+
+Instala el skill comunitario en una configuración existente de Hermes:
+
+```bash
+hermes skills install \
+  skills-sh/ricardo588/career-copilot/skills/career-copilot
+```
+
+Instala la distribución de perfil completo:
+
+```bash
+hermes profile install github.com/ricardo588/career-copilot \
+  --name career-copilot \
+  --alias
+```
+
+En ambas rutas, conserva el workspace de cada candidato como privado y fuera de este repositorio y del perfil distribuido. El modo de acciones externas inicia en `draft_only`: Career Copilot no postula, envía mensajes, contacta personas, publica contenido ni muta un pipeline real automáticamente. Las integraciones con Google Sheets, Gmail y Obsidian son opcionales y requieren configuración y autorización de la persona usuaria.
+
+`skills.sh.json` aporta metadata de categorías si un directorio indexa el skill; no establece ni promete una ficha oficial de Marketplace. El indexado y la búsqueda dependen del proveedor del directorio y no se garantizan solo porque este repositorio sea público.
+
+### Lista de verificación para una futura solicitud de indexación
+
+Antes de solicitar indexación a un directorio, verifica localmente:
+
+- URL pública del repositorio: `https://github.com/ricardo588/career-copilot`
+- Identificador exacto del skill: `skills-sh/ricardo588/career-copilot/skills/career-copilot`
+- Versión/tag previsto: `0.14.0`
+- Licencia: Apache-2.0 en `LICENSE`, `SKILL.md` y `skills.sh.json`
+- Comandos de validación: `python3 -m json.tool skills.sh.json`, `python3 scripts/validate_bundle.py`, `python3 -m unittest discover -s tests -v` y `python3 skills/career-copilot/scripts/privacy_scan.py .`
+- Disclosure de privacidad: el workspace de candidato permanece privado, fuera del repositorio y del perfil; las acciones externas inician en `draft_only` y requieren autorización de la persona usuaria.
+
 ## Instaladores de Hermes (para usuarios finales)
 
 | Método | Archivo | Ideal para |

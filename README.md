@@ -80,6 +80,45 @@ Do not export a personal host profile to distribute this project. The repository
 - [Privacidad y modelo de amenazas](docs/es/PRIVACY.md)
 - [Solución de problemas](docs/es/TROUBLESHOOTING.md)
 
+## Community skill vs. complete Hermes profile
+
+Career Copilot has two distinct Hermes installation routes. They are not interchangeable:
+
+| Route | What it installs | Intended use |
+|---|---|---|
+| **Community skill** | Only `career-copilot` and its required support files. | For a user who already has Hermes and wants to add the capability manually. |
+| **Profile distribution** | A complete isolated profile with `SOUL.md`, configuration, the skill, and documentation. | For a user who wants Career Copilot prepared as its own Hermes profile. |
+
+Install the community skill into an existing Hermes setup:
+
+```bash
+hermes skills install \
+  skills-sh/ricardo588/career-copilot/skills/career-copilot
+```
+
+Install the complete profile distribution:
+
+```bash
+hermes profile install github.com/ricardo588/career-copilot \
+  --name career-copilot \
+  --alias
+```
+
+In both routes, keep each candidate workspace private and outside both this repository and the distributed profile. External-action mode starts as `draft_only`: Career Copilot does not automatically submit applications, send messages, contact people, publish content, or mutate a real pipeline. Google Sheets, Gmail, and Obsidian integrations are optional and require the user's own configuration and authorization.
+
+`skills.sh.json` supplies category metadata if a directory indexes the skill; it does not establish or promise an official Marketplace listing. Indexing and search are operated by the directory provider and are not guaranteed merely because this repository is public.
+
+### Future indexing-request checklist
+
+Before requesting directory indexing, verify locally:
+
+- Public repository URL: `https://github.com/ricardo588/career-copilot`
+- Exact skill identifier: `skills-sh/ricardo588/career-copilot/skills/career-copilot`
+- Intended version/tag: `0.14.0`
+- License: Apache-2.0 in `LICENSE`, `SKILL.md`, and `skills.sh.json`
+- Validation commands: `python3 -m json.tool skills.sh.json`, `python3 scripts/validate_bundle.py`, `python3 -m unittest discover -s tests -v`, and `python3 skills/career-copilot/scripts/privacy_scan.py .`
+- Privacy disclosure: the candidate workspace remains private, outside the repository and profile; external actions start in `draft_only` and require user authorization.
+
 ## Hermes installers (for end users)
 
 | Method | File | Best for |
