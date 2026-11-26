@@ -13,7 +13,7 @@ Do not create, copy, or submit a catalog YAML from this repository state. The Ph
    git rev-parse <authorized-release-tag>^{commit}
    ```
 
-3. Re-run package validation against that exact checkout, including `hermes plugins validate <path> --install-deps` when catalog submission is authorized.
+3. Re-run package validation against that exact checkout with `hermes plugins doctor <path> --ci`; this skill-only package has no dependency manifest, so it must not require dependency installation.
 4. Prepare one `plugin-catalog/career-copilot.yaml` file in the authorized Hermes catalog checkout. Its `sha` must be the exact value from step 2 and its quoted `version` must match the published release.
 5. Disclose that this is a skill-only portable Agent Plugins v1 package, with no tools, hooks, middleware, MCP server, environment variables, secrets, telemetry, services, or package-side installation/network activity; describe the private workspace and `draft_only` boundary.
 6. Show Ricardo the exact external diff and disclosure before any PR or publication action.
