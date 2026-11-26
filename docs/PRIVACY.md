@@ -9,6 +9,13 @@ Versión en español: [docs/es/PRIVACY.md](es/PRIVACY.md).
 - Deterministic scripts
 - Synthetic fixtures
 - Tests and CI
+- A skill-only Agent Plugins v1 manifest (`plugin.json`) with no declared capabilities
+
+## Marketplace package boundary
+
+The portable Marketplace package directly reuses `skills/career-copilot/`. It has no plugin code, tools, hooks, middleware, MCP server, service, cron, install/network hook, telemetry, configuration or secret requirement, or dependency manifest. Installing or enabling it does not call a network, log in, request credentials, create a workspace, or configure a model provider.
+
+Plugin removal deletes only the package installed by Hermes. Candidate workspaces are deliberately external to the package and are not removed, migrated, or inspected by plugin lifecycle commands.
 
 ## Private/user-owned
 

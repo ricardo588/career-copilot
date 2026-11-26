@@ -9,6 +9,13 @@ Versión original en inglés: [docs/PRIVACY.md](../PRIVACY.md).
 - Scripts deterministas
 - Fixtures sintéticos
 - Pruebas y CI
+- Un manifiesto Agent Plugins v1 solo de skill (`plugin.json`) sin capacidades declaradas
+
+## Límite del paquete Marketplace
+
+El paquete portable de Marketplace reutiliza directamente `skills/career-copilot/`. No tiene código de plugin, herramientas, hooks, middleware, servidor MCP, servicio, cron, hook de instalación/red, telemetría, requisito de configuración o secreto, ni manifiesto de dependencias. Instalarlo o habilitarlo no hace llamadas de red, login, solicitud de credenciales, creación de workspace ni configuración de proveedor de modelo.
+
+Eliminar el plugin borra solo el paquete instalado por Hermes. Los workspaces de candidato son deliberadamente externos al paquete y los comandos de ciclo de vida del plugin no los eliminan, migran ni inspeccionan.
 
 ## Privado / propiedad del usuario
 

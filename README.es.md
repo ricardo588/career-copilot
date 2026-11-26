@@ -57,6 +57,7 @@ No exportes un perfil personal de un host para distribuir este proyecto. El repo
 - [Synthetic demo](docs/DEMO.md)
 - [Optional adapters](docs/ADAPTERS.md)
 - [Privacy and threat model](docs/PRIVACY.md)
+- [Paquete de plugin para Hermes Marketplace](docs/es/PLUGIN_MARKETPLACE.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 
 ### En español
@@ -76,18 +77,20 @@ No exportes un perfil personal de un host para distribuir este proyecto. El repo
 - [Roadmap de alcance integrado de adquisición segura 0.11.0](docs/es/ROADMAP-0.11.0.md)
 - [Roadmap de skills portables y selección de proveedores 0.12.0](docs/es/ROADMAP-0.12.0.md)
 - [Nota de release: distribución como skill comunitario 0.15.0](docs/es/ROADMAP-0.15.0.md)
+- [Candidato de release: plugin portable para Marketplace 0.16.0](docs/es/ROADMAP-0.16.0.md)
 - [Catálogo versionado de cobertura de portales](skills/career-copilot/references/portal-catalog.es.md)
 - [Contrato de adquisición explícita y acciones](skills/career-copilot/references/acquisition-and-actions.es.md)
 - [Diseño de Triage transaccional Gmail 0.8](docs/es/ROADMAP-0.8.md)
 - [Diseño de Operational Tracker 0.7](docs/es/ROADMAP-0.7.md)
 
-## Skill comunitario vs. perfil completo de Hermes
+## Skill comunitario, plugin Marketplace y perfil completo de Hermes
 
-Career Copilot tiene dos rutas de instalación distintas para Hermes. No son intercambiables:
+Career Copilot tiene tres rutas de distribución distintas para Hermes. No son intercambiables:
 
 | Ruta | Qué instala | Uso previsto |
 |---|---|---|
 | **Skill comunitario** | Solo `career-copilot` y sus archivos de soporte necesarios. | Para quien ya tiene Hermes y quiere incorporar la capacidad manualmente. |
+| **Plugin Marketplace** | El mismo árbol `skills/career-copilot/` dentro de un paquete portable Agent Plugins v1. | Ruta opcional de descubrimiento curado después de una admisión independiente al catálogo. |
 | **Distribución de perfil** | Un perfil aislado completo con `SOUL.md`, configuración, el skill y documentación. | Para quien quiere Career Copilot preparado como su propio perfil de Hermes. |
 
 Instala el skill comunitario en una configuración existente de Hermes:
@@ -107,6 +110,8 @@ hermes profile install github.com/ricardo588/career-copilot \
 
 En ambas rutas, conserva el workspace de cada candidato como privado y fuera de este repositorio y del perfil distribuido. El modo de acciones externas inicia en `draft_only`: Career Copilot no postula, envía mensajes, contacta personas, publica contenido ni muta un pipeline real automáticamente. Las integraciones con Google Sheets, Gmail y Obsidian son opcionales y requieren configuración y autorización de la persona usuaria.
 
+El paquete portable de Marketplace está implementado localmente y es revisable en la versión 0.16.0, pero todavía no es una ficha aprobada ni descubrible de Marketplace. Si y solo si una entrada de catálogo se admite posteriormente, sus comandos de ciclo de vida serán `hermes plugins install career-copilot`, `hermes plugins enable career-copilot`, `hermes plugins disable career-copilot` y `hermes plugins remove career-copilot`. Consulta [detalles del paquete Marketplace](docs/es/PLUGIN_MARKETPLACE.md).
+
 `skills.sh.json` aporta metadata de categorías si un directorio indexa el skill; no establece ni promete una ficha oficial de Marketplace. El indexado y la búsqueda dependen del proveedor del directorio y no se garantizan solo porque este repositorio sea público.
 
 ### Lista de verificación para una futura solicitud de indexación
@@ -115,7 +120,7 @@ Antes de solicitar indexación a un directorio, verifica localmente:
 
 - URL pública del repositorio: `https://github.com/ricardo588/career-copilot`
 - Identificador exacto del skill: `skills-sh/ricardo588/career-copilot/skills/career-copilot`
-- Versión/tag previsto: `0.15.0`
+- Versión/tag previsto: `0.16.0`
 - Licencia: Apache-2.0 en `LICENSE`, `SKILL.md` y `skills.sh.json`
 - Comandos de validación: `python3 -m json.tool skills.sh.json`, `python3 scripts/validate_bundle.py`, `python3 -m unittest discover -s tests -v` y `python3 skills/career-copilot/scripts/privacy_scan.py .`
 - Disclosure de privacidad: el workspace de candidato permanece privado, fuera del repositorio y del perfil; las acciones externas inician en `draft_only` y requieren autorización de la persona usuaria.

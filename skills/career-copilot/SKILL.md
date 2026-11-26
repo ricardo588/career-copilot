@@ -1,7 +1,7 @@
 ---
 name: career-copilot
 description: Use when managing a private, profile-driven job search.
-version: 0.15.0
+version: 0.16.0
 author: Career Copilot contributors
 license: Apache-2.0
 metadata:

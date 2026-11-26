@@ -4,6 +4,21 @@ Versión original en inglés: [docs/INSTALL.md](../INSTALL.md).
 
 Esta página documenta el **adaptador específico de Hermes**. El núcleo portable de Career Copilot también soporta Claude Code y OpenClaw, mientras que ChatGPT recibe sólo guía; elige el host adecuado en [AGENT-HOSTS.md](AGENT-HOSTS.md) antes de ejecutar cualquier comando de esta página. Cada persona obtiene un espacio de trabajo privado separado; el repositorio no contiene datos de candidatos.
 
+## Paquete de plugin Marketplace (candidato de release 0.16.0)
+
+El `plugin.json` raíz es un paquete portable Agent Plugins v1 solo de skill que reutiliza directamente `skills/career-copilot/`. Es distinto de las instrucciones de perfil completo que siguen. No tiene código de plugin, herramientas, hooks, servidor MCP, servicio, credenciales, configuración de proveedor, telemetría, dependencias ni comportamiento de red durante la instalación.
+
+Está validado localmente, pero no está admitido, aprobado ni es descubrible en el catálogo. No ejecutes `hermes plugins install career-copilot` como si fuera un nombre actual de catálogo. Después de una release autorizada por separado y de la admisión al catálogo, el ciclo de vida revisado será:
+
+```bash
+hermes plugins install career-copilot
+hermes plugins enable career-copilot
+hermes plugins disable career-copilot
+hermes plugins remove career-copilot
+```
+
+Los paquetes portables se instalan deshabilitados. Habilitarlo expone un skill con namespace de plugin en una sesión nueva; no inicia un servicio ni crea un workspace. Eliminarlo borra solo el paquete instalado, nunca un workspace de candidato elegido por el usuario. Lee [los detalles del paquete Marketplace](PLUGIN_MARKETPLACE.md) antes de elegir esta ruta.
+
 ## Enlaces rápidos para usuarios finales
 
 | Método | Archivo | Ideal para |

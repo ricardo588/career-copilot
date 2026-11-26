@@ -58,6 +58,7 @@ Do not export a personal host profile to distribute this project. The repository
 - [Synthetic demo](docs/DEMO.md)
 - [Optional adapters](docs/ADAPTERS.md)
 - [Privacy and threat model](docs/PRIVACY.md)
+- [Hermes Marketplace plugin package](docs/PLUGIN_MARKETPLACE.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Optional Obsidian Kanban Projection 0.9 design brief](docs/ROADMAP-0.9.md)
 - [Strategic Onboarding 0.9.1 release brief](docs/ROADMAP-0.9.1.md)
@@ -66,6 +67,7 @@ Do not export a personal host profile to distribute this project. The repository
 - [Integrated Safe Acquisition Scope 0.11.0 roadmap](docs/ROADMAP-0.11.0.md)
 - [Portable Agent Skills and Provider Selection 0.12.0 roadmap](docs/ROADMAP-0.12.0.md)
 - [Community Skill Distribution 0.15.0 release brief](docs/ROADMAP-0.15.0.md)
+- [Portable Marketplace Plugin 0.16.0 release candidate](docs/ROADMAP-0.16.0.md)
 - [Versioned portal coverage catalog](skills/career-copilot/references/portal-catalog.md)
 - [Explicit acquisition and action contract](skills/career-copilot/references/acquisition-and-actions.md)
 - [Transactional Gmail Triage 0.8 design brief](docs/ROADMAP-0.8.md)
@@ -79,15 +81,17 @@ Do not export a personal host profile to distribute this project. The repository
 - [Demo sintética](docs/es/DEMO.md)
 - [Adaptadores opcionales](docs/es/ADAPTERS.md)
 - [Privacidad y modelo de amenazas](docs/es/PRIVACY.md)
+- [Paquete de plugin para Hermes Marketplace](docs/es/PLUGIN_MARKETPLACE.md)
 - [Solución de problemas](docs/es/TROUBLESHOOTING.md)
 
-## Community skill vs. complete Hermes profile
+## Community skill, Marketplace plugin, and complete Hermes profile
 
-Career Copilot has two distinct Hermes installation routes. They are not interchangeable:
+Career Copilot has three distinct Hermes distribution routes. They are not interchangeable:
 
 | Route | What it installs | Intended use |
 |---|---|---|
 | **Community skill** | Only `career-copilot` and its required support files. | For a user who already has Hermes and wants to add the capability manually. |
+| **Marketplace plugin** | The same `skills/career-copilot/` tree in a portable Agent Plugins v1 package. | Optional curated-discovery route after separate catalog admission. |
 | **Profile distribution** | A complete isolated profile with `SOUL.md`, configuration, the skill, and documentation. | For a user who wants Career Copilot prepared as its own Hermes profile. |
 
 Install the community skill into an existing Hermes setup:
@@ -107,6 +111,8 @@ hermes profile install github.com/ricardo588/career-copilot \
 
 In both routes, keep each candidate workspace private and outside both this repository and the distributed profile. External-action mode starts as `draft_only`: Career Copilot does not automatically submit applications, send messages, contact people, publish content, or mutate a real pipeline. Google Sheets, Gmail, and Obsidian integrations are optional and require the user's own configuration and authorization.
 
+The portable Marketplace package is local and reviewable in version 0.16.0, but is not yet an approved or discoverable Marketplace listing. If and only if a catalog entry is later admitted, its lifecycle commands are `hermes plugins install career-copilot`, `hermes plugins enable career-copilot`, `hermes plugins disable career-copilot`, and `hermes plugins remove career-copilot`. See [Marketplace package details](docs/PLUGIN_MARKETPLACE.md).
+
 `skills.sh.json` supplies category metadata if a directory indexes the skill; it does not establish or promise an official Marketplace listing. Indexing and search are operated by the directory provider and are not guaranteed merely because this repository is public.
 
 ### Future indexing-request checklist
@@ -115,7 +121,7 @@ Before requesting directory indexing, verify locally:
 
 - Public repository URL: `https://github.com/ricardo588/career-copilot`
 - Exact skill identifier: `skills-sh/ricardo588/career-copilot/skills/career-copilot`
-- Intended version/tag: `0.15.0`
+- Intended version/tag: `0.16.0`
 - License: Apache-2.0 in `LICENSE`, `SKILL.md`, and `skills.sh.json`
 - Validation commands: `python3 -m json.tool skills.sh.json`, `python3 scripts/validate_bundle.py`, `python3 -m unittest discover -s tests -v`, and `python3 skills/career-copilot/scripts/privacy_scan.py .`
 - Privacy disclosure: the candidate workspace remains private, outside the repository and profile; external actions start in `draft_only` and require user authorization.

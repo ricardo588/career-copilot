@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import sys
 from pathlib import Path
@@ -11,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = [
+    "plugin.json",
     "distribution.yaml",
     "SOUL.md",
     "config.yaml",
@@ -78,6 +80,9 @@ REQUIRED = [
     "skills/career-copilot/examples/synthetic/linkedin-vacancy.json",
     "docs/INSTALL.md",
     "docs/es/INSTALL.md",
+    "docs/PLUGIN_MARKETPLACE.md",
+    "docs/es/PLUGIN_MARKETPLACE.md",
+    "catalog-submission/README.md",
     "docs/QUICKSTART.md",
     "docs/es/QUICKSTART.md",
     "docs/DEMO.md",
@@ -113,6 +118,20 @@ REQUIRED = [
     "cron/README.es.md",
 ]
 FORBIDDEN = [".env", "auth.json", "memories", "sessions", "state.db", "local"]
+FORBIDDEN_PORTABLE_FILES = ["mcp.json", "plugin.yaml", "__init__.py"]
+PORTABLE_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+PORTABLE_FORBIDDEN_KEYS = {
+    "capabilities",
+    "config_schema",
+    "requires_env",
+    "telemetry",
+    "tools",
+    "hooks",
+    "middleware",
+    "mcp",
+    "lifecycle",
+    "cron",
+}
 
 DOC_LINK_PAIRS = [
     ("README.md", "README.es.md", "README.es.md"),
@@ -122,6 +141,7 @@ DOC_LINK_PAIRS = [
     ("docs/DEMO.md", "docs/es/DEMO.md", "es/DEMO.md"),
     ("docs/ADAPTERS.md", "docs/es/ADAPTERS.md", "es/ADAPTERS.md"),
     ("docs/PRIVACY.md", "docs/es/PRIVACY.md", "es/PRIVACY.md"),
+    ("docs/PLUGIN_MARKETPLACE.md", "docs/es/PLUGIN_MARKETPLACE.md", "es/PLUGIN_MARKETPLACE.md"),
     ("docs/TROUBLESHOOTING.md", "docs/es/TROUBLESHOOTING.md", "es/TROUBLESHOOTING.md"),
     ("docs/AGENT-HOSTS.md", "docs/es/AGENT-HOSTS.md", "es/AGENT-HOSTS.md"),
     ("docs/ROADMAP-0.7.md", "docs/es/ROADMAP-0.7.md", "es/ROADMAP-0.7.md"),
@@ -131,6 +151,7 @@ DOC_LINK_PAIRS = [
     ("docs/ROADMAP-0.11.0.md", "docs/es/ROADMAP-0.11.0.md", "es/ROADMAP-0.11.0.md"),
     ("docs/ROADMAP-0.13.0.md", "docs/es/ROADMAP-0.13.0.md", "es/ROADMAP-0.13.0.md"),
     ("docs/ROADMAP-0.14.0.md", "docs/es/ROADMAP-0.14.0.md", "es/ROADMAP-0.14.0.md"),
+    ("docs/ROADMAP-0.16.0.md", "docs/es/ROADMAP-0.16.0.md", "es/ROADMAP-0.16.0.md"),
     ("cron/README.md", "cron/README.es.md", "README.es.md"),
 ]
 
@@ -175,6 +196,24 @@ def main() -> int:
     for key in ("name", "version", "description", "hermes_requires"):
         if not re.search(rf"(?m)^{key}:\s*\S", distribution):
             errors.append(f"distribution.yaml missing {key}")
+
+    try:
+        plugin = json.loads((ROOT / "plugin.json").read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        errors.append(f"plugin.json is not valid JSON: {exc}")
+    else:
+        if plugin.get("$schema") != PORTABLE_SCHEMA:
+            errors.append("plugin.json must target Agent Plugins v1 schema")
+        if plugin.get("name") != "career-copilot":
+            errors.append("plugin.json name must be career-copilot")
+        if plugin.get("version") != "0.16.0":
+            errors.append("plugin.json version must be 0.16.0")
+        if PORTABLE_FORBIDDEN_KEYS.intersection(plugin):
+            errors.append("plugin.json declares prohibited portable capabilities")
+
+    for relative in FORBIDDEN_PORTABLE_FILES:
+        if (ROOT / relative).exists():
+            errors.append(f"forbidden portable runtime file in repository: {relative}")
 
     errors.extend(validate_frontmatter(ROOT / "skills/career-copilot/SKILL.md"))
 

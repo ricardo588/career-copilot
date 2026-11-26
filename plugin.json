@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "career-copilot",
+  "version": "0.16.0",
+  "description": "Private, reviewable job-search skill that keeps candidate workspaces user-controlled and external actions draft-only by default.",
+  "author": {
+    "name": "Career Copilot contributors"
+  },
+  "homepage": "https://github.com/ricardo588/career-copilot",
+  "repository": "https://github.com/ricardo588/career-copilot",
+  "license": "Apache-2.0",
+  "keywords": [
+    "career",
+    "jobs",
+    "privacy",
+    "skill"
+  ]
+}
